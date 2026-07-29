@@ -101,6 +101,9 @@ export function PokerTable({
   const you = table.players.find((p) => p.id === table.viewerId)
   const opponents = table.players.filter((p) => p.id !== table.viewerId)
   const callouts = calloutsFor(table)
+  // Every chip stack is drawn against the biggest one, so the leader is full
+  // height and the rest are read off them at a glance.
+  const maxStack = Math.max(...table.players.map((p) => p.stack), 0)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
   const finished = gone || isGameOver(table.outcome)
@@ -176,6 +179,8 @@ export function PokerTable({
                     isWinner={winners.has(player.id)}
                     callout={callouts.get(player.id)}
                     calloutSide={calloutSide(left)}
+                    maxStack={maxStack}
+                    bigBlind={table.bigBlind}
                   />
                 </div>
               )
@@ -195,6 +200,8 @@ export function PokerTable({
             isWinner={winners.has(you.id)}
             callout={callouts.get(you.id)}
             calloutSide="right"
+            maxStack={maxStack}
+            bigBlind={table.bigBlind}
             hero
           />
         )}

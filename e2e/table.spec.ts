@@ -23,6 +23,21 @@ async function dealIn(page: Page, opponents = '3') {
   await expect(page.getByTestId('pot')).toBeVisible()
 }
 
+/** Deal a table with a short buy-in, so busting out happens quickly. */
+async function shortStackedTable(page: Page, startingStack: number) {
+  await page.goto('/')
+  const tableId = await page.evaluate(async (stack) => {
+    const response = await fetch('/api/table', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ botCount: 1, startingStack: stack }),
+    })
+    return (await response.json()).tableId as string
+  }, startingStack)
+  await page.goto(`/table/${tableId}`)
+  return tableId
+}
+
 /** Take whichever passive action is on offer. */
 async function actPassively(page: Page) {
   const check = page.getByTestId('action-check')
@@ -188,6 +203,65 @@ test.describe('seat callouts', () => {
   })
 })
 
+test.describe('chip stacks', () => {
+  const chips = (page: Page, id: string) => page.getByTestId(`chips-${id}`).locator('span')
+
+  test('draws a stack for everyone who has chips', async ({ page }) => {
+    await dealIn(page, '1')
+
+    await expect(chips(page, 'you')).not.toHaveCount(0)
+    await expect(chips(page, 'bot1')).not.toHaveCount(0)
+  })
+
+  test('draws the chip leader taller than the short stack', async ({ page }) => {
+    await dealIn(page, '1')
+
+    // Heads up, the blinds alone put the two stacks apart: whoever posted the
+    // big blind has fewer chips, so their column must be no taller.
+    const you = await chips(page, 'you').count()
+    const bot = await chips(page, 'bot1').count()
+    const youStack = Number((await page.getByTestId('stack-you').textContent())?.replace(/\D/g, ''))
+    const botStack = Number((await page.getByTestId('stack-bot1').textContent())?.replace(/\D/g, ''))
+
+    if (youStack === botStack) test.skip()
+    expect(youStack > botStack ? you >= bot : bot >= you).toBe(true)
+  })
+
+  test('draws no chips at all for a player who has busted', async ({ page }) => {
+    // Two big blinds each, so someone is out within a few hands.
+    await shortStackedTable(page, 100)
+
+    const over = page.getByTestId('game-over')
+    for (let step = 0; step < 40 && !(await over.isVisible().catch(() => false)); step++) {
+      const next = page.getByTestId('next-hand')
+      if (await next.isVisible().catch(() => false)) await next.click()
+      else await actPassively(page)
+      await page.waitForTimeout(60)
+    }
+    await expect(over).toBeVisible()
+
+    // Whoever ran out shows an empty space where their chips were, which is the
+    // whole point: no chips is not a short stack, it is no stack.
+    const busted = (await page.getByTestId('stack-you').textContent()) === '0' ? 'you' : 'bot1'
+    await expect(chips(page, busted)).toHaveCount(0)
+  })
+})
+
+test('marks the dealer with exactly one button', async ({ page }) => {
+  await dealIn(page)
+
+  const button = page.getByTestId('dealer-button')
+  await expect(button).toHaveCount(1)
+  await expect(button).toBeVisible()
+
+  // Card clips its children by default, which had been shaving the button down
+  // to a sliver. A button narrower than it is tall is the symptom.
+  const box = await button.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.width).toBeGreaterThanOrEqual(box!.height - 1)
+  expect(box!.width).toBeGreaterThanOrEqual(20)
+})
+
 test('offers a raise amount the server will accept', async ({ page }) => {
   await dealIn(page)
 
@@ -213,21 +287,6 @@ test('shows a useful message for a table that does not exist', async ({ page }) 
 })
 
 test.describe('when the table is finished', () => {
-  /** Deal a table with a short buy-in, so busting out happens quickly. */
-  async function shortStackedTable(page: Page, startingStack: number) {
-    await page.goto('/')
-    const tableId = await page.evaluate(async (stack) => {
-      const response = await fetch('/api/table', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ botCount: 1, startingStack: stack }),
-      })
-      return (await response.json()).tableId as string
-    }, startingStack)
-    await page.goto(`/table/${tableId}`)
-    return tableId
-  }
-
   test('ends the game instead of offering a hand that cannot be dealt', async ({ page }) => {
     // Two players at two big blinds each: within a few hands one of them is out
     // of chips, whichever way it falls.

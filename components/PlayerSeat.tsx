@@ -1,8 +1,17 @@
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { ChipStack } from './ChipStack'
 import { PlayingCard } from './PlayingCard'
+import { describeStack, type StackTone } from '@/lib/poker/chips'
 import type { RedactedPlayer } from '@/lib/poker/redact'
+
+/** The count is tinted like the chips, so the two never disagree on sight. */
+const STACK_TEXT: Record<StackTone, string> = {
+  healthy: 'text-emerald-400',
+  medium: 'text-amber-400',
+  short: 'text-rose-400',
+}
 
 function displayName(player: RedactedPlayer, viewerId: string | null): string {
   if (player.id === viewerId) return 'You'
@@ -23,6 +32,8 @@ export function PlayerSeat({
   isWinner,
   callout,
   calloutSide = 'below',
+  maxStack,
+  bigBlind,
   hero = false,
 }: {
   player: RedactedPlayer
@@ -30,6 +41,9 @@ export function PlayerSeat({
   isActing: boolean
   isButton: boolean
   isWinner: boolean
+  /** The biggest stack at the table, for drawing this one against it. */
+  maxStack: number
+  bigBlind: number
   /** What this player last did on this street, or null for nothing to say. */
   callout?: string | null
   /** Which way the callout hangs. The caller knows where the seat sits. */
@@ -38,6 +52,7 @@ export function PlayerSeat({
   hero?: boolean
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
+  const { tone } = describeStack(player.stack, maxStack, bigBlind)
 
   return (
     <div className="relative flex flex-col items-center gap-1.5" data-testid={`seat-${player.id}`}>
@@ -56,7 +71,9 @@ export function PlayerSeat({
       <Card
         className={cn(
           'relative gap-0 rounded-xl border px-3 py-1.5 transition-all duration-200',
-          'bg-neutral-900/85 backdrop-blur-sm',
+          // Card clips by default, which quietly shaved the dealer button down
+          // to a sliver. The button and the chips both sit proud of the plate.
+          'overflow-visible bg-neutral-900/85 backdrop-blur-sm',
           isActing && 'border-amber-400/80 shadow-[0_0_0_3px_oklch(0.82_0.14_85/0.25)]',
           isWinner && 'border-emerald-400/80 shadow-[0_0_0_3px_oklch(0.75_0.16_155/0.3)]',
           !isActing && !isWinner && 'border-white/10',
@@ -64,14 +81,31 @@ export function PlayerSeat({
         )}
       >
         {isButton && (
+          /*
+           * Position matters every hand — it decides who acts last — so the
+           * button is drawn as an actual dealer button rather than a marker:
+           * full size, ringed, and sitting proud of the plate.
+           */
           <span
-            className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-white text-[10px] font-bold text-neutral-900 shadow"
+            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-white text-[11px] font-bold text-neutral-900 ring-2 ring-neutral-900/70 shadow-md"
             title="dealer button"
             data-testid="dealer-button"
           >
             D
           </span>
         )}
+
+        {/* Chips to the left, where no callout ever lands. */}
+        <ChipStack
+          stack={player.stack}
+          maxStack={maxStack}
+          bigBlind={bigBlind}
+          testId={`chips-${player.id}`}
+          className={cn(
+            'absolute top-1/2 right-full mr-1.5 -translate-y-1/2',
+            isOut && 'opacity-60',
+          )}
+        />
 
         <div className="text-center leading-tight">
           <div
@@ -87,7 +121,7 @@ export function PlayerSeat({
             className={cn(
               'font-mono tabular-nums',
               hero ? 'text-sm' : 'text-xs',
-              player.stack === 0 ? 'text-neutral-500' : 'text-emerald-400',
+              player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
             )}
             data-testid={`stack-${player.id}`}
           >
