@@ -21,6 +21,8 @@ export function PlayerSeat({
   isActing,
   isButton,
   isWinner,
+  callout,
+  calloutSide = 'below',
   hero = false,
 }: {
   player: RedactedPlayer
@@ -28,13 +30,17 @@ export function PlayerSeat({
   isActing: boolean
   isButton: boolean
   isWinner: boolean
+  /** What this player last did on this street, or null for nothing to say. */
+  callout?: string | null
+  /** Which way the callout hangs. The caller knows where the seat sits. */
+  calloutSide?: 'right' | 'below'
   /** The viewer's own seat, drawn larger and with bigger cards. */
   hero?: boolean
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
 
   return (
-    <div className="flex flex-col items-center gap-1.5" data-testid={`seat-${player.id}`}>
+    <div className="relative flex flex-col items-center gap-1.5" data-testid={`seat-${player.id}`}>
       <div className={cn('flex gap-1', hero ? 'gap-1.5' : 'gap-1')}>
         {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
           <PlayingCard
@@ -111,6 +117,36 @@ export function PlayerSeat({
           </span>
         )}
       </div>
+
+      {callout && (
+        /*
+         * Absolutely positioned so a bot acting never nudges the seats around,
+         * and keyed on the text so a second action on the same street replays
+         * the animation instead of silently swapping the words.
+         */
+        <div
+          key={callout}
+          className={cn(
+            'animate-callout pointer-events-none absolute z-20 whitespace-nowrap',
+            calloutSide === 'right'
+              ? 'top-1/2 left-full ml-2.5 -translate-y-1/2'
+              : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
+          )}
+          data-testid={`callout-${player.id}`}
+        >
+          <span className="relative block rounded-md border border-white/15 bg-neutral-800 px-2 py-0.5 text-[11px] font-medium text-neutral-100 shadow-lg">
+            {callout}
+            <span
+              className={cn(
+                'absolute size-2 rotate-45 bg-neutral-800',
+                calloutSide === 'right'
+                  ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-white/15'
+                  : '-top-1 left-1/2 -translate-x-1/2 border-t border-l border-white/15',
+              )}
+            />
+          </span>
+        </div>
+      )}
     </div>
   )
 }

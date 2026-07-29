@@ -125,6 +125,69 @@ test('reveals the board as the streets come out', async ({ page }) => {
   }
 })
 
+test.describe('seat callouts', () => {
+  const callouts = (page: Page) => page.getByTestId(/^callout-/)
+
+  test('announces the blinds at the seats that posted them', async ({ page }) => {
+    // Heads up, so the two blinds are the whole story before anyone acts.
+    await dealIn(page, '1')
+
+    await expect(callouts(page).filter({ hasText: 'Small blind' })).toHaveCount(1)
+    await expect(callouts(page).filter({ hasText: 'Big blind' })).toHaveCount(1)
+  })
+
+  test('phrases a raise as the level the button offered', async ({ page }) => {
+    await dealIn(page)
+
+    const bet = page.getByTestId('action-bet')
+    if (!(await bet.isVisible().catch(() => false))) test.skip()
+
+    // The engine stores chips moved, not the level reached, so a big blind
+    // raising to 300 is recorded as 250. The bubble has to undo that — and the
+    // button already advertises the level, which is the number to match.
+    const level = ((await bet.textContent()) ?? '').match(/[\d,]+/)?.[0] ?? ''
+    expect(level).not.toBe('')
+    await bet.click()
+
+    await expect(page.getByTestId('callout-you')).toContainText(level)
+  })
+
+  test('drops the preflop callouts once the flop is out', async ({ page }) => {
+    await dealIn(page, '1')
+    await expect(callouts(page).filter({ hasText: 'blind' })).toHaveCount(2)
+
+    const board = page.getByTestId('board')
+    const result = page.getByTestId('hand-result')
+    for (let step = 0; step < 20; step++) {
+      if (await result.isVisible().catch(() => false)) break
+      if ((await board.getByTestId('card-face').count()) >= 3) break
+      await actPassively(page)
+      await page.waitForTimeout(60)
+    }
+    // Someone may have folded the hand out before a flop ever came.
+    if ((await board.getByTestId('card-face').count()) < 3) test.skip()
+
+    // Blinds are posted preflop and nowhere else, so a surviving "blind" bubble
+    // would mean the callouts had outlived their street.
+    await expect(callouts(page).filter({ hasText: 'blind' })).toHaveCount(0)
+  })
+
+  test('keeps the last actions on screen beside the result', async ({ page }) => {
+    await dealIn(page)
+
+    const result = page.getByTestId('hand-result')
+    for (let step = 0; step < 30 && !(await result.isVisible().catch(() => false)); step++) {
+      await actPassively(page)
+      await page.waitForTimeout(60)
+    }
+    await expect(result).toBeVisible()
+
+    // Settling moves the street to 'showdown', which has no actions of its own.
+    // Scoping to it would blank the fold that just decided the hand.
+    await expect(callouts(page).first()).toBeVisible()
+  })
+})
+
 test('offers a raise amount the server will accept', async ({ page }) => {
   await dealIn(page)
 

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
+import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { isGameOver, type TableView } from '@/lib/poker/lifecycle'
 
 const ACTION_VERBS: Record<string, string> = {
@@ -28,16 +29,28 @@ const ACTION_VERBS: Record<string, string> = {
  * the viewer. Angles run clockwise from upper-left to upper-right, so seat
  * order round the table matches the order actions happen in.
  */
-function seatPosition(index: number, count: number): { left: string; top: string } {
+function seatPosition(index: number, count: number): { left: number; top: number } {
   // Wider spread for a bigger field, so five opponents do not bunch up at the
   // top while two sit awkwardly far apart.
   const spread = count <= 2 ? 110 : count === 3 ? 160 : 200
   const angle = count === 1 ? 270 : 270 - spread / 2 + (index * spread) / (count - 1)
   const radians = (angle * Math.PI) / 180
   return {
-    left: `${50 + 43 * Math.cos(radians)}%`,
-    top: `${50 + 44 * Math.sin(radians)}%`,
+    left: 50 + 43 * Math.cos(radians),
+    top: 50 + 44 * Math.sin(radians),
   }
+}
+
+/**
+ * Which way a seat's callout bubble should hang.
+ *
+ * Below, normally — it is the only direction with room, since a seat on the top
+ * arc has the rail immediately above it. The exception is a seat sitting dead
+ * centre, whose bubble would drop straight onto the pot; those get pushed out
+ * to the side instead. Only odd-numbered fields put anyone there.
+ */
+function calloutSide(left: number): 'right' | 'below' {
+  return Math.abs(left - 50) < 18 ? 'right' : 'below'
 }
 
 export function PokerTable({
@@ -87,6 +100,7 @@ export function PokerTable({
 
   const you = table.players.find((p) => p.id === table.viewerId)
   const opponents = table.players.filter((p) => p.id !== table.viewerId)
+  const callouts = calloutsFor(table)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
   const finished = gone || isGameOver(table.outcome)
@@ -146,21 +160,26 @@ export function PokerTable({
             </div>
 
             {/* Opponents around the top arc */}
-            {opponents.map((player, i) => (
-              <div
-                key={player.id}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
-                style={seatPosition(i, opponents.length)}
-              >
-                <PlayerSeat
-                  player={player}
-                  viewerId={table.viewerId}
-                  isActing={table.actingPlayerId === player.id}
-                  isButton={table.buttonSeat === player.seat}
-                  isWinner={winners.has(player.id)}
-                />
-              </div>
-            ))}
+            {opponents.map((player, i) => {
+              const { left, top } = seatPosition(i, opponents.length)
+              return (
+                <div
+                  key={player.id}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${left}%`, top: `${top}%` }}
+                >
+                  <PlayerSeat
+                    player={player}
+                    viewerId={table.viewerId}
+                    isActing={table.actingPlayerId === player.id}
+                    isButton={table.buttonSeat === player.seat}
+                    isWinner={winners.has(player.id)}
+                    callout={callouts.get(player.id)}
+                    calloutSide={calloutSide(left)}
+                  />
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -174,6 +193,8 @@ export function PokerTable({
             isActing={table.actingPlayerId === you.id}
             isButton={table.buttonSeat === you.seat}
             isWinner={winners.has(you.id)}
+            callout={callouts.get(you.id)}
+            calloutSide="right"
             hero
           />
         )}
@@ -274,7 +295,7 @@ export function PokerTable({
             className="mt-2 max-h-36 overflow-y-auto rounded-lg border border-white/10 bg-neutral-950/60 p-3 font-mono text-[11px] leading-relaxed text-neutral-400"
             data-testid="history"
           >
-            {table.handHistory.map((entry, i) => (
+            {annotateHistory(table.handHistory).map((entry, i) => (
               <li key={i}>
                 <span className="text-neutral-600">{entry.street}</span>{' '}
                 <span className="text-neutral-300">
@@ -283,7 +304,9 @@ export function PokerTable({
                     : entry.playerId.replace(/^bot(\d+)$/, 'Bot $1')}
                 </span>{' '}
                 {ACTION_VERBS[entry.type] ?? entry.type}
-                {entry.amount > 0 && ` ${entry.amount.toLocaleString()}`}
+                {/* The level, not the chips added: "raises to 300" was reading
+                    as the 250 that left the stack. */}
+                {entry.level !== null && ` ${entry.level.toLocaleString()}`}
               </li>
             ))}
           </ol>
