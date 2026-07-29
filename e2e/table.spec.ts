@@ -148,3 +148,64 @@ test('shows a useful message for a table that does not exist', async ({ page }) 
   const response = await page.goto('/table/00000000-0000-0000-0000-000000000000')
   expect(response?.status()).toBe(404)
 })
+
+test.describe('when the table is finished', () => {
+  /** Deal a table with a short buy-in, so busting out happens quickly. */
+  async function shortStackedTable(page: Page, startingStack: number) {
+    await page.goto('/')
+    const tableId = await page.evaluate(async (stack) => {
+      const response = await fetch('/api/table', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ botCount: 1, startingStack: stack }),
+      })
+      return (await response.json()).tableId as string
+    }, startingStack)
+    await page.goto(`/table/${tableId}`)
+    return tableId
+  }
+
+  test('ends the game instead of offering a hand that cannot be dealt', async ({ page }) => {
+    // Two players at two big blinds each: within a few hands one of them is out
+    // of chips, whichever way it falls.
+    await shortStackedTable(page, 100)
+
+    const gameOver = page.getByTestId('game-over')
+    for (let hand = 0; hand < 40; hand++) {
+      if (await gameOver.isVisible().catch(() => false)) break
+
+      const next = page.getByTestId('next-hand')
+      if (await next.isVisible().catch(() => false)) {
+        await next.click()
+        await page.waitForTimeout(60)
+        continue
+      }
+      await actPassively(page)
+      await page.waitForTimeout(60)
+    }
+
+    await expect(gameOver).toBeVisible()
+    // The dead end was offering an action the server would refuse. It is gone.
+    await expect(page.getByTestId('next-hand')).toBeHidden()
+    await expect(page.getByTestId('error')).toHaveCount(0)
+    await expect(gameOver).toContainText(/You are out of chips|You won the table/)
+
+    // The only thing on offer actually works.
+    await page.getByTestId('new-table').click()
+    await expect(page.getByRole('heading', { name: /Texas Hold/ })).toBeVisible()
+  })
+
+  test('rejects a buy-in the server will not accept', async ({ page }) => {
+    await page.goto('/')
+    const result = await page.evaluate(async () => {
+      const response = await fetch('/api/table', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ botCount: 99, startingStack: 1 }),
+      })
+      return { status: response.status, body: await response.json() }
+    })
+    expect(result.status).toBe(400)
+    expect(result.body.error).toMatch(/botCount/)
+  })
+})
