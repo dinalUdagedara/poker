@@ -14,9 +14,15 @@
 import 'server-only'
 
 import { decideAction } from '../poker/bots/equity'
-import { redactFor, type RedactedTableState } from '../poker/redact'
+import { tableOutcome, type TableView } from '../poker/lifecycle'
+import { redactFor } from '../poker/redact'
 import { applyAction, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
+
+// The outcome travels with the state so the interface never offers an action
+// the server would refuse. The type lives in lib/poker/lifecycle so client
+// components can name it without importing this server-only module.
+export type { TableView }
 
 export const HUMAN_ID = 'you'
 
@@ -59,6 +65,46 @@ const DEFAULTS: TableSettings = {
   bigBlind: 50,
 }
 
+const LIMITS = {
+  botCount: { min: 1, max: 8 },
+  startingStack: { min: 100, max: 1_000_000 },
+} as const
+
+/**
+ * Validate the two settings a client is allowed to choose.
+ *
+ * The request body is untrusted, so nothing is spread from it wholesale — the
+ * blinds in particular stay server-owned, since a client that could set them
+ * could set a big blind larger than everyone's stack and deadlock the table.
+ */
+function resolveSettings(requested: unknown): TableSettings {
+  const input = (requested ?? {}) as Record<string, unknown>
+
+  const read = (name: 'botCount' | 'startingStack'): number => {
+    if (input[name] === undefined) return DEFAULTS[name]
+    const value = Number(input[name])
+    const { min, max } = LIMITS[name]
+    if (!Number.isInteger(value) || value < min || value > max) {
+      throw new TableError(`${name} must be a whole number between ${min} and ${max}`, 400)
+    }
+    return value
+  }
+
+  return {
+    ...DEFAULTS,
+    botCount: read('botCount'),
+    startingStack: read('startingStack'),
+  }
+}
+
+/** The redacted table plus what the player can do next. */
+function viewOf(state: TableState): TableView {
+  return {
+    ...redactFor(state, HUMAN_ID),
+    outcome: tableOutcome(state.players, HUMAN_ID, state.result !== null),
+  }
+}
+
 function seatsFor(settings: TableSettings, stacks?: Map<string, number>): SeatConfig[] {
   const seats: SeatConfig[] = [
     { id: HUMAN_ID, seat: 0, stack: stacks?.get(HUMAN_ID) ?? settings.startingStack },
@@ -91,12 +137,8 @@ function playBots(state: TableState): TableState {
   return state
 }
 
-export function createTable(settings: Partial<TableSettings> = {}): RedactedTableState {
-  const resolved = { ...DEFAULTS, ...settings }
-  if (resolved.botCount < 1 || resolved.botCount > 8) {
-    throw new TableError('A table needs between one and eight bots', 400)
-  }
-
+export function createTable(settings: unknown = {}): TableView {
+  const resolved = resolveSettings(settings)
   const tableId = crypto.randomUUID()
   const state = playBots(
     startHand({
@@ -109,7 +151,7 @@ export function createTable(settings: Partial<TableSettings> = {}): RedactedTabl
   )
 
   store.set(tableId, { state, settings: resolved })
-  return redactFor(state, HUMAN_ID)
+  return viewOf(state)
 }
 
 function load(tableId: string): StoredTable {
@@ -118,14 +160,14 @@ function load(tableId: string): StoredTable {
   return table
 }
 
-export function getTable(tableId: string): RedactedTableState {
-  return redactFor(load(tableId).state, HUMAN_ID)
+export function getTable(tableId: string): TableView {
+  return viewOf(load(tableId).state)
 }
 
 /** Like getTable, but returns null for an unknown table instead of throwing. */
-export function findTable(tableId: string): RedactedTableState | null {
+export function findTable(tableId: string): TableView | null {
   const table = store.get(tableId)
-  return table ? redactFor(table.state, HUMAN_ID) : null
+  return table ? viewOf(table.state) : null
 }
 
 /**
@@ -134,7 +176,7 @@ export function findTable(tableId: string): RedactedTableState | null {
  * The client sends an intent and nothing else. Whether it is legal, what it
  * costs and what happens next are all decided here.
  */
-export function submitAction(tableId: string, action: Action): RedactedTableState {
+export function submitAction(tableId: string, action: Action): TableView {
   const table = load(tableId)
 
   if (table.state.result) throw new TableError('That hand is already over', 409)
@@ -156,19 +198,22 @@ export function submitAction(tableId: string, action: Action): RedactedTableStat
 
   next = playBots(next)
   store.set(tableId, { ...table, state: next })
-  return redactFor(next, HUMAN_ID)
+  return viewOf(next)
 }
 
 /** Deal the next hand, moving the button and dropping anyone out of chips. */
-export function startNextHand(tableId: string): RedactedTableState {
+export function startNextHand(tableId: string): TableView {
   const table = load(tableId)
   if (!table.state.result) throw new TableError('The current hand is still in progress', 409)
 
+  // The client is told the outcome and hides the button, but a stale tab or a
+  // hand-rolled request can still get here, so the rule is enforced twice.
+  const outcome = tableOutcome(table.state.players, HUMAN_ID, true)
+  if (outcome.kind === 'eliminated') throw new TableError('You are out of chips', 409)
+  if (outcome.kind === 'winner') throw new TableError('Everyone else is out of chips', 409)
+
   const stacks = new Map(table.state.players.map((p) => [p.id, p.stack]))
   const seats = seatsFor(table.settings, stacks).filter((s) => s.stack > 0)
-
-  if (!seats.some((s) => s.id === HUMAN_ID)) throw new TableError('You are out of chips', 409)
-  if (seats.length < 2) throw new TableError('Not enough players with chips', 409)
 
   // The button moves one live seat clockwise.
   const occupied = seats.map((s) => s.seat).sort((a, b) => a - b)
@@ -187,5 +232,5 @@ export function startNextHand(tableId: string): RedactedTableState {
   )
 
   store.set(tableId, { ...table, state })
-  return redactFor(state, HUMAN_ID)
+  return viewOf(state)
 }

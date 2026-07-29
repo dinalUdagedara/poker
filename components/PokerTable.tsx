@@ -3,14 +3,14 @@
 import Link from 'next/link'
 import { useCallback, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
-import type { RedactedTableState } from '@/lib/poker/redact'
+import { isGameOver, type TableView } from '@/lib/poker/lifecycle'
 
 const ACTION_VERBS: Record<string, string> = {
   'post-blind': 'posts',
@@ -45,11 +45,17 @@ export function PokerTable({
   initial,
 }: {
   tableId: string
-  initial: RedactedTableState
+  initial: TableView
 }) {
   const [table, setTable] = useState(initial)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /**
+   * Set when the server no longer knows this table — the store is in memory, so
+   * a restart loses it. Retrying can only fail again, so the only thing worth
+   * offering is a fresh table.
+   */
+  const [gone, setGone] = useState(false)
 
   /**
    * Every endpoint answers with the whole redacted state, so posting an action
@@ -66,8 +72,12 @@ export function PokerTable({
         body: JSON.stringify(body),
       })
       const payload = await response.json()
+      if (response.status === 404) {
+        setGone(true)
+        throw new Error('This table is no longer available')
+      }
       if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
-      setTable(payload as RedactedTableState)
+      setTable(payload as TableView)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -79,6 +89,7 @@ export function PokerTable({
   const opponents = table.players.filter((p) => p.id !== table.viewerId)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
+  const finished = gone || isGameOver(table.outcome)
 
   return (
     <main className="table-room flex min-h-dvh flex-col">
@@ -175,7 +186,38 @@ export function PokerTable({
 
         <div className="flex w-full max-w-2xl flex-col items-center gap-3">
           <Card className="w-full min-w-0 gap-0 border-white/10 bg-neutral-950/70 p-4 backdrop-blur">
-            {table.result ? (
+            {finished ? (
+              /*
+               * The table is over: busted, won outright, or lost to a server
+               * restart. Offering "next hand" here would be offering an action
+               * the server is bound to refuse, which is how the dead end
+               * happened in the first place.
+               */
+              <div className="flex flex-col items-center gap-3" data-testid="game-over">
+                <p className="text-center text-base font-medium">
+                  {gone
+                    ? 'This table is no longer available'
+                    : table.outcome.kind === 'winner'
+                      ? 'You won the table'
+                      : 'You are out of chips'}
+                </p>
+                <p className="text-muted-foreground text-center text-sm">
+                  {gone
+                    ? 'Tables are held in memory, so a server restart clears them.'
+                    : table.outcome.kind === 'winner'
+                      ? `You finished with ${you?.stack.toLocaleString()} after ${table.handNumber} ${
+                          table.handNumber === 1 ? 'hand' : 'hands'
+                        }.`
+                      : `You lasted ${table.handNumber} ${
+                          table.handNumber === 1 ? 'hand' : 'hands'
+                        }.`}
+                </p>
+                {/* This Button has no asChild, so the link carries its styles. */}
+                <Link href="/" className={buttonVariants()} data-testid="new-table">
+                  New table
+                </Link>
+              </div>
+            ) : table.result ? (
               <div className="flex flex-col items-center gap-3" data-testid="hand-result">
                 <p
                   className={cn(
