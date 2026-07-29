@@ -53,6 +53,18 @@ function calloutSide(left: number): 'right' | 'below' {
   return Math.abs(left - 50) < 18 ? 'right' : 'below'
 }
 
+/**
+ * Which side of a seat its chips sit on.
+ *
+ * Always the one facing the middle of the table. A seat out on the left rail
+ * with its chips further left pushes them over the edge and off the felt, which
+ * is where they were landing. Inward there is always room. A seat dead centre
+ * takes the left, since its callout has the right.
+ */
+function chipSide(left: number): 'left' | 'right' {
+  return left < 50 ? 'right' : 'left'
+}
+
 export function PokerTable({
   tableId,
   initial,
@@ -179,6 +191,7 @@ export function PokerTable({
                     isWinner={winners.has(player.id)}
                     callout={callouts.get(player.id)}
                     calloutSide={calloutSide(left)}
+                    chipSide={chipSide(left)}
                     maxStack={maxStack}
                     bigBlind={table.bigBlind}
                   />

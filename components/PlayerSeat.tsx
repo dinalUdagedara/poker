@@ -32,6 +32,7 @@ export function PlayerSeat({
   isWinner,
   callout,
   calloutSide = 'below',
+  chipSide = 'left',
   maxStack,
   bigBlind,
   hero = false,
@@ -48,6 +49,8 @@ export function PlayerSeat({
   callout?: string | null
   /** Which way the callout hangs. The caller knows where the seat sits. */
   calloutSide?: 'right' | 'below'
+  /** Which side the chips sit on — inward, so they stay on the felt. */
+  chipSide?: 'left' | 'right'
   /** The viewer's own seat, drawn larger and with bigger cards. */
   hero?: boolean
 }) {
@@ -95,14 +98,15 @@ export function PlayerSeat({
           </span>
         )}
 
-        {/* Chips to the left, where no callout ever lands. */}
+        {/* Chips take whichever side the callout does not. */}
         <ChipStack
           stack={player.stack}
           maxStack={maxStack}
           bigBlind={bigBlind}
           testId={`chips-${player.id}`}
           className={cn(
-            'absolute top-1/2 right-full mr-1.5 -translate-y-1/2',
+            'absolute top-1/2 -translate-y-1/2',
+            chipSide === 'left' ? 'right-full mr-1.5' : 'left-full ml-1.5',
             isOut && 'opacity-60',
           )}
         />

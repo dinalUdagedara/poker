@@ -6,14 +6,29 @@ import { describeStack, type StackTone } from '@/lib/poker/chips'
  * on sight. They also differ in height, which is the reading that survives if a
  * player cannot separate the hues.
  */
-const TONE: Record<StackTone, string> = {
-  healthy: 'from-emerald-300 to-emerald-700 border-emerald-950/70',
-  medium: 'from-amber-300 to-amber-700 border-amber-950/70',
-  short: 'from-rose-300 to-rose-700 border-rose-950/70',
+const TONE: Record<StackTone, { rim: string; face: string }> = {
+  healthy: { rim: 'from-emerald-400 to-emerald-800 border-emerald-950', face: 'bg-emerald-200' },
+  medium: { rim: 'from-amber-400 to-amber-800 border-amber-950', face: 'bg-amber-200' },
+  short: { rim: 'from-rose-400 to-rose-800 border-rose-950', face: 'bg-rose-200' },
+}
+
+/** Chips per column before a stack is split into a second one beside it. */
+const COLUMN_HEIGHT = 5
+/** How much of a chip stays visible once the chip above it overlaps. */
+const RIM = 4
+const CHIP_HEIGHT = 9
+
+/** Split a count into columns, filling each before starting the next. */
+function columnsOf(discs: number): number[] {
+  const columns: number[] = []
+  for (let left = discs; left > 0; left -= COLUMN_HEIGHT) {
+    columns.push(Math.min(COLUMN_HEIGHT, left))
+  }
+  return columns
 }
 
 /**
- * A player's chips, drawn as a column of discs beside their seat.
+ * A player's chips, beside their seat.
  *
  * Purely decorative: the exact number sits next to it on the nameplate, so a
  * screen reader gains nothing from the discs and is spared them.
@@ -35,20 +50,42 @@ export function ChipStack({
   const { discs, tone } = describeStack(stack, maxStack, bigBlind)
   if (discs === 0) return null
 
+  const { rim, face } = TONE[tone]
+
   return (
-    <span className={cn('flex flex-col items-center', className)} data-testid={testId} aria-hidden>
-      {Array.from({ length: discs }).map((_, i) => (
-        /*
-         * Chips nest rather than sit in a row: spaced out they read as a stack
-         * of bars, and the overlap is what makes the column look physical. Each
-         * one is lit from above so its rim reads as thickness, and the lower a
-         * chip is the later it paints, so it overlaps the chip resting on it.
-         */
+    // Columns sit on a shared baseline, so a short one reads as a smaller pile
+    // beside a tall one rather than as a stack floating off the felt.
+    <span
+      className={cn('flex items-end gap-0.75', className)}
+      data-testid={testId}
+      aria-hidden
+    >
+      {columnsOf(discs).map((count, column) => (
         <span
-          key={i}
-          className={cn('block h-1.75 w-5.5 rounded-full border bg-linear-to-b', TONE[tone])}
-          style={{ marginTop: i === 0 ? 0 : -3 }}
-        />
+          key={column}
+          className="relative block w-4.5"
+          style={{ height: (count - 1) * RIM + CHIP_HEIGHT }}
+        >
+          {Array.from({ length: count }).map((_, i) => (
+            /*
+             * Stacked by hand rather than by margins, because paint order is the
+             * whole illusion: each chip sits RIM higher than the one below and
+             * comes later in the DOM, so it covers all but that chip's rim. What
+             * is left is a column of rims under one full face on top — which is
+             * what a stack of chips looks like. Uniform bands read as a bar.
+             */
+            <span
+              key={i}
+              className={cn(
+                'absolute inset-x-0 rounded-full border bg-linear-to-b shadow-sm',
+                rim,
+              )}
+              style={{ bottom: i * RIM, height: CHIP_HEIGHT }}
+            >
+              <span className={cn('absolute inset-x-0.75 top-[1.5px] h-0.75 rounded-full opacity-80', face)} />
+            </span>
+          ))}
+        </span>
       ))}
     </span>
   )
