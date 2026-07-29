@@ -13,12 +13,15 @@
 
 import 'server-only'
 
-import { decideAction } from '../poker/bots/heuristic'
+import { decideAction } from '../poker/bots/equity'
 import { redactFor, type RedactedTableState } from '../poker/redact'
 import { applyAction, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
 
 export const HUMAN_ID = 'you'
+
+/** Rollouts per bot decision. 4,000 costs about 8ms against three opponents. */
+const BOT_ROLLOUTS = 4000
 
 export type TableSettings = {
   botCount: number
@@ -81,7 +84,8 @@ function playBots(state: TableState): TableState {
   while (!state.result && state.actingPlayerId !== HUMAN_ID) {
     const actor = state.actingPlayerId
     if (!actor) break
-    state = applyAction(state, decideAction(state, actor))
+    // The tier 2 bot: Chen chart preflop, Monte Carlo equity from the flop on.
+    state = applyAction(state, decideAction(state, actor, { iterations: BOT_ROLLOUTS }))
     if (++guard > 200) throw new TableError('Bot loop failed to terminate', 500)
   }
   return state
