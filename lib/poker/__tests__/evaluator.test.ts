@@ -9,7 +9,7 @@
 import { describe as suite, expect, it } from 'vitest'
 import { parseCards, type Card } from '../cards'
 import { shuffledDeck } from '../deck'
-import { HandCategory, bestHandIndices, compare, evaluate } from '../evaluator'
+import { HandCategory, bestHandIndices, compare, evaluate, handScore } from '../evaluator'
 
 /** Score a hand written as a card string, e.g. hand('AhKhQhJhTh'). */
 const hand = (s: string) => evaluate(parseCards(s))
@@ -171,6 +171,21 @@ suite('input handling', () => {
       expect(subsets).toHaveLength(21)
       const best = Math.max(...subsets.map((s) => evaluate(s).score))
       expect(evaluate(seven).score).toBe(best)
+    }
+  })
+
+  it('scores identically through the fast path', () => {
+    // handScore skips working out which five cards made the hand. It is the
+    // scorer every Monte Carlo rollout uses, so any disagreement with the
+    // brute force would quietly corrupt every equity estimate.
+    for (let trial = 0; trial < 20_000; trial++) {
+      const deck = shuffledDeck()
+      for (const size of [5, 6, 7]) {
+        const hand = deck.slice(0, size)
+        expect(handScore(hand), `size ${size}: ${hand.map((c) => c.rank + c.suit).join(' ')}`).toBe(
+          evaluate(hand).score,
+        )
+      }
     }
   })
 

@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { freshDeck } from '../deck'
-import { HandCategory, evaluate } from '../evaluator'
+import { HandCategory, evaluate, handScore } from '../evaluator'
 
 const RUN_SLOW = !!process.env.RUN_SLOW
 
@@ -67,7 +67,16 @@ describe('exhaustive five-card enumeration', () => {
         for (let c = b + 1; c < 50; c++)
           for (let d = c + 1; d < 51; d++)
             for (let e = d + 1; e < 52; e++) {
-              const value = evaluate([deck[a], deck[b], deck[c], deck[d], deck[e]])
+              const hand = [deck[a], deck[b], deck[c], deck[d], deck[e]]
+              const value = evaluate(hand)
+              // The fast scorer must agree with the brute force on every hand
+              // in the space, not just on a sample of them.
+              if (handScore(hand) !== value.score) {
+                throw new Error(
+                  `handScore disagrees on ${hand.map((c) => c.rank + c.suit).join(' ')}: ` +
+                    `${handScore(hand)} vs ${value.score}`,
+                )
+              }
               counts.set(value.category, (counts.get(value.category) ?? 0) + 1)
               let scores = scoresByCategory.get(value.category)
               if (!scores) scoresByCategory.set(value.category, (scores = new Set()))
