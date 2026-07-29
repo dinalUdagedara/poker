@@ -78,7 +78,7 @@ export type PotAward = {
 }
 
 export type HandResult = {
-  /** Net chips returned to each player: pot winnings plus any uncalled bet. */
+  /** Pot winnings per player. An uncalled bet is separate — see `refund`. */
   payouts: Record<string, number>
   awards: PotAward[]
   /** False when everyone folded to one player, who wins without showing. */
