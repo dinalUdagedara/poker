@@ -7,7 +7,8 @@
  */
 
 import { describe as suite, expect, it } from 'vitest'
-import { parseCards } from '../cards'
+import { parseCards, type Card } from '../cards'
+import { shuffledDeck } from '../deck'
 import { HandCategory, bestHandIndices, compare, evaluate } from '../evaluator'
 
 /** Score a hand written as a card string, e.g. hand('AhKhQhJhTh'). */
@@ -153,6 +154,24 @@ suite('input handling', () => {
     const best = withBoard('AcAd', '7c8d9hTsJc')
     expect(best.cards).toHaveLength(5)
     expect(best.category).toBe(HandCategory.Straight)
+  })
+
+  it('matches an independent brute force over every five-card subset', () => {
+    // evaluate() caches its combination indices; this re-derives the subsets
+    // from scratch so a bad cache or a missed subset cannot pass unnoticed.
+    for (let trial = 0; trial < 500; trial++) {
+      const seven = shuffledDeck().slice(0, 7)
+      const subsets: Card[][] = []
+      for (let a = 0; a < 3; a++)
+        for (let b = a + 1; b < 4; b++)
+          for (let c = b + 1; c < 5; c++)
+            for (let d = c + 1; d < 6; d++)
+              for (let e = d + 1; e < 7; e++)
+                subsets.push([seven[a], seven[b], seven[c], seven[d], seven[e]])
+      expect(subsets).toHaveLength(21)
+      const best = Math.max(...subsets.map((s) => evaluate(s).score))
+      expect(evaluate(seven).score).toBe(best)
+    }
   })
 
   it('rejects the wrong number of cards', () => {
