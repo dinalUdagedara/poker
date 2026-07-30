@@ -3,15 +3,25 @@ import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ChipStack } from './ChipStack'
 import { PlayingCard } from './PlayingCard'
-import { describeStack, type StackTone } from '@/lib/poker/chips'
+import { stackTone, type StackTone } from '@/lib/poker/chips'
 import type { RedactedPlayer } from '@/lib/poker/redact'
 
-/** The count is tinted like the chips, so the two never disagree on sight. */
+/**
+ * The count warns when the stack is short. The chips beside it cannot: their
+ * colours are denominations, so they say what a stack is, not how long it has.
+ */
 const STACK_TEXT: Record<StackTone, string> = {
   healthy: 'text-emerald-400',
   medium: 'text-amber-400',
   short: 'text-rose-400',
 }
+
+/**
+ * A pair of hole cards is squared up in front of a player, not laid out in a
+ * row — so they overlap and lean away from each other, the way two cards sit
+ * when someone has just pulled the corners up to look.
+ */
+const TILT = ['-rotate-6', 'rotate-6', '-rotate-3', 'rotate-3'] as const
 
 function displayName(player: RedactedPlayer, viewerId: string | null): string {
   if (player.id === viewerId) return 'You'
@@ -33,7 +43,6 @@ export function PlayerSeat({
   callout,
   calloutSide = 'below',
   chipSide = 'left',
-  maxStack,
   bigBlind,
   hero = false,
 }: {
@@ -42,8 +51,6 @@ export function PlayerSeat({
   isActing: boolean
   isButton: boolean
   isWinner: boolean
-  /** The biggest stack at the table, for drawing this one against it. */
-  maxStack: number
   bigBlind: number
   /** What this player last did on this street, or null for nothing to say. */
   callout?: string | null
@@ -55,18 +62,30 @@ export function PlayerSeat({
   hero?: boolean
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
-  const { tone } = describeStack(player.stack, maxStack, bigBlind)
+  const tone = stackTone(player.stack, bigBlind)
 
   return (
     <div className="relative flex flex-col items-center gap-1.5" data-testid={`seat-${player.id}`}>
-      <div className={cn('flex gap-1', hero ? 'gap-1.5' : 'gap-1')}>
+      {/*
+        Folding dims the hand, not each card in it. Per-card opacity made the
+        overlap show one card through the other and darken twice where they
+        crossed; a group is composited first and faded once.
+      */}
+      <div className={cn('flex', isOut && 'opacity-40 saturate-50')}>
         {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
           <PlayingCard
             key={i}
             card={player.holeCards?.[i] ?? null}
             size={hero ? 'lg' : 'xs'}
-            dimmed={isOut}
             dealDelay={i * 90}
+            className={cn(
+              TILT[i % TILT.length],
+              // Only enough overlap to look squared up. These cards carry their
+              // rank in the middle rather than the corner, so a deep fan would
+              // bury the very thing the card is for.
+              i > 0 && (hero ? '-ml-2' : '-ml-1'),
+              'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
+            )}
           />
         ))}
       </div>
@@ -101,8 +120,6 @@ export function PlayerSeat({
         {/* Chips take whichever side the callout does not. */}
         <ChipStack
           stack={player.stack}
-          maxStack={maxStack}
-          bigBlind={bigBlind}
           testId={`chips-${player.id}`}
           className={cn(
             'absolute top-1/2 -translate-y-1/2',

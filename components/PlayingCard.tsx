@@ -20,23 +20,23 @@ const SIZES = {
 export function PlayingCard({
   card,
   size = 'md',
-  dimmed = false,
   dealDelay,
   className,
 }: {
   card: Card | null
   size?: keyof typeof SIZES
-  dimmed?: boolean
   /** Staggers the deal animation, in milliseconds. */
   dealDelay?: number
   className?: string
 }) {
+  // Cards are opaque on purpose. Fading one is the caller's job and belongs on
+  // the hand as a whole, since overlapping translucent cards show through each
+  // other and double up wherever they cross.
   const base = cn(
     SIZES[size],
     'relative flex shrink-0 flex-col items-center justify-center border font-semibold select-none',
     'shadow-[0_2px_8px_-2px_oklch(0_0_0/0.7)]',
     dealDelay !== undefined && 'animate-deal',
-    dimmed && 'opacity-40 saturate-50',
     className,
   )
   const style = dealDelay !== undefined ? { animationDelay: `${dealDelay}ms` } : undefined
@@ -52,7 +52,7 @@ export function PlayingCard({
     <div
       className={cn(
         base,
-        'border-black/15 bg-gradient-to-b from-white to-neutral-200 text-neutral-900',
+        'border-black/15 bg-linear-to-b from-white to-neutral-200 text-neutral-900',
       )}
       style={style}
       data-testid="card-face"
