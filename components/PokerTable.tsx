@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -11,7 +11,15 @@ import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
-import { isGameOver, type TableView } from '@/lib/poker/lifecycle'
+import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecycle'
+
+/**
+ * How long each replayed move is held on screen.
+ *
+ * Long enough to read a callout and see the pot move, short enough that a full
+ * round of five opponents does not become a wait. Real rooms sit in this range.
+ */
+const STEP_MS = 650
 
 const ACTION_VERBS: Record<string, string> = {
   'post-blind': 'posts',
@@ -82,33 +90,80 @@ export function PokerTable({
    */
   const [gone, setGone] = useState(false)
 
+  /** Pending replay steps, cancelled if another update lands or we unmount. */
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const clearReplay = useCallback(() => {
+    timers.current.forEach(clearTimeout)
+    timers.current = []
+  }, [])
+  useEffect(() => clearReplay, [clearReplay])
+
+  /**
+   * Show an update, stepping through how it was reached.
+   *
+   * The bots all move inside one server call, so landing straight on the final
+   * state hides every opponent's decision — the whole hand happens between two
+   * frames. Each step is held long enough to read the callout at the seat that
+   * made it, and the controls stay disabled throughout, because acting on a
+   * state that is still catching up would be acting on stale information.
+   */
+  const showUpdate = useCallback(
+    (update: TableUpdate) => {
+      clearReplay()
+      const { replay, ...final } = update
+      const wantsMotion =
+        typeof window !== 'undefined' &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      if (!wantsMotion || replay.length === 0) {
+        setTable(final)
+        setBusy(false)
+        return
+      }
+
+      replay.forEach((step, i) => {
+        timers.current.push(setTimeout(() => setTable(step), i * STEP_MS))
+      })
+      timers.current.push(
+        setTimeout(() => {
+          setTable(final)
+          setBusy(false)
+        }, replay.length * STEP_MS),
+      )
+    },
+    [clearReplay],
+  )
+
   /**
    * Every endpoint answers with the whole redacted state, so posting an action
    * and dealing the next hand share one code path. The client never patches its
    * own copy of the table from an action it sent.
    */
-  const send = useCallback(async (url: string, body: unknown) => {
-    setBusy(true)
-    setError(null)
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const payload = await response.json()
-      if (response.status === 404) {
-        setGone(true)
-        throw new Error('This table is no longer available')
+  const send = useCallback(
+    async (url: string, body: unknown) => {
+      setBusy(true)
+      setError(null)
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const payload = await response.json()
+        if (response.status === 404) {
+          setGone(true)
+          throw new Error('This table is no longer available')
+        }
+        if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
+        // Cleared by the replay once it finishes, not here.
+        showUpdate(payload as TableUpdate)
+      } catch (e) {
+        setError((e as Error).message)
+        setBusy(false)
       }
-      if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
-      setTable(payload as TableView)
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setBusy(false)
-    }
-  }, [])
+    },
+    [showUpdate],
+  )
 
   const you = table.players.find((p) => p.id === table.viewerId)
   const opponents = table.players.filter((p) => p.id !== table.viewerId)

@@ -14,7 +14,7 @@
 import 'server-only'
 
 import { decideAction } from '../poker/bots/equity'
-import { tableOutcome, type TableView } from '../poker/lifecycle'
+import { tableOutcome, type TableUpdate, type TableView } from '../poker/lifecycle'
 import { redactFor } from '../poker/redact'
 import { applyAction, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
@@ -22,7 +22,7 @@ import type { Action, TableState } from '../poker/types'
 // The outcome travels with the state so the interface never offers an action
 // the server would refuse. The type lives in lib/poker/lifecycle so client
 // components can name it without importing this server-only module.
-export type { TableView }
+export type { TableUpdate, TableView }
 
 export const HUMAN_ID = 'you'
 
@@ -125,16 +125,28 @@ function seatsFor(settings: TableSettings, stacks?: Map<string, number>): SeatCo
  * guard turns a hypothetical engine bug into an error rather than a hung
  * request.
  */
-function playBots(state: TableState): TableState {
+function playBots(state: TableState, steps?: TableState[]): TableState {
   let guard = 0
   while (!state.result && state.actingPlayerId !== HUMAN_ID) {
     const actor = state.actingPlayerId
     if (!actor) break
     // The tier 2 bot: Chen chart preflop, Monte Carlo equity from the flop on.
     state = applyAction(state, decideAction(state, actor, { iterations: BOT_ROLLOUTS }))
+    steps?.push(state)
     if (++guard > 200) throw new TableError('Bot loop failed to terminate', 500)
   }
   return state
+}
+
+/**
+ * Package a run of play for the client: where it ended, and the way there.
+ *
+ * The last step is the state being landed on, so it is dropped from the replay
+ * rather than sent twice. Every step is redacted in its own right — an
+ * intermediate state is no more entitled to show a hole card than the final one.
+ */
+function updateFrom(steps: TableState[], final: TableState): TableUpdate {
+  return { ...viewOf(final), replay: steps.slice(0, -1).map(viewOf) }
 }
 
 export function createTable(settings: unknown = {}): TableView {
@@ -176,7 +188,7 @@ export function findTable(tableId: string): TableView | null {
  * The client sends an intent and nothing else. Whether it is legal, what it
  * costs and what happens next are all decided here.
  */
-export function submitAction(tableId: string, action: Action): TableView {
+export function submitAction(tableId: string, action: Action): TableUpdate {
   const table = load(tableId)
 
   if (table.state.result) throw new TableError('That hand is already over', 409)
@@ -196,13 +208,17 @@ export function submitAction(tableId: string, action: Action): TableView {
     throw new TableError((error as Error).message, 400)
   }
 
-  next = playBots(next)
+  // The human's own move is the first thing replayed: without it their fold or
+  // raise would be swallowed by whatever the bots did in response.
+  const steps: TableState[] = [next]
+  next = playBots(next, steps)
+
   store.set(tableId, { ...table, state: next })
-  return viewOf(next)
+  return updateFrom(steps, next)
 }
 
 /** Deal the next hand, moving the button and dropping anyone out of chips. */
-export function startNextHand(tableId: string): TableView {
+export function startNextHand(tableId: string): TableUpdate {
   const table = load(tableId)
   if (!table.state.result) throw new TableError('The current hand is still in progress', 409)
 
@@ -220,17 +236,20 @@ export function startNextHand(tableId: string): TableView {
   const buttonSeat =
     occupied.find((seat) => seat > table.state.buttonSeat) ?? occupied[0]
 
-  const state = playBots(
-    startHand({
-      tableId,
-      seats,
-      buttonSeat,
-      smallBlind: table.settings.smallBlind,
-      bigBlind: table.settings.bigBlind,
-      handNumber: table.state.handNumber + 1,
-    }),
-  )
+  const dealt = startHand({
+    tableId,
+    seats,
+    buttonSeat,
+    smallBlind: table.settings.smallBlind,
+    bigBlind: table.settings.bigBlind,
+    handNumber: table.state.handNumber + 1,
+  })
+
+  // A fresh deal starts from the blinds being posted, so that is the first
+  // thing shown before the bots in front of the human take their turns.
+  const steps: TableState[] = [dealt]
+  const state = playBots(dealt, steps)
 
   store.set(tableId, { ...table, state })
-  return viewOf(state)
+  return updateFrom(steps, state)
 }

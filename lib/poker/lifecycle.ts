@@ -54,3 +54,14 @@ export function isGameOver(outcome: TableOutcome): boolean {
  * can name the type without importing a server-only module.
  */
 export type TableView = RedactedTableState & { outcome: TableOutcome }
+
+/**
+ * A table after something happened, plus how it got there.
+ *
+ * The bots play out in a single server call, so without this the browser only
+ * ever sees where they finished — a fold would jump straight to the next
+ * decision with every opponent's move invisible in between. `replay` carries
+ * the states passed through on the way, oldest first and excluding the one
+ * that was landed on, for the client to step through before settling.
+ */
+export type TableUpdate = TableView & { replay: TableView[] }
