@@ -333,6 +333,35 @@ test('sends the pot to the seat that won it', async ({ page }) => {
   await expect(page.locator('.animate-winner')).not.toHaveCount(0)
 })
 
+/*
+ * The rest of the suite runs with reduced motion, which skips the replay — and
+ * with it the whole window where it is somebody else's turn, since the server
+ * answers in milliseconds. Watching the bar between turns needs that window, so
+ * this one asks for the animation the real thing has.
+ */
+test.describe('while the bots are deciding', () => {
+  test.use({ contextOptions: { reducedMotion: 'no-preference' } })
+
+  test('holds the action bar at one height whoever is deciding', async ({ page }) => {
+    await dealIn(page)
+    const panel = page.locator('[data-slot=card]').last()
+    const height = async () => Math.round((await panel.boundingBox())!.height)
+
+    await expect(page.getByTestId('action-fold')).toBeVisible()
+    const onOurTurn = await height()
+
+    // Greyed out rather than swapped for a line of text, which used to collapse
+    // the panel and put it back on every single bot action.
+    await actPassively(page)
+    await expect(page.getByTestId('action-idle')).toBeVisible()
+    expect(await height()).toBe(onOurTurn)
+
+    // And the result panel does not shrink it either.
+    await playUntil(page, handSettled(page))
+    expect(await height()).toBe(onOurTurn)
+  })
+})
+
 test('marks the dealer with exactly one button', async ({ page }) => {
   await dealIn(page)
 

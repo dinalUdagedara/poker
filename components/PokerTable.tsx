@@ -344,7 +344,10 @@ export function PokerTable({
         <div className="flex w-full max-w-2xl flex-col items-center gap-3">
           {/* A dark console resting on the felt: the controls need their own
               ground to read against now that the page is bright. */}
-          <Card className="w-full min-w-0 gap-0 border-black/40 bg-neutral-950/80 p-4 shadow-xl backdrop-blur">
+          {/* Floored at the height of the betting controls, the tallest thing
+              it ever holds, so the result and game-over panels do not shrink
+              the console the moment a hand ends. */}
+          <Card className="min-h-52 w-full min-w-0 justify-center gap-0 border-black/40 bg-neutral-950/80 p-4 shadow-xl backdrop-blur">
             {finished ? (
               /*
                * The table is over: busted, won outright, or lost to a server
@@ -409,17 +412,20 @@ export function PokerTable({
                   Next hand
                 </Button>
               </div>
-            ) : table.legalActions ? (
+            ) : (
+              /*
+               * Always mounted while a hand is live, greyed out when it is not
+               * our turn. Replacing it with a line of text collapsed the panel
+               * on every bot action and restored it a moment later, so the
+               * table shifted under the cursor between every single decision.
+               */
               <BettingControls
                 legal={table.legalActions}
                 pot={table.pot}
                 busy={busy}
+                status={busy ? 'Thinking…' : 'Waiting for the other players…'}
                 onAction={(action) => void send(`/api/table/${tableId}/action`, action)}
               />
-            ) : (
-              <p className="text-muted-foreground py-4 text-center text-sm">
-                {busy ? 'Thinking…' : 'Waiting for the other players…'}
-              </p>
             )}
           </Card>
         </div>
