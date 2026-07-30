@@ -319,6 +319,22 @@ test('stacks the pot in the middle and clears it once it is paid', async ({ page
   await expect(page.getByTestId('pot-chips')).toHaveCount(0)
 })
 
+test('says who won, how much, and what they won it with', async ({ page }) => {
+  await dealIn(page)
+  await playUntil(page, handSettled(page))
+  if (!(await showing(page, 'hand-result'))) test.skip()
+
+  const result = page.getByTestId('hand-result')
+  await expect(result).toContainText(/\b(You win|wins)\b/)
+  // The amount, always — a result that names a winner but not the pot leaves
+  // the one number that matters to be worked out from the stacks.
+  await expect(result).toContainText(/[\d,]+/)
+  // Either a showdown named the hand, or nobody had to show one.
+  await expect(result).toContainText(
+    /High Card|One Pair|Two Pair|Three of a Kind|Straight|Flush|Full House|Four of a Kind|everyone else folded/,
+  )
+})
+
 test('sends the pot to the seat that won it', async ({ page }) => {
   await dealIn(page)
   await playUntil(page, handSettled(page))

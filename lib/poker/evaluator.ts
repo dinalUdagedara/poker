@@ -66,6 +66,18 @@ function packScore(category: HandCategory, tiebreakers: number[]): number {
 }
 
 /**
+ * Read the category back out of a packed score.
+ *
+ * A hand result records what each player showed as a score and nothing else,
+ * which is all the engine needs to pick a winner but not enough to tell anyone
+ * what beat them. The tiebreakers occupy the low digits, so dividing them away
+ * leaves the category — no need to keep the hand around to name it later.
+ */
+export function categoryOf(score: number): HandCategory {
+  return Math.floor(score / 15 ** TIEBREAKER_SLOTS) as HandCategory
+}
+
+/**
  * Highest card of a straight among these rank values, or 0 if there isn't one.
  * The wheel A-2-3-4-5 counts, with the five as its top card; A-K-Q-J-T is a
  * normal ace-high straight, and K-A-2-3-4 does not wrap and is not a straight.

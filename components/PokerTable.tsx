@@ -12,6 +12,7 @@ import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
+import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecycle'
 
 /**
@@ -172,6 +173,24 @@ export function PokerTable({
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
   const finished = gone || isGameOver(table.outcome)
+
+  const winnerNames = [...winners]
+    .map((w) => (w === table.viewerId ? 'You' : w.replace(/^bot(\d+)$/, 'Bot $1')))
+    .join(' and ')
+  /** Everything paid out. For a split that is the total the winners shared. */
+  const potWon = Object.values(table.result?.payouts ?? {}).reduce((sum, n) => sum + n, 0)
+  /**
+   * What won it, when there was a showdown to see.
+   *
+   * A hand result keeps only a score per player, which is all the engine needs
+   * to pick a winner but not enough to say what beat you — the category is read
+   * back out of the score rather than the cards being carried around for it.
+   */
+  const winningHand = (() => {
+    if (!table.result?.showdown) return null
+    const shown = table.result.shownHands[[...winners][0] ?? '']
+    return shown ? CATEGORY_NAMES[categoryOf(shown.score)] : null
+  })()
 
   /**
    * Where the pot should fly, and how much of it.
@@ -380,31 +399,25 @@ export function PokerTable({
                 </Link>
               </div>
             ) : table.result ? (
-              <div className="flex flex-col items-center gap-3" data-testid="hand-result">
-                <p
-                  className={cn(
-                    'text-center text-sm',
-                    youWon > 0 ? 'text-emerald-400' : 'text-neutral-300',
-                  )}
-                >
-                  {youWon > 0 ? (
-                    <>
-                      You win{' '}
-                      <span className="font-mono font-semibold">{youWon.toLocaleString()}</span>
-                    </>
-                  ) : (
-                    <>
-                      {[...winners]
-                        .map((w) => (w === table.viewerId ? 'You' : w.replace(/^bot(\d+)$/, 'Bot $1')))
-                        .join(' and ')}{' '}
-                      wins
-                    </>
-                  )}
-                  {!table.result.showdown && (
-                    <span className="text-muted-foreground"> — everyone folded</span>
-                  )}
-                </p>
+              <div className="flex flex-col items-center gap-4" data-testid="hand-result">
+                <div className="flex flex-col items-center gap-1">
+                  <p
+                    className={cn(
+                      'text-center text-xl font-semibold sm:text-2xl',
+                      youWon > 0 ? 'text-emerald-400' : 'text-white',
+                    )}
+                  >
+                    {winnerNames} {winnerNames === 'You' ? 'win' : 'wins'}{' '}
+                    <span className="font-mono tabular-nums">{potWon.toLocaleString()}</span>
+                  </p>
+                  {/* How, not just who. A score is all the result keeps, so the
+                      category is read back out of it to name the hand. */}
+                  <p className="text-sm text-white/55">
+                    {winningHand ?? 'everyone else folded'}
+                  </p>
+                </div>
                 <Button
+                  className="h-12 w-full max-w-xs rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
                   disabled={busy}
                   onClick={() => void send(`/api/table/${tableId}/next-hand`, {})}
                   data-testid="next-hand"

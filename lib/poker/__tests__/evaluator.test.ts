@@ -9,7 +9,15 @@
 import { describe as suite, expect, it } from 'vitest'
 import { parseCards, type Card } from '../cards'
 import { shuffledDeck } from '../deck'
-import { HandCategory, bestHandIndices, compare, evaluate, handScore } from '../evaluator'
+import {
+  CATEGORY_NAMES,
+  HandCategory,
+  bestHandIndices,
+  categoryOf,
+  compare,
+  evaluate,
+  handScore,
+} from '../evaluator'
 
 /** Score a hand written as a card string, e.g. hand('AhKhQhJhTh'). */
 const hand = (s: string) => evaluate(parseCards(s))
@@ -192,5 +200,30 @@ suite('input handling', () => {
   it('rejects the wrong number of cards', () => {
     expect(() => evaluate(parseCards('AhKhQhJh'))).toThrow(/5-7 cards/)
     expect(() => evaluate(parseCards('AhKhQhJhTh9h8h7h'))).toThrow(/5-7 cards/)
+  })
+})
+
+suite('naming a hand from its score', () => {
+  it('recovers the category from a packed score', () => {
+    // The score is all a hand result keeps, so the category has to survive the
+    // round trip for the table to be able to say what won.
+    const hands: Array<[string, HandCategory]> = [
+      ['Ah Kh Qh Jh Th 2c 3d', HandCategory.StraightFlush],
+      ['9c 9d 9h 9s 2c 3d 4h', HandCategory.FourOfAKind],
+      ['8c 8d 8h 4s 4c 2d 7h', HandCategory.FullHouse],
+      ['Ah 9h 7h 4h 2h 3c 5d', HandCategory.Flush],
+      ['5c 6d 7h 8s 9c 2d 3h', HandCategory.Straight],
+      ['Jc Jd Jh 4s 9c 2d 3h', HandCategory.ThreeOfAKind],
+      ['Qc Qd 5h 5s 9c 2d 3h', HandCategory.TwoPair],
+      ['Kc Kd 5h 8s 9c 2d 3h', HandCategory.Pair],
+      ['Ac Jd 9h 7s 5c 3d 2h', HandCategory.HighCard],
+    ]
+
+    for (const [hand, expected] of hands) {
+      const value = evaluate(parseCards(hand))
+      expect(value.category).toBe(expected)
+      expect(categoryOf(value.score)).toBe(expected)
+      expect(CATEGORY_NAMES[categoryOf(value.score)]).toBe(CATEGORY_NAMES[expected])
+    }
   })
 })
