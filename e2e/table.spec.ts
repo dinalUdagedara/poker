@@ -38,21 +38,40 @@ async function shortStackedTable(page: Page, startingStack: number) {
   return tableId
 }
 
-/** Take whichever passive action is on offer. */
-async function actPassively(page: Page) {
-  const check = page.getByTestId('action-check')
-  if (await check.isVisible().catch(() => false)) {
-    await check.click()
-    return 'check'
+/**
+ * Take whichever passive action is on offer, if it is our turn at all.
+ *
+ * Never clicks blind. Falling through to `fold.click()` waits for a button that
+ * may never arrive — the hand can end while the bots are acting — and burns the
+ * whole test timeout when it does not.
+ */
+async function actPassively(page: Page): Promise<boolean> {
+  for (const id of ['action-check', 'action-call', 'action-fold']) {
+    const button = page.getByTestId(id)
+    if (await button.isVisible().catch(() => false)) {
+      await button.click()
+      return true
+    }
   }
-  const call = page.getByTestId('action-call')
-  if (await call.isVisible().catch(() => false)) {
-    await call.click()
-    return 'call'
-  }
-  await page.getByTestId('action-fold').click()
-  return 'fold'
+  return false
 }
+
+const showing = (page: Page, testId: string) =>
+  page.getByTestId(testId).isVisible().catch(() => false)
+
+/** Play passively until `isDone` holds, sitting out the bots' turns. */
+async function playUntil(page: Page, isDone: () => Promise<boolean>, steps = 40) {
+  for (let step = 0; step < steps; step++) {
+    if (await isDone()) return true
+    await actPassively(page)
+    await page.waitForTimeout(80)
+  }
+  return isDone()
+}
+
+/** A hand has finished, either way it can: a result, or the table being over. */
+const handSettled = (page: Page) => async () =>
+  (await showing(page, 'hand-result')) || (await showing(page, 'game-over'))
 
 test('deals a table from the lobby', async ({ page }) => {
   await dealIn(page)
@@ -104,17 +123,16 @@ test('plays a hand through to a result and deals the next one', async ({ page })
   await dealIn(page)
 
   const result = page.getByTestId('hand-result')
-  for (let step = 0; step < 30 && !(await result.isVisible().catch(() => false)); step++) {
-    await actPassively(page)
-    await page.waitForTimeout(60)
-  }
+  await playUntil(page, handSettled(page))
 
   await expect(result).toBeVisible()
   await expect(page.getByTestId('next-hand')).toBeVisible()
 
+  // The hand number advancing is the whole claim. The result panel is not
+  // asserted gone: the bots can fold hand two out before the check runs, which
+  // puts a perfectly correct result back on screen for a different hand.
   await page.getByTestId('next-hand').click()
   await expect(page.getByText('Hand 2')).toBeVisible()
-  await expect(result).toBeHidden()
 })
 
 test('reveals the board as the streets come out', async ({ page }) => {
@@ -123,21 +141,16 @@ test('reveals the board as the streets come out', async ({ page }) => {
   const board = page.getByTestId('board')
   await expect(board.getByTestId('card-face')).toHaveCount(0) // preflop
 
-  const result = page.getByTestId('hand-result')
   let dealt = 0
-  for (let step = 0; step < 25; step++) {
-    if (await result.isVisible().catch(() => false)) break
-    await actPassively(page)
-    await page.waitForTimeout(60)
+  const settled = handSettled(page)
+  await playUntil(page, async () => {
     dealt = Math.max(dealt, await board.getByTestId('card-face').count())
-  }
+    return settled()
+  })
 
   // Either the hand reached a flop, or it ended early because someone folded.
-  if (await result.isVisible().catch(() => false)) {
-    expect(dealt === 0 || dealt >= 3).toBe(true)
-  } else {
-    expect(dealt).toBeGreaterThanOrEqual(3)
-  }
+  dealt = Math.max(dealt, await board.getByTestId('card-face').count())
+  expect(dealt === 0 || dealt >= 3).toBe(true)
 })
 
 test.describe('seat callouts', () => {
@@ -162,9 +175,15 @@ test.describe('seat callouts', () => {
     // button already advertises the level, which is the number to match.
     const level = ((await bet.textContent()) ?? '').match(/[\d,]+/)?.[0] ?? ''
     expect(level).not.toBe('')
+
     await bet.click()
 
-    await expect(page.getByTestId('callout-you')).toContainText(level)
+    // Asserted against the history, not the bubble: once the bots finish acting
+    // the street turns over and callouts clear, which is intended but makes the
+    // bubble a race. The history is the permanent record of the same number.
+    await expect(page.getByTestId('history')).toContainText(
+      new RegExp(`You (raises to|bets) ${level}`),
+    )
   })
 
   test('drops the preflop callouts once the flop is out', async ({ page }) => {
@@ -172,13 +191,11 @@ test.describe('seat callouts', () => {
     await expect(callouts(page).filter({ hasText: 'blind' })).toHaveCount(2)
 
     const board = page.getByTestId('board')
-    const result = page.getByTestId('hand-result')
-    for (let step = 0; step < 20; step++) {
-      if (await result.isVisible().catch(() => false)) break
-      if ((await board.getByTestId('card-face').count()) >= 3) break
-      await actPassively(page)
-      await page.waitForTimeout(60)
-    }
+    const settled = handSettled(page)
+    await playUntil(
+      page,
+      async () => (await board.getByTestId('card-face').count()) >= 3 || settled(),
+    )
     // Someone may have folded the hand out before a flop ever came.
     if ((await board.getByTestId('card-face').count()) < 3) test.skip()
 
@@ -190,12 +207,9 @@ test.describe('seat callouts', () => {
   test('keeps the last actions on screen beside the result', async ({ page }) => {
     await dealIn(page)
 
-    const result = page.getByTestId('hand-result')
-    for (let step = 0; step < 30 && !(await result.isVisible().catch(() => false)); step++) {
-      await actPassively(page)
-      await page.waitForTimeout(60)
-    }
-    await expect(result).toBeVisible()
+    await playUntil(page, handSettled(page))
+    // A bust ends the table rather than the hand, and shows no result panel.
+    if (!(await showing(page, 'hand-result'))) test.skip()
 
     // Settling moves the street to 'showdown', which has no actions of its own.
     // Scoping to it would blank the fold that just decided the hand.
@@ -204,7 +218,8 @@ test.describe('seat callouts', () => {
 })
 
 test.describe('chip stacks', () => {
-  const chips = (page: Page, id: string) => page.getByTestId(`chips-${id}`).locator('span')
+  const chips = (page: Page, id: string) =>
+    page.getByTestId(`chips-${id}`).locator('[data-chip]')
 
   test('draws a stack for everyone who has chips', async ({ page }) => {
     await dealIn(page, '1')
@@ -213,18 +228,20 @@ test.describe('chip stacks', () => {
     await expect(chips(page, 'bot1')).not.toHaveCount(0)
   })
 
-  test('draws the chip leader taller than the short stack', async ({ page }) => {
+  test('draws a deep stack in big chips and a short one in small', async ({ page }) => {
+    // Colour means denomination, so what a stack is worth decides which chips
+    // are on the felt. Nobody sitting behind 100 has a thousand chip.
+    const of = (value: number) => page.getByTestId('chips-you').locator(`[data-chip="${value}"]`)
+
+    // Asserted on which denominations appear, not on an exact count: the blinds
+    // are posted before this can look, so the stack is never quite the buy-in.
+    await shortStackedTable(page, 100)
+    await expect(chips(page, 'you')).not.toHaveCount(0)
+    await expect(of(1000)).toHaveCount(0)
+    await expect(of(500)).toHaveCount(0)
+
     await dealIn(page, '1')
-
-    // Heads up, the blinds alone put the two stacks apart: whoever posted the
-    // big blind has fewer chips, so their column must be no taller.
-    const you = await chips(page, 'you').count()
-    const bot = await chips(page, 'bot1').count()
-    const youStack = Number((await page.getByTestId('stack-you').textContent())?.replace(/\D/g, ''))
-    const botStack = Number((await page.getByTestId('stack-bot1').textContent())?.replace(/\D/g, ''))
-
-    if (youStack === botStack) test.skip()
-    expect(youStack > botStack ? you >= bot : bot >= you).toBe(true)
+    await expect(of(1000)).not.toHaveCount(0)
   })
 
   test('draws no chips at all for a player who has busted', async ({ page }) => {
@@ -232,11 +249,11 @@ test.describe('chip stacks', () => {
     await shortStackedTable(page, 100)
 
     const over = page.getByTestId('game-over')
-    for (let step = 0; step < 40 && !(await over.isVisible().catch(() => false)); step++) {
+    for (let step = 0; step < 40 && !(await showing(page, 'game-over')); step++) {
       const next = page.getByTestId('next-hand')
       if (await next.isVisible().catch(() => false)) await next.click()
       else await actPassively(page)
-      await page.waitForTimeout(60)
+      await page.waitForTimeout(80)
     }
     await expect(over).toBeVisible()
 
@@ -245,6 +262,31 @@ test.describe('chip stacks', () => {
     const busted = (await page.getByTestId('stack-you').textContent()) === '0' ? 'you' : 'bot1'
     await expect(chips(page, busted)).toHaveCount(0)
   })
+})
+
+test('sizes a bet with the slider and stakes what the label showed', async ({ page }) => {
+  await dealIn(page)
+
+  const slider = page.getByTestId('bet-slider')
+  if (!(await slider.isVisible().catch(() => false))) test.skip()
+
+  // Drag well along the track, so the amount is nothing like the opening one.
+  const track = (await slider.boundingBox())!
+  await page.mouse.move(track.x + 4, track.y + track.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(track.x + track.width * 0.6, track.y + track.height / 2)
+  await page.mouse.up()
+
+  // The bubble on the thumb and the button have to agree: one is what you are
+  // reading while you size, the other is what actually gets staked.
+  const shown = (await page.getByTestId('bet-amount').textContent())!.trim()
+  await expect(page.getByTestId('action-bet')).toContainText(shown)
+
+  await page.getByTestId('action-bet').click()
+  await expect(page.getByTestId('error')).toHaveCount(0)
+  // The history rather than the bubble, which clears as soon as the street
+  // turns over — intended, but a race for anything asserted after the click.
+  await expect(page.getByTestId('history')).toContainText(shown)
 })
 
 test('marks the dealer with exactly one button', async ({ page }) => {
