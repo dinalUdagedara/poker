@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { ChipStack } from './ChipStack'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -19,7 +20,7 @@ import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecy
  * Long enough to read a callout and see the pot move, short enough that a full
  * round of five opponents does not become a wait. Real rooms sit in this range.
  */
-const STEP_MS = 650
+const STEP_MS = 900
 
 const ACTION_VERBS: Record<string, string> = {
   'post-blind': 'posts',
@@ -172,6 +173,27 @@ export function PokerTable({
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
   const finished = gone || isGameOver(table.outcome)
 
+  /**
+   * Where the pot should fly, and how much of it.
+   *
+   * Only the largest winner is chased. A split pot sends chips two ways at
+   * once, which reads as confusion rather than as a result — the seats glow for
+   * both, and the panel names them.
+   */
+  const award = (() => {
+    const payouts = table.result?.payouts
+    if (!payouts) return null
+    const [winnerId, amount] =
+      Object.entries(payouts).sort(([, a], [, b]) => b - a)[0] ?? []
+    if (!winnerId || !amount) return null
+
+    // The viewer sits off the felt entirely, below its near edge.
+    if (winnerId === table.viewerId) return { amount, left: 50, top: 116 }
+    const seat = opponents.findIndex((p) => p.id === winnerId)
+    if (seat < 0) return null
+    return { amount, ...seatPosition(seat, opponents.length) }
+  })()
+
   return (
     <main className="table-room flex min-h-dvh flex-col">
       {/* Sits directly on the felt, so everything here carries its own contrast
@@ -230,6 +252,30 @@ export function PokerTable({
                 })}
               </div>
             </div>
+
+            {award && (
+              /*
+               * Keyed on the hand so it plays once per result: without that,
+               * React reuses the node and a re-render mid-animation restarts
+               * the pot's journey from the middle of the table.
+               */
+              <div
+                key={`award-${table.handNumber}`}
+                className="animate-award pointer-events-none absolute z-30 flex flex-col items-center gap-1"
+                style={
+                  {
+                    '--award-x': `${award.left}%`,
+                    '--award-y': `${award.top}%`,
+                  } as CSSProperties
+                }
+                data-testid="pot-award"
+              >
+                <ChipStack stack={award.amount} />
+                <span className="rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-bold tabular-nums text-amber-300 shadow-lg">
+                  +{award.amount.toLocaleString()}
+                </span>
+              </div>
+            )}
 
             {/* Opponents around the top arc */}
             {opponents.map((player, i) => {

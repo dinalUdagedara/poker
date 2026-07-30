@@ -97,7 +97,7 @@ export function PlayerSeat({
           // to a sliver. The button and the chips both sit proud of the plate.
           'overflow-visible bg-neutral-900/85 backdrop-blur-sm',
           isActing && 'border-amber-400/80 shadow-[0_0_0_3px_oklch(0.82_0.14_85/0.25)]',
-          isWinner && 'border-emerald-400/80 shadow-[0_0_0_3px_oklch(0.75_0.16_155/0.3)]',
+          isWinner && 'animate-winner border-emerald-400',
           !isActing && !isWinner && 'border-white/10',
           isOut && 'opacity-50',
         )}

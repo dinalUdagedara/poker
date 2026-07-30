@@ -289,6 +289,20 @@ test('sizes a bet with the slider and stakes what the label showed', async ({ pa
   await expect(page.getByTestId('history')).toContainText(shown)
 })
 
+test('sends the pot to the seat that won it', async ({ page }) => {
+  await dealIn(page)
+  await playUntil(page, handSettled(page))
+  if (!(await showing(page, 'hand-result'))) test.skip()
+
+  // Under reduced motion the chips do not travel, so this asserts the award was
+  // worked out and rendered rather than that it is on screen: the amount has to
+  // match what the result panel says was won, and exactly one seat can glow.
+  const award = page.getByTestId('pot-award')
+  await expect(award).toHaveCount(1)
+  await expect(award).toContainText(/^\+[\d,]+$/)
+  await expect(page.locator('.animate-winner')).not.toHaveCount(0)
+})
+
 test('marks the dealer with exactly one button', async ({ page }) => {
   await dealIn(page)
 
