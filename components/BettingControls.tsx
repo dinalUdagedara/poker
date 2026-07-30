@@ -79,12 +79,28 @@ export function BettingControls({
      * two hundred pixels every time the bots took over and put them back the
      * moment it was your turn, so the table jumped on every single action.
      */
-    <div className="flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4">
+      {idle && (
+        /*
+          Centred over the bar rather than tucked into the label slot: it is the
+          only thing being said, so it belongs in the middle of the panel and
+          not in the corner where a field label would go.
+        */
+        <div
+          className="pointer-events-none absolute inset-0 z-10 grid place-items-center"
+          data-testid="action-status"
+        >
+          <span className="rounded-full bg-black/65 px-3.5 py-1.5 text-sm font-medium text-white/85 shadow-lg backdrop-blur-sm">
+            {status}
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         {/* The quick ways to set the stake. The amount itself rides the thumb. */}
         <div className="flex h-7 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <span className={cn('text-xs', idle ? 'text-white/50' : 'text-muted-foreground')}>
-            {idle ? status : legal.raise ? 'Raise to' : 'Bet'}
+          <span className={cn('text-muted-foreground text-xs', idle && 'invisible')}>
+            {legal?.raise ? 'Raise to' : 'Bet'}
           </span>
 
           <div className="flex flex-wrap gap-1.5">
