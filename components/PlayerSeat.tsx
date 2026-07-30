@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -40,6 +41,7 @@ export function PlayerSeat({
   isActing,
   isButton,
   isWinner,
+  handOver = false,
   callout,
   calloutSide = 'below',
   chipSide = 'left',
@@ -51,6 +53,8 @@ export function PlayerSeat({
   isActing: boolean
   isButton: boolean
   isWinner: boolean
+  /** The hand has settled, so nothing is still staked in front of anyone. */
+  handOver?: boolean
   bigBlind: number
   /** What this player last did on this street, or null for nothing to say. */
   callout?: string | null
@@ -151,7 +155,9 @@ export function PlayerSeat({
         </div>
       </Card>
 
-      <div className="flex h-5 items-center gap-1">
+      {/* Height reserved whether or not anything is wagered: seats are centred
+          on their own box, so a growing row would nudge the seat as chips land. */}
+      <div className="flex h-8 items-center gap-1">
         {player.status === 'folded' && (
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
             folded
@@ -162,13 +168,30 @@ export function PlayerSeat({
             all in
           </Badge>
         )}
-        {player.currentBet > 0 && player.status !== 'folded' && (
+        {/*
+          Nothing is on the felt once the hand settles: the chips have gone to
+          the pot or come back as an uncalled bet, and the stack already says
+          so. The engine leaves currentBet where it was, so this asks the
+          question that actually matters rather than trusting that field.
+        */}
+        {player.currentBet > 0 && player.status !== 'folded' && !handOver && (
+          /*
+           * The wager as actual chips out on the felt, not just a number.
+           *
+           * Keyed on the amount so raising the same street over again replays
+           * the push rather than silently swapping the figure, and offset so
+           * the chips arrive from the player's own side of the table.
+           */
           <span
-            className="flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-[11px] tabular-nums text-amber-300"
+            key={player.currentBet}
+            className="animate-wager flex items-center gap-1.5 rounded-full border border-black/30 bg-black/45 py-0.5 pr-2 pl-1.5 backdrop-blur-sm"
+            style={{ '--wager-from': hero ? '14px' : '-14px' } as CSSProperties}
             data-testid={`bet-${player.id}`}
           >
-            <span className="size-1.5 rounded-full bg-amber-400" />
-            {player.currentBet.toLocaleString()}
+            <ChipStack stack={player.currentBet} />
+            <span className="font-mono text-[11px] font-semibold tabular-nums text-amber-300">
+              {player.currentBet.toLocaleString()}
+            </span>
           </span>
         )}
       </div>

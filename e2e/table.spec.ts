@@ -289,6 +289,22 @@ test('sizes a bet with the slider and stakes what the label showed', async ({ pa
   await expect(page.getByTestId('history')).toContainText(shown)
 })
 
+test('puts chips on the felt for a wager and clears them when the hand ends', async ({ page }) => {
+  await dealIn(page)
+
+  // The blinds are wagers too, so chips are out before anyone has acted.
+  const wagers = page.locator('[data-testid^="bet-"]')
+  await expect(wagers).not.toHaveCount(0)
+  await expect(wagers.first().locator('[data-chip]')).not.toHaveCount(0)
+
+  await playUntil(page, handSettled(page))
+
+  // Settling moves every wager to the pot or hands it back, and the stacks say
+  // so. The engine leaves currentBet standing, so this is the guard against
+  // chips being left sitting on the felt after they have already been paid.
+  await expect(wagers).toHaveCount(0)
+})
+
 test('sends the pot to the seat that won it', async ({ page }) => {
   await dealIn(page)
   await playUntil(page, handSettled(page))

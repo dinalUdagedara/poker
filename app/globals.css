@@ -218,6 +218,29 @@
   animation: callout-in 180ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
+/*
+ * Chips being pushed out to wager them.
+ *
+ * They arrive from the direction of the player who staked them rather than
+ * fading in on the spot, so a raise reads as someone putting chips forward. The
+ * offset is handed in per seat, since which way "forward" is depends on whether
+ * the player sits across the table or at the near edge.
+ */
+@keyframes wager-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--wager-from)) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-wager {
+  animation: wager-in 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
 /* The winning seat breathes rather than just sitting in a static ring, so the
    eye is pulled to who took it down before the result panel is read. */
 @keyframes winner-pulse {
@@ -273,7 +296,8 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-deal,
   .animate-callout,
-  .animate-winner {
+  .animate-winner,
+  .animate-wager {
     animation: none;
   }
 

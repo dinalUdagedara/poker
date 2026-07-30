@@ -292,6 +292,7 @@ export function PokerTable({
                     isActing={table.actingPlayerId === player.id}
                     isButton={table.buttonSeat === player.seat}
                     isWinner={winners.has(player.id)}
+                    handOver={Boolean(table.result)}
                     callout={callouts.get(player.id)}
                     calloutSide={calloutSide(left)}
                     chipSide={chipSide(left)}
@@ -313,6 +314,7 @@ export function PokerTable({
             isActing={table.actingPlayerId === you.id}
             isButton={table.buttonSeat === you.seat}
             isWinner={winners.has(you.id)}
+                    handOver={Boolean(table.result)}
             callout={callouts.get(you.id)}
             calloutSide="right"
             bigBlind={table.bigBlind}
