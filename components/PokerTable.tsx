@@ -119,19 +119,24 @@ export function PokerTable({
 
   return (
     <main className="table-room flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between gap-4 px-5 py-3">
+      {/* Sits directly on the felt, so everything here carries its own contrast
+          rather than relying on a dark page behind it. */}
+      <header className="flex items-center justify-between gap-4 px-5 py-3 text-white">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm font-semibold tracking-tight hover:opacity-80">
+          <Link
+            href="/"
+            className="text-sm font-semibold tracking-tight drop-shadow-sm hover:opacity-80"
+          >
             Hold&rsquo;em
           </Link>
-          <Separator orientation="vertical" className="h-4" />
-          <span className="text-muted-foreground text-sm">Hand {table.handNumber}</span>
+          <Separator orientation="vertical" className="h-4 bg-white/25" />
+          <span className="text-sm text-white/75">Hand {table.handNumber}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono text-[11px]">
+          <Badge className="border-white/15 bg-black/35 font-mono text-[11px] text-white">
             {table.smallBlind}/{table.bigBlind}
           </Badge>
-          <Badge variant="secondary" className="text-[11px] capitalize">
+          <Badge className="border-white/15 bg-black/35 text-[11px] text-white capitalize">
             {table.street}
           </Badge>
         </div>
@@ -145,11 +150,11 @@ export function PokerTable({
             {/* Pot and board */}
             <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-3">
               <div className="flex flex-col items-center">
-                <span className="text-[10px] font-medium tracking-[0.2em] text-emerald-200/50 uppercase">
+                <span className="text-[10px] font-medium tracking-[0.2em] text-white/60 uppercase">
                   pot
                 </span>
                 <span
-                  className="font-mono text-xl font-semibold tabular-nums text-amber-300 sm:text-2xl"
+                  className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
                   data-testid="pot"
                 >
                   {table.pot.toLocaleString()}
@@ -164,7 +169,7 @@ export function PokerTable({
                   ) : (
                     <div
                       key={i}
-                      className="h-18 w-13 rounded-lg border border-dashed border-emerald-200/12"
+                      className="h-18 w-13 rounded-lg border border-dashed border-white/20"
                     />
                   )
                 })}
@@ -221,7 +226,9 @@ export function PokerTable({
         )}
 
         <div className="flex w-full max-w-2xl flex-col items-center gap-3">
-          <Card className="w-full min-w-0 gap-0 border-white/10 bg-neutral-950/70 p-4 backdrop-blur">
+          {/* A dark console resting on the felt: the controls need their own
+              ground to read against now that the page is bright. */}
+          <Card className="w-full min-w-0 gap-0 border-black/40 bg-neutral-950/80 p-4 shadow-xl backdrop-blur">
             {finished ? (
               /*
                * The table is over: busted, won outright, or lost to a server
