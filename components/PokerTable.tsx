@@ -226,7 +226,20 @@ export function PokerTable({
           <div className="table-felt relative size-full rounded-[46%/54%] border border-black/30">
             {/* Pot and board */}
             <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-3">
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center gap-1">
+                {/*
+                  The pot as chips, in the same denominations as everyone's
+                  stack — which is the point of drawing it at all: a pile in the
+                  middle can be weighed against the pile behind a seat without
+                  reading either number.
+
+                  Gone once the hand settles, because by then it has been paid
+                  out and the award is carrying it to whoever won. Chips cannot
+                  be in the middle and on their way to a seat at the same time.
+                */}
+                <div className="flex h-8 items-end">
+                  {!table.result && <ChipStack stack={table.pot} testId="pot-chips" />}
+                </div>
                 <span className="text-[10px] font-medium tracking-[0.2em] text-white/60 uppercase">
                   pot
                 </span>

@@ -305,6 +305,20 @@ test('puts chips on the felt for a wager and clears them when the hand ends', as
   await expect(wagers).toHaveCount(0)
 })
 
+test('stacks the pot in the middle and clears it once it is paid', async ({ page }) => {
+  await dealIn(page)
+
+  // The blinds alone make a pot, so there are chips in the middle immediately.
+  const pot = page.getByTestId('pot-chips').locator('[data-chip]')
+  await expect(pot).not.toHaveCount(0)
+
+  await playUntil(page, handSettled(page))
+
+  // Paid out now, and the award is carrying it to the winner. Chips cannot be
+  // in the middle and on their way to a seat at the same time.
+  await expect(page.getByTestId('pot-chips')).toHaveCount(0)
+})
+
 test('sends the pot to the seat that won it', async ({ page }) => {
   await dealIn(page)
   await playUntil(page, handSettled(page))
