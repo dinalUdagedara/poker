@@ -9,16 +9,19 @@ import type { LegalActions } from '@/lib/poker/types'
 export type SubmitAction = (action: { type: string; amount?: number }) => void
 
 /**
- * The three actions are colour-coded rather than drawn as three identical
- * greys, which is how every poker room does it: giving up, staying in, and
- * putting chips in are different kinds of decision and should not look alike
- * at a glance. Each is a tinted panel with a ring, so they read as a set.
+ * The three actions are fully saturated, not tinted panels. Giving up, staying
+ * in, and putting chips in are different decisions and should not look alike at
+ * a glance — and over a bright felt anything washed out simply disappears.
  */
 const ACTION_BUTTON =
-  'h-12 min-w-0 flex-1 rounded-lg text-sm font-semibold shadow-none ring-1 ring-inset transition-colors'
+  'h-14 min-w-0 flex-1 rounded-xl text-base font-bold tracking-wide text-white uppercase' +
+  ' shadow-lg transition-colors active:translate-y-px'
 
+const FOLD = 'bg-red-600 hover:bg-red-500'
 /** Staying in the hand without committing anything new. */
-const PASSIVE = 'bg-sky-950/70 text-sky-100 ring-sky-400/25 hover:bg-sky-900/70'
+const PASSIVE = 'bg-emerald-600 hover:bg-emerald-500'
+/** The only one that commits chips. */
+const COMMIT = 'bg-amber-400 text-neutral-950 hover:bg-amber-300'
 
 /**
  * The action bar.
@@ -161,7 +164,7 @@ export function BettingControls({
       */}
       <div className="flex gap-2">
         <Button
-          className={cn(ACTION_BUTTON, 'bg-rose-950/70 text-rose-200 ring-rose-400/25 hover:bg-rose-900/70')}
+          className={cn(ACTION_BUTTON, FOLD)}
           disabled={busy}
           onClick={() => onAction({ type: 'fold' })}
           data-testid="action-fold"
@@ -196,12 +199,7 @@ export function BettingControls({
 
         {sizing && (
           <Button
-            className={cn(
-              ACTION_BUTTON,
-              // The one button that commits chips carries the only solid fill,
-              // so the choice being made reads before the words are.
-              'bg-amber-500 text-neutral-950 ring-amber-300/40 hover:bg-amber-400',
-            )}
+            className={cn(ACTION_BUTTON, COMMIT)}
             disabled={busy}
             onClick={() => onAction({ type: legal.raise ? 'raise' : 'bet', amount })}
             data-testid="action-bet"

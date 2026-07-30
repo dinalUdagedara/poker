@@ -7,12 +7,12 @@ import { chipColumns, type Denomination } from '@/lib/poker/chips'
  * hundreds, yellow thousands. The face is a lighter inlay, as a real chip has.
  */
 const CHIP: Record<Denomination, { rim: string; face: string }> = {
-  1000: { rim: 'from-amber-300 to-amber-600 border-amber-900', face: 'bg-amber-100' },
-  500: { rim: 'from-purple-400 to-purple-700 border-purple-950', face: 'bg-purple-200' },
-  100: { rim: 'from-slate-600 to-slate-900 border-black', face: 'bg-slate-300' },
-  25: { rim: 'from-emerald-400 to-emerald-700 border-emerald-950', face: 'bg-emerald-100' },
-  5: { rim: 'from-rose-400 to-rose-700 border-rose-950', face: 'bg-rose-100' },
-  1: { rim: 'from-neutral-100 to-neutral-400 border-neutral-600', face: 'bg-white' },
+  1000: { rim: 'from-yellow-300 to-yellow-500 border-yellow-800', face: 'bg-yellow-50' },
+  500: { rim: 'from-violet-400 to-violet-600 border-violet-900', face: 'bg-violet-50' },
+  100: { rim: 'from-neutral-700 to-neutral-900 border-black', face: 'bg-neutral-300' },
+  25: { rim: 'from-sky-400 to-sky-600 border-sky-900', face: 'bg-sky-50' },
+  5: { rim: 'from-red-500 to-red-700 border-red-900', face: 'bg-red-50' },
+  1: { rim: 'from-white to-neutral-300 border-neutral-500', face: 'bg-white' },
 }
 
 /** Chips drawn per column, however many the player actually holds of it. */
