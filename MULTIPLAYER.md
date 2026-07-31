@@ -170,14 +170,42 @@ Strangers, matched automatically. A thin layer over the primitives from phases 2
 to 5, but it depends on all of them — particularly the turn clock, for reasons
 below.
 
-**Quick join.** A "play now" button that finds a table with a free seat or
-creates one. Backed by a Redis sorted set of open tables scored by expiry.
+**Play now shows a list, not a coin flip.** Every public table with a free seat,
+with how full it is and whether it is waiting or mid-hand — four seats, three
+taken, one free, join that one. The player chooses; the server does not match
+them.
 
-The upkeep is the part that will bite. A table key expires on its own TTL, but
-its entry in the directory does not, so stale listings accumulate and quick join
-starts handing people tables that no longer exist. Prune the set on read, and
-treat a listing as a hint to be verified rather than a fact — the join has to
-cope with the table having vanished between being listed and being joined.
+**Derive the list, do not maintain it.** Keep only a set of public table ids in
+Redis and read the tables themselves to build the listing. The obvious
+alternative — storing "3 of 4 seats" alongside the id and updating it on every
+join and leave — is a second copy of the truth, and it will drift the first time
+a write path forgets to update it. A lobby showing a seat that is not really
+free is exactly the bug that makes the feature feel broken. Reading through
+costs one fetch per listed table and cannot drift. If the lobby ever grows past
+a few hundred tables, cache a summary then, with the read-through as the source.
+
+Prune as you read: a table whose key has expired drops out of the set on the way
+past, so the directory cleans itself without a sweeper.
+
+**A listing is a hint, never a fact.** The list is stale the moment it renders —
+seats fill while someone is reading it. Two people clicking the same last seat
+is the normal case, not an edge case. The join itself decides, under the same
+compare-and-set as any other write from phase 3: one player gets the seat, the
+other gets a clear "that seat just went" and a refreshed list. Spectating
+(phase 2) is the natural landing place for whoever lost.
+
+**Public and private must be distinct.** Listing a table publishes its id, so
+the URL stops being a secret for public tables — which is fine, that is what
+public means. What matters is that it is an explicit flag set at creation, and
+that a private table can never end up in the set by accident. Get this wrong in
+one direction and friends' tables are listed for strangers to walk into.
+
+**Joining mid-hand needs a poker answer, not just a technical one.** The seat is
+free now, but a hand is in progress. The convention is that a new player is
+dealt in from the next hand rather than the current one, which the engine
+already suits — `startHand` takes the seat list, so a player added between hands
+is simply there for the next deal. What still has to be decided is whether they
+post a blind to come in immediately or wait for the big blind to reach them.
 
 **The turn clock stops being optional.** Among friends, a player who wanders off
 mid-hand is a message in a group chat. Among strangers it is a table stuck until
@@ -193,9 +221,9 @@ its own right, not a detail of this one.
 until its TTL collects it. A public one that quick join keeps advertising while
 nobody is at it is worse than no listing at all.
 
-Sizing: quick join and the directory are small. Everything expensive about this
-phase is the turn clock it stands on and the griefing it exposes, which is why
-it comes last rather than alongside phase 2.
+Sizing: the directory and the lobby screen are small. Everything expensive about
+this phase is the turn clock it stands on and the griefing it exposes, which is
+why it comes last rather than alongside phase 2.
 
 ## Testing
 
@@ -232,3 +260,7 @@ link to, and phase 7 for a public one.
 - Should a disconnected player's seat be held, and for how long? Likely a
   different answer for a private table than a public one.
 - Do public tables need a stake level, or is one set of blinds enough to start?
+  If the lobby lists more than one, it needs a column for it and probably a
+  filter, which is the point where the lobby becomes a screen rather than a list.
+- Does a player joining mid-hand post a blind to come in, or wait for the big
+  blind to reach them?
