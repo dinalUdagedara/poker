@@ -99,16 +99,71 @@ entropy, so the link is already an unguessable capability. The link *is* the
 invite: no lobby, no invite records, no accounts. The same model as a document
 shared with anyone who has the URL.
 
-- A table is created with a number of seats and a number of bot fills.
-- `POST /api/table/:id/join` — the server picks a free seat for the requesting
-  player and returns their own redacted view. Seat assignment is server-owned,
-  like the blinds already are.
-- A lobby state before the first hand: who has sat down, which seats are empty,
-  and who starts it.
-- **Full table falls back to spectating**, which costs nothing to support:
+### The waiting room
+
+A room fills before it deals. Someone creates a table for five, waits while
+others take seats, and the first hand goes out when the last seat is taken.
+Nobody joins a game in progress.
+
+This is the right model — it removes mid-hand joining, and with it every
+question about being dealt in late and whether a latecomer posts a blind — but
+it is a state the code does not have today. `createTable` deals immediately:
+`startHand` is called in the same breath as the table being made, and
+`TableState` describes a hand in progress. There is no representation of a table
+that exists but has not started.
+
+So the store grows a stage above the engine rather than inside it:
+
+```
+WaitingRoom  { tableId, seats: (playerId | empty)[], settings, createdBy }
+     │  last seat taken, or the creator starts it early
+     ▼
+TableState   { … }   ← unchanged, still what the engine understands
+```
+
+Keeping these separate matters. Bending `TableState` to describe a hand that has
+not been dealt would put a null-shaped case into every function in `lib/poker/`,
+which is the one part of this codebase that is currently pure and completely
+tested. The waiting room is a lobby concern; the engine should never learn it
+exists.
+
+### Joining
+
+- `POST /api/table` creates a waiting room with a seat count and takes seat one.
+- `POST /api/table/:id/join` takes a free seat, under the same compare-and-set
+  as any other write. Seat assignment is server-owned, like the blinds already
+  are.
+- `POST /api/table/:id/leave` frees a seat before the game starts. Cheap to
+  allow, and it keeps the lobby honest.
+- When the last seat fills, the room deals itself. `startHand` already takes the
+  seat list, so this is the existing call with the assembled seats.
+- **A full or started room falls back to spectating**, which costs nothing:
   `redactFor` already accepts `viewerId: string | null`, and a null viewer sees
-  no hole cards and no legal actions. A spectator view is a call the redaction
-  layer can already answer.
+  no hole cards and no legal actions.
+
+### The room that never fills
+
+The obvious failure, and worth designing for rather than discovering. Three
+people join a room for five and nobody else comes. They should not be stuck.
+
+- **The creator can start early**, with the bots filling whatever is left. This
+  is the strongest answer available and it is nearly free: the equity bot is
+  already written and already plays every non-human seat, so a room for five
+  with three humans is a table of three humans and two bots.
+- Failing that, an idle room should expire rather than linger. The two-hour TTL
+  already collects it, but for a room advertised to strangers that is far too
+  long — minutes, not hours.
+
+### Presence while waiting
+
+People join a room and wander off. If the room fills and deals with two absent
+players, the game starts by bleeding their blinds and every hand stalls on the
+turn clock. Waiting rooms need liveness of their own, before the in-game clock
+from phase 5 applies.
+
+The SSE connection from phase 4 is the natural signal: a seat whose stream has
+been gone for more than a few seconds is released. That makes phase 4 a
+dependency of a usable waiting room, not just of the game itself.
 
 Optional and small: a short code (6–8 characters) mapped to the table id in
 Redis, so people can read it aloud rather than paste a UUID. A short code is
@@ -164,16 +219,25 @@ Mostly deletion. `playBots` already plays every non-human seat; once seats know
 whether they are human or bot, the existing loop covers a table of two humans
 and two bots with no new logic.
 
+Numbered late, but pull it forward if the "start early" escape hatch in phase 2
+is wanted at the same time as the waiting room — that is the feature it powers,
+and a room that can never start without five strangers is a room that mostly
+never starts.
+
 ## Phase 7 — public rooms
 
 Strangers, matched automatically. A thin layer over the primitives from phases 2
 to 5, but it depends on all of them — particularly the turn clock, for reasons
 below.
 
-**Play now shows a list, not a coin flip.** Every public table with a free seat,
-with how full it is and whether it is waiting or mid-hand — four seats, three
-taken, one free, join that one. The player chooses; the server does not match
-them.
+**Play now lists rooms waiting to fill.** Every public room that has not started
+and has a free seat, with how full it is — five seats, three taken, two to go.
+The player picks one; the server does not match them.
+
+Only waiting rooms are listed. A room that has dealt its first hand drops out of
+the directory, because there is nothing to join — that is what phase 2's model
+buys, and it makes the lobby much easier to reason about than a list of games in
+progress.
 
 **Derive the list, do not maintain it.** Keep only a set of public table ids in
 Redis and read the tables themselves to build the listing. The obvious
@@ -200,12 +264,14 @@ public means. What matters is that it is an explicit flag set at creation, and
 that a private table can never end up in the set by accident. Get this wrong in
 one direction and friends' tables are listed for strangers to walk into.
 
-**Joining mid-hand needs a poker answer, not just a technical one.** The seat is
-free now, but a hand is in progress. The convention is that a new player is
-dealt in from the next hand rather than the current one, which the engine
-already suits — `startHand` takes the seat list, so a player added between hands
-is simply there for the next deal. What still has to be decided is whether they
-post a blind to come in immediately or wait for the big blind to reach them.
+**A public room that fills is a public room that starts.** The last person to
+take a seat triggers the deal, exactly as on a link-shared table. Nothing about
+the public path needs its own start condition — it is the same waiting room,
+listed rather than passed around.
+
+The one thing public rooms do need on top: the idle expiry from phase 2 has to
+be short and enforced. A stale room at the top of the lobby that three strangers
+join and then abandon is the worst listing on the screen.
 
 **The turn clock stops being optional.** Among friends, a player who wanders off
 mid-hand is a message in a group chat. Among strangers it is a table stuck until
@@ -244,11 +310,12 @@ also the phase most likely to reveal that phase 3 was not thorough enough.
 Phase 5 is what makes it usable by people who are not you.
 
 Both ways of joining are in scope, but they are not the same size and should not
-be built together. Link-shared tables (phase 2) need no infrastructure beyond
-what phases 1 and 3 already provide, and they are what friends actually want.
-Public rooms (phase 7) are a directory and a button on top of the same
-primitives — cheap in themselves, but only safe once the turn clock exists,
-because strangers do not wait for each other the way friends do.
+be built together. The waiting room in phase 2 is the whole mechanism: create,
+sit, fill, deal. A link-shared room needs nothing beyond it, and that is what
+friends actually want. Public rooms (phase 7) are a directory and a screen on
+top of the identical primitive — cheap in themselves, but only safe once the
+turn clock exists, because strangers do not wait for each other the way friends
+do.
 
 The natural release points are: phase 5 for a private game people can be given a
 link to, and phase 7 for a public one.
@@ -262,5 +329,8 @@ link to, and phase 7 for a public one.
 - Do public tables need a stake level, or is one set of blinds enough to start?
   If the lobby lists more than one, it needs a column for it and probably a
   filter, which is the point where the lobby becomes a screen rather than a list.
-- Does a player joining mid-hand post a blind to come in, or wait for the big
-  blind to reach them?
+- How long may a room sit waiting before it is collected? Short enough that the
+  lobby is not full of ghosts, long enough that someone can create a room and go
+  and fetch their friends.
+- When a game ends and one player has all the chips, does the room dissolve and
+  send everyone back to the lobby, or offer to start again with the same seats?
