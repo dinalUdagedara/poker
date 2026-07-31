@@ -209,31 +209,38 @@ export function PokerTable({
   )
 
   /**
-   * Chips in flight from the seats that staked them into the pot.
+   * Chips in flight from the seat that just staked them.
    *
-   * A street ending is the one moment where the money visibly moves, and it was
-   * the moment nothing showed: every wager vanished on the spot while the pot
-   * number jumped. Derived by watching the street turn over rather than from
-   * anything the server sends, since the wagers that were on the felt a moment
-   * ago are exactly what has just gone in.
+   * Tied to the act of committing, not to the street being collected: a table
+   * sweeping every wager in at once said only that a street had ended, while
+   * what a player wants to see is each opponent putting their own chips in as
+   * their turn comes round. The replay steps one action at a time, so this is
+   * one seat per frame.
+   *
+   * Worked out by watching what each player has contributed rather than from
+   * anything new on the wire — the difference since the last frame is exactly
+   * what was just pushed in.
    */
   const [sweeps, setSweeps] = useState<
-    Array<{ id: string; amount: number; left: number; top: number }>
+    Array<{ key: string; amount: number; left: number; top: number }>
   >([])
   const previous = useRef(table)
 
   useEffect(() => {
     const before = previous.current
     previous.current = table
-    // A new hand deals fresh blinds rather than sweeping the old street in.
-    if (before.street === table.street || before.handNumber !== table.handNumber) return
+    // A fresh deal posts blinds. Those are put up, not pushed across the felt.
+    if (before.handNumber !== table.handNumber) return
 
-    const flying = before.players
-      .filter((p) => p.currentBet > 0)
-      .flatMap((p) => {
-        const point = seatPoint(p.id)
-        return point ? [{ id: p.id, amount: p.currentBet, ...point }] : []
-      })
+    const staked = new Map(before.players.map((p) => [p.id, p.totalContributed]))
+    const flying = table.players.flatMap((p) => {
+      const added = p.totalContributed - (staked.get(p.id) ?? 0)
+      if (added <= 0) return []
+      const point = seatPoint(p.id)
+      // Keyed by what the player has in, which only ever climbs, so acting
+      // twice on one street replays the flight instead of reusing the node.
+      return point ? [{ key: `${p.id}-${p.totalContributed}`, amount: added, ...point }] : []
+    })
     if (flying.length === 0) return
 
     setSweeps(flying)
@@ -371,12 +378,12 @@ export function PokerTable({
                * players rather than simply growing.
                */
               <span
-                key={`${table.handNumber}-${table.street}-${sweep.id}`}
+                key={sweep.key}
                 className="animate-sweep pointer-events-none absolute z-30"
                 style={
                   { '--from-x': `${sweep.left}%`, '--from-y': `${sweep.top}%` } as CSSProperties
                 }
-                data-testid={`sweep-${sweep.id}`}
+                data-testid={`sweep-${sweep.key}`}
               >
                 <ChipStack stack={sweep.amount} />
               </span>
