@@ -227,18 +227,57 @@
  * the player sits across the table or at the near edge.
  */
 @keyframes wager-in {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(var(--wager-from)) scale(0.8);
+    transform: translateY(var(--wager-from)) scale(0.6);
   }
-  to {
+  60% {
+    opacity: 1;
+    transform: translateY(calc(var(--wager-from) * -0.15)) scale(1.08);
+  }
+  100% {
     opacity: 1;
     transform: none;
   }
 }
 
+/* Long enough to be a push rather than a pop: the chips come off the player's
+   own stack, overshoot slightly as they land, and settle. */
 .animate-wager {
-  animation: wager-in 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  animation: wager-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/*
+ * Chips crossing the felt into the pot at the end of a street.
+ *
+ * Everyone's wager used to vanish on the spot while the pot number jumped,
+ * which is the one moment where the money visibly moves and nothing showed it.
+ * Each seat's chips are handed their own starting point and travel in.
+ */
+@keyframes chips-to-pot {
+  0% {
+    left: var(--from-x);
+    top: var(--from-y);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.75);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: 50%;
+    top: 50%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
+.animate-sweep {
+  animation: chips-to-pot 700ms cubic-bezier(0.4, 0, 0.25, 1) forwards;
 }
 
 /*
@@ -362,7 +401,8 @@
    * dropped instead, and the result panel says the same thing in text.
    */
   .animate-award,
-  .animate-win {
+  .animate-win,
+  .animate-sweep {
     display: none;
   }
 }

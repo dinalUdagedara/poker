@@ -215,7 +215,7 @@ export function PlayerSeat({
           <span
             key={player.currentBet}
             className="animate-wager flex items-center gap-1.5 rounded-full border border-black/30 bg-black/45 py-0.5 pr-2 pl-1.5 backdrop-blur-sm"
-            style={{ '--wager-from': hero ? '14px' : '-14px' } as CSSProperties}
+            style={{ '--wager-from': hero ? '30px' : '-30px' } as CSSProperties}
             data-testid={`bet-${player.id}`}
           >
             <ChipStack stack={player.currentBet} />

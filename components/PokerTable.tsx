@@ -198,6 +198,51 @@ export function PokerTable({
     return shown ? CATEGORY_NAMES[categoryOf(shown.score)] : null
   })()
 
+  /** Where a player sits, in felt percentages. The viewer is off it entirely. */
+  const seatPoint = useCallback(
+    (playerId: string) => {
+      if (playerId === table.viewerId) return { left: 50, top: 116 }
+      const seat = opponents.findIndex((p) => p.id === playerId)
+      return seat < 0 ? null : seatPosition(seat, opponents.length)
+    },
+    [opponents, table.viewerId],
+  )
+
+  /**
+   * Chips in flight from the seats that staked them into the pot.
+   *
+   * A street ending is the one moment where the money visibly moves, and it was
+   * the moment nothing showed: every wager vanished on the spot while the pot
+   * number jumped. Derived by watching the street turn over rather than from
+   * anything the server sends, since the wagers that were on the felt a moment
+   * ago are exactly what has just gone in.
+   */
+  const [sweeps, setSweeps] = useState<
+    Array<{ id: string; amount: number; left: number; top: number }>
+  >([])
+  const previous = useRef(table)
+
+  useEffect(() => {
+    const before = previous.current
+    previous.current = table
+    // A new hand deals fresh blinds rather than sweeping the old street in.
+    if (before.street === table.street || before.handNumber !== table.handNumber) return
+
+    const flying = before.players
+      .filter((p) => p.currentBet > 0)
+      .flatMap((p) => {
+        const point = seatPoint(p.id)
+        return point ? [{ id: p.id, amount: p.currentBet, ...point }] : []
+      })
+    if (flying.length === 0) return
+
+    setSweeps(flying)
+    // Cleared rather than left mounted: the animation ends on nothing, so what
+    // stays behind is invisible weight under every later render.
+    const done = setTimeout(() => setSweeps([]), 800)
+    return () => clearTimeout(done)
+  }, [table, seatPoint])
+
   /**
    * Where the pot should fly, and how much of it.
    *
@@ -211,12 +256,8 @@ export function PokerTable({
     const [winnerId, amount] =
       Object.entries(payouts).sort(([, a], [, b]) => b - a)[0] ?? []
     if (!winnerId || !amount) return null
-
-    // The viewer sits off the felt entirely, below its near edge.
-    if (winnerId === table.viewerId) return { amount, left: 50, top: 116 }
-    const seat = opponents.findIndex((p) => p.id === winnerId)
-    if (seat < 0) return null
-    return { amount, ...seatPosition(seat, opponents.length) }
+    const point = seatPoint(winnerId)
+    return point ? { amount, ...point } : null
   })()
 
   return (
@@ -322,6 +363,24 @@ export function PokerTable({
                 </div>
               </div>
             )}
+
+            {sweeps.map((sweep) => (
+              /*
+               * One flight per seat that had chips out, each starting from its
+               * own side of the table so the pot is seen being built from the
+               * players rather than simply growing.
+               */
+              <span
+                key={`${table.handNumber}-${table.street}-${sweep.id}`}
+                className="animate-sweep pointer-events-none absolute z-30"
+                style={
+                  { '--from-x': `${sweep.left}%`, '--from-y': `${sweep.top}%` } as CSSProperties
+                }
+                data-testid={`sweep-${sweep.id}`}
+              >
+                <ChipStack stack={sweep.amount} />
+              </span>
+            ))}
 
             {award && (
               /*
