@@ -475,6 +475,37 @@ test('shows a useful message for a table that does not exist', async ({ page }) 
   expect(response?.status()).toBe(404)
 })
 
+test.describe('what beats what', () => {
+  test('answers the question without leaving the hand', async ({ page }) => {
+    await dealIn(page)
+
+    await page.getByTestId('rankings').click()
+    const panel = page.getByTestId('rankings-panel')
+
+    await expect(panel).toBeVisible()
+    // Top and bottom of the chart, so it is the whole list and not a stub.
+    await expect(panel).toContainText('Royal Flush')
+    await expect(panel).toContainText('High Card')
+
+    // The point of it being a dialog: the table is still there underneath, so
+    // any replay still stepping through the opponents' moves survives.
+    await expect(page.getByTestId('pot')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(panel).toBeHidden()
+  })
+
+  test('says the same thing in the guide', async ({ page }) => {
+    // One list, shown in two places. A guide that disagreed with the table
+    // about what beats what would be worse than no guide.
+    await page.goto('/how-to-play')
+
+    await expect(page.getByText('Royal Flush', { exact: true })).toBeVisible()
+    await expect(page.getByText('Straight Flush', { exact: true })).toBeVisible()
+    await expect(page.getByText('High Card', { exact: true })).toBeVisible()
+  })
+})
+
 test.describe('when the table is finished', () => {
   /** Play hand after hand, passively, until somebody has all the chips. */
   async function playToTheEnd(page: Page) {

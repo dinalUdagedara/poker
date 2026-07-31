@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { HandRankings } from '@/components/HandRankings'
 import { PlayingCard } from '@/components/PlayingCard'
 import { parseCards } from '@/lib/poker/cards'
-import { CATEGORY_NAMES, HandCategory } from '@/lib/poker/evaluator'
 import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -64,11 +64,13 @@ const STREETS: Array<{ name: string; detail: string; board?: string }> = [
   },
   {
     name: 'Preflop',
-    detail: 'Everyone is dealt two cards face down that only they can see. Betting starts to the left of the big blind, who acts last and may raise even if nobody else did.',
+    detail:
+      'Everyone is dealt two cards face down that only they can see. Betting starts to the left of the big blind, who acts last and may raise even if nobody else did.',
   },
   {
     name: 'Flop',
-    detail: 'Three shared cards land face up. Everyone still in the hand builds from these plus their own two. Betting starts again, this time with the option to check.',
+    detail:
+      'Three shared cards land face up. Everyone still in the hand builds from these plus their own two. Betting starts again, this time with the option to check.',
     board: '9h7s2d',
   },
   {
@@ -83,7 +85,8 @@ const STREETS: Array<{ name: string; detail: string; board?: string }> = [
   },
   {
     name: 'Showdown',
-    detail: 'The remaining players show their cards and the best five-card hand takes the pot. Get there earlier — everyone else folding — and you win it without showing anything.',
+    detail:
+      'The remaining players show their cards and the best five-card hand takes the pot. Get there earlier — everyone else folding — and you win it without showing anything.',
   },
 ]
 
@@ -107,7 +110,8 @@ const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
   {
     name: 'Call',
     swatch: 'bg-emerald-600',
-    detail: 'Match the current bet. If matching it takes your whole stack, the button says so — that is an all-in call.',
+    detail:
+      'Match the current bet. If matching it takes your whole stack, the button says so — that is an all-in call.',
   },
   {
     name: 'Bet',
@@ -117,25 +121,9 @@ const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
   {
     name: 'Raise',
     swatch: 'bg-amber-400',
-    detail: 'Put in more than the current bet. The slider shows the legal range; the shortcuts size it against the pot.',
+    detail:
+      'Put in more than the current bet. The slider shows the legal range; the shortcuts size it against the pot.',
   },
-]
-
-/**
- * Strongest first. The names come from the evaluator so the guide and the
- * result panel cannot drift apart — if a category is ever renamed there, it is
- * renamed here too.
- */
-const RANKINGS: Array<{ category: HandCategory; cards: string; note: string }> = [
-  { category: HandCategory.StraightFlush, cards: '9s8s7s6s5s', note: 'Five in a row, all one suit. Ace-high is the royal flush.' },
-  { category: HandCategory.FourOfAKind, cards: 'QhQdQcQs3h', note: 'All four of a rank.' },
-  { category: HandCategory.FullHouse, cards: 'JhJdJc8s8h', note: 'Three of a rank plus a pair.' },
-  { category: HandCategory.Flush, cards: 'AhJh8h5h2h', note: 'Five of one suit, in any order.' },
-  { category: HandCategory.Straight, cards: 'Ts9h8d7c6s', note: 'Five in a row, suits mixed. Ace plays low in 5-4-3-2-A.' },
-  { category: HandCategory.ThreeOfAKind, cards: '7h7d7sKc4d', note: 'Three of a rank.' },
-  { category: HandCategory.TwoPair, cards: 'AhAd9s9c2h', note: 'Two different pairs.' },
-  { category: HandCategory.Pair, cards: 'KhKdTs6c3h', note: 'Two cards of the same rank.' },
-  { category: HandCategory.HighCard, cards: 'AhQd9s7c4h', note: 'Nothing above. The highest card decides it.' },
 ]
 
 export default function HowToPlay() {
@@ -154,7 +142,13 @@ export default function HowToPlay() {
           <Separator orientation="vertical" className="h-4 bg-white/25" />
           <span className="text-sm text-white/75">How to play</span>
         </div>
-        <Link href="/" className={cn(buttonVariants({ size: 'sm' }), 'bg-amber-400 font-semibold text-neutral-950 hover:bg-amber-300')}>
+        <Link
+          href="/"
+          className={cn(
+            buttonVariants({ size: 'sm' }),
+            'bg-amber-400 font-semibold text-neutral-950 hover:bg-amber-300',
+          )}
+        >
           Play
         </Link>
       </header>
@@ -182,9 +176,9 @@ export default function HowToPlay() {
               free to use both of your own, one, or neither.
             </p>
             <p className="text-sm leading-relaxed text-white/70">
-              Chips go in across four rounds of betting. Win by holding the best hand when the
-              cards are turned over, or by betting enough that everyone else folds — in which case
-              nobody ever finds out what you had.
+              Chips go in across four rounds of betting. Win by holding the best hand when the cards
+              are turned over, or by betting enough that everyone else folds — in which case nobody
+              ever finds out what you had.
             </p>
             <div className="flex flex-col gap-3 rounded-lg bg-white/5 p-3 sm:flex-row sm:items-center sm:gap-5">
               <div className="flex flex-col gap-1.5">
@@ -196,8 +190,8 @@ export default function HowToPlay() {
                 <Hand cards="Qh7h2dJcTs" />
               </div>
               <p className="text-sm text-white/70 sm:ml-auto sm:max-w-[13rem]">
-                Best five: A-K-Q-J-10, a straight. The two hearts on the board are a flush draw
-                that never came in.
+                Best five: A-K-Q-J-10, a straight. The two hearts on the board are a flush draw that
+                never came in.
               </p>
             </div>
           </Section>
@@ -239,37 +233,17 @@ export default function HowToPlay() {
             </dl>
             <p className="text-sm leading-relaxed text-white/55">
               No limit means there is no ceiling on a bet: any raise can be for everything in front
-              of you. Bet more than an opponent can cover and they can only call for what they
-              have — the rest is set aside in a side pot they are not playing for.
+              of you. Bet more than an opponent can cover and they can only call for what they have
+              — the rest is set aside in a side pot they are not playing for.
             </p>
           </Section>
 
           <Section title="What beats what" lead="Strongest first. Suits never break a tie.">
-            <ul className="flex flex-col">
-              {RANKINGS.map(({ category, cards, note }, i) => (
-                <li
-                  key={category}
-                  className={cn(
-                    'flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5',
-                    i > 0 && 'border-t border-white/8',
-                  )}
-                >
-                  <span className="w-6 shrink-0 font-mono text-xs text-white/35 tabular-nums">
-                    {i + 1}
-                  </span>
-                  <Hand cards={cards} />
-                  <div className="flex min-w-40 flex-1 flex-col">
-                    <span className="text-sm font-semibold text-white">
-                      {CATEGORY_NAMES[category]}
-                    </span>
-                    <span className="text-xs text-white/50">{note}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <HandRankings />
             <p className="text-sm leading-relaxed text-white/55">
-              Two players with the same category are split by the cards themselves: the higher
-              pair, then the higher side cards. If all five cards match, the pot is halved.
+              Two players with the same category are split by the cards themselves: the higher pair,
+              then the higher side cards. If all five cards match, the pot is halved. The same chart
+              is a tap away at the table, so there is nothing here to memorise.
             </p>
           </Section>
 
