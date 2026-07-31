@@ -150,9 +150,43 @@ people join a room for five and nobody else comes. They should not be stuck.
   is the strongest answer available and it is nearly free: the equity bot is
   already written and already plays every non-human seat, so a room for five
   with three humans is a table of three humans and two bots.
-- Failing that, an idle room should expire rather than linger. The two-hour TTL
-  already collects it, but for a room advertised to strangers that is far too
-  long — minutes, not hours.
+- Failing that, an idle room expires rather than lingers. **Two minutes**, not
+  the two hours a dealt table gets — a room advertised to strangers goes stale
+  fast, and an empty lobby is better than a lobby of ghosts.
+
+Two minutes of *idle*, not two minutes of life: every join resets it. A room
+filling one player at a time should never be collected out from under the people
+sitting in it, and the clock only has to be short enough that nothing dead stays
+listed.
+
+Worth watching once link sharing is real: two minutes is generous for a public
+room and tight for a private one, where the flow is to create a room, paste the
+link somewhere, and wait for people to notice. If that turns out to be the
+common complaint, the fix is a longer idle window for unlisted rooms rather than
+a longer one for all of them.
+
+### When the game ends
+
+Dissolve the room. Offer "play again", and let it create a **new** waiting room
+with whoever is still there already seated.
+
+The instinct is to keep the room and offer a rematch with the same seats, but it
+does not survive contact with how these games end. A table plays until one
+player has every chip — `tableOutcome` already models exactly this, `winner` for
+the last player standing and `eliminated` for everyone else — so by the time
+there is a winner, the player knocked out first has been watching for a long
+while, and most of them will have left. A rematch offered to the same seats is a
+rematch offered to one winner and four empty chairs.
+
+Making it a fresh waiting room also means there is nothing new to build. It is
+the phase 2 primitive again, pre-seated: the survivors are sitting, the empty
+seats are open, and it fills or starts early exactly like any other room. No
+"finished but restartable" state, and nothing in the lifecycle that only happens
+once.
+
+The question this really raises is not about the ending. It is what an
+eliminated player does for the twenty minutes between busting and the game
+finishing — see the open questions.
 
 ### Presence while waiting
 
@@ -329,8 +363,13 @@ link to, and phase 7 for a public one.
 - Do public tables need a stake level, or is one set of blinds enough to start?
   If the lobby lists more than one, it needs a column for it and probably a
   filter, which is the point where the lobby becomes a screen rather than a list.
-- How long may a room sit waiting before it is collected? Short enough that the
-  lobby is not full of ghosts, long enough that someone can create a room and go
-  and fetch their friends.
-- When a game ends and one player has all the chips, does the room dissolve and
-  send everyone back to the lobby, or offer to start again with the same seats?
+- **What does a player do between busting out and the game ending?** The sharpest
+  question in this plan, and the one the waiting-room model surfaces. A table
+  plays until one player holds every chip, so in a room of five, someone is
+  knocked out early and then has nothing to do for as long as the rest takes.
+  Broadly three answers, and they are different products: let them leave easily
+  and go find another room, which is honest and cheap; let them rebuy, which
+  turns a tournament into a cash game and changes what winning means; or make
+  games short enough that it barely matters, with rising blinds or shallower
+  stacks. Worth deciding before public rooms, because a stranger who busts in
+  five minutes and has nothing to do simply leaves and does not come back.
