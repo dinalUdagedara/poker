@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { CircleQuestionMark } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ChipStack } from './ChipStack'
@@ -289,6 +290,23 @@ export function PokerTable({
           <Badge className="border-white/15 bg-black/35 text-[11px] text-white capitalize">
             {table.street}
           </Badge>
+          {/*
+            Opens in its own tab rather than navigating. Looking up what beats
+            what is something you do in the middle of a decision, and leaving
+            the table would throw away any replay still stepping through the
+            opponents' moves — the one thing the server will not send twice.
+          */}
+          <Link
+            href="/how-to-play"
+            target="_blank"
+            rel="noopener"
+            aria-label="How to play"
+            title="How to play"
+            className="grid size-7 place-items-center rounded-full border border-white/15 bg-black/35 text-white/80 transition-colors hover:bg-black/55 hover:text-white"
+            data-testid="how-to-play"
+          >
+            <CircleQuestionMark className="size-4" aria-hidden />
+          </Link>
         </div>
       </header>
 

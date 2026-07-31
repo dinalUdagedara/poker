@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -133,6 +134,16 @@ export default function Home() {
                 {error}
               </p>
             )}
+
+            {/* Under the deal button rather than above it: someone who already
+                knows the game should never have to read past this to start. */}
+            <Link
+              href="/how-to-play"
+              className="-mt-2 text-center text-sm text-white/45 underline-offset-4 hover:text-white/70 hover:underline"
+              data-testid="how-to-play"
+            >
+              New to Hold&rsquo;em? Read the guide
+            </Link>
           </CardContent>
         </Card>
       </div>
