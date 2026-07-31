@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { PokerTable } from '@/components/PokerTable'
+import { currentPlayerId } from '@/lib/server/player'
 import { findTable } from '@/lib/server/table-store'
 
 /**
@@ -11,7 +12,7 @@ import { findTable } from '@/lib/server/table-store'
  */
 export default async function TablePage({ params }: PageProps<'/table/[id]'>) {
   const { id } = await params
-  const initial = await findTable(id)
+  const initial = await findTable(id, await currentPlayerId())
   if (!initial) notFound()
 
   return <PokerTable tableId={id} initial={initial} />

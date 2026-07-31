@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { currentPlayerId } from '@/lib/server/player'
 import { getTable, TableError } from '@/lib/server/table-store'
 
 /**
@@ -9,7 +10,7 @@ import { getTable, TableError } from '@/lib/server/table-store'
 export async function GET(_request: NextRequest, ctx: RouteContext<'/api/table/[id]'>) {
   const { id } = await ctx.params
   try {
-    return Response.json(await getTable(id))
+    return Response.json(await getTable(id, await currentPlayerId()))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })

@@ -85,11 +85,29 @@ function resolveSettings(requested: unknown): TableSettings {
   }
 }
 
-/** The redacted table plus what the player can do next. */
-function viewOf(state: TableState): TableView {
+/**
+ * The seat this player owns at this table, or null if they own none.
+ *
+ * Null is a normal answer. Someone following a shared link owns nothing here
+ * and is a spectator — not an error, and in phase 2 it is what a full table
+ * gives a latecomer.
+ */
+function seatOf(table: StoredTable, playerId: string | null): string | null {
+  if (!playerId) return null
+  const seat = Object.entries(table.owners).find(([, owner]) => owner === playerId)
+  return seat?.[0] ?? null
+}
+
+/**
+ * The redacted table plus what this viewer can do next.
+ *
+ * `viewerSeat` is the engine's id for their seat, or null for a spectator, for
+ * whom `redactFor` already hides every hole card and offers no legal actions.
+ */
+function viewOf(state: TableState, viewerSeat: string | null): TableView {
   return {
-    ...redactFor(state, HUMAN_ID),
-    outcome: tableOutcome(state.players, HUMAN_ID, state.result !== null),
+    ...redactFor(state, viewerSeat),
+    outcome: tableOutcome(state.players, viewerSeat, state.result !== null),
   }
 }
 
@@ -105,7 +123,11 @@ function seatsFor(settings: TableSettings, stacks?: Map<string, number>): SeatCo
 }
 
 /**
- * Play bot turns until the human is to act or the hand is over.
+ * Play bot turns until a person is to act or the hand is over.
+ *
+ * Takes the seats people hold rather than comparing against a constant: with
+ * more than one human at the table, stopping at a single hardcoded id would
+ * have the bots playing somebody's hand for them.
  *
  * Runs synchronously: the bot's move is a direct consequence of the human's, so
  * there is nothing to push and no reason for the client to poll. The loop is
@@ -113,9 +135,9 @@ function seatsFor(settings: TableSettings, stacks?: Map<string, number>): SeatCo
  * guard turns a hypothetical engine bug into an error rather than a hung
  * request.
  */
-function playBots(state: TableState, steps?: TableState[]): TableState {
+function playBots(state: TableState, humanSeats: Set<string>, steps?: TableState[]): TableState {
   let guard = 0
-  while (!state.result && state.actingPlayerId !== HUMAN_ID) {
+  while (!state.result && !humanSeats.has(state.actingPlayerId ?? '')) {
     const actor = state.actingPlayerId
     if (!actor) break
     // The tier 2 bot: Chen chart preflop, Monte Carlo equity from the flop on.
@@ -133,13 +155,30 @@ function playBots(state: TableState, steps?: TableState[]): TableState {
  * rather than sent twice. Every step is redacted in its own right — an
  * intermediate state is no more entitled to show a hole card than the final one.
  */
-function updateFrom(steps: TableState[], final: TableState): TableUpdate {
-  return { ...viewOf(final), replay: steps.slice(0, -1).map(viewOf) }
+function updateFrom(
+  steps: TableState[],
+  final: TableState,
+  viewerSeat: string | null,
+): TableUpdate {
+  return {
+    ...viewOf(final, viewerSeat),
+    replay: steps.slice(0, -1).map((step) => viewOf(step, viewerSeat)),
+  }
 }
 
-export async function createTable(settings: unknown = {}): Promise<TableView> {
+/**
+ * Deal a new table, owned by whoever asked for it.
+ *
+ * The creator takes the one human seat. Phase 2 turns this into a room that
+ * waits for others; for now the shape is the same and the map has one entry.
+ */
+export async function createTable(
+  settings: unknown = {},
+  playerId: string,
+): Promise<TableView> {
   const resolved = resolveSettings(settings)
   const tableId = crypto.randomUUID()
+  const owners = { [HUMAN_ID]: playerId }
   const state = playBots(
     startHand({
       tableId,
@@ -148,10 +187,11 @@ export async function createTable(settings: unknown = {}): Promise<TableView> {
       smallBlind: resolved.smallBlind,
       bigBlind: resolved.bigBlind,
     }),
+    new Set(Object.keys(owners)),
   )
 
-  await storage.write(tableId, { state, settings: resolved })
-  return viewOf(state)
+  await storage.write(tableId, { state, settings: resolved, owners })
+  return viewOf(state, HUMAN_ID)
 }
 
 async function load(tableId: string): Promise<StoredTable> {
@@ -160,59 +200,76 @@ async function load(tableId: string): Promise<StoredTable> {
   return table
 }
 
-export async function getTable(tableId: string): Promise<TableView> {
-  return viewOf((await load(tableId)).state)
+export async function getTable(tableId: string, playerId: string | null): Promise<TableView> {
+  const table = await load(tableId)
+  return viewOf(table.state, seatOf(table, playerId))
 }
 
 /** Like getTable, but returns null for an unknown table instead of throwing. */
-export async function findTable(tableId: string): Promise<TableView | null> {
+export async function findTable(
+  tableId: string,
+  playerId: string | null,
+): Promise<TableView | null> {
   const table = await storage.read(tableId)
-  return table ? viewOf(table.state) : null
+  return table ? viewOf(table.state, seatOf(table, playerId)) : null
 }
 
 /**
- * Apply the human's action, then let the bots respond.
+ * Apply this player's action, then let the bots respond.
  *
- * The client sends an intent and nothing else. Whether it is legal, what it
- * costs and what happens next are all decided here.
+ * The client sends an intent and nothing else. Who they are comes from their
+ * cookie, which seat that owns comes from the table, and whether the action is
+ * legal comes from the engine. Nothing about the identity is taken from the
+ * request body — a caller can only ever act for the seat they hold.
  */
-export async function submitAction(tableId: string, action: Action): Promise<TableUpdate> {
+export async function submitAction(
+  tableId: string,
+  playerId: string | null,
+  action: Omit<Action, 'playerId'>,
+): Promise<TableUpdate> {
   const table = await load(tableId)
 
+  const seat = seatOf(table, playerId)
+  if (!seat) throw new TableError('You do not have a seat at this table', 403)
+
   if (table.state.result) throw new TableError('That hand is already over', 409)
-  if (table.state.actingPlayerId !== HUMAN_ID) {
+  if (table.state.actingPlayerId !== seat) {
     throw new TableError('It is not your turn', 409)
-  }
-  if (action.playerId !== HUMAN_ID) {
-    throw new TableError('You can only act for yourself', 403)
   }
 
   let next: TableState
   try {
-    next = applyAction(table.state, action)
+    next = applyAction(table.state, { ...action, playerId: seat } as Action)
   } catch (error) {
     // An illegal action is a client bug or a tampered request, not a server
     // fault, and the table is left exactly as it was.
     throw new TableError((error as Error).message, 400)
   }
 
-  // The human's own move is the first thing replayed: without it their fold or
+  // The player's own move is the first thing replayed: without it their fold or
   // raise would be swallowed by whatever the bots did in response.
   const steps: TableState[] = [next]
-  next = playBots(next, steps)
+  next = playBots(next, new Set(Object.keys(table.owners)), steps)
 
   await storage.write(tableId, { ...table, state: next })
-  return updateFrom(steps, next)
+  return updateFrom(steps, next, seat)
 }
 
 /** Deal the next hand, moving the button and dropping anyone out of chips. */
-export async function startNextHand(tableId: string): Promise<TableUpdate> {
+export async function startNextHand(
+  tableId: string,
+  playerId: string | null,
+): Promise<TableUpdate> {
   const table = await load(tableId)
+
+  const seat = seatOf(table, playerId)
+  if (!seat) throw new TableError('You do not have a seat at this table', 403)
+
   if (!table.state.result) throw new TableError('The current hand is still in progress', 409)
 
   // The client is told the outcome and hides the button, but a stale tab or a
   // hand-rolled request can still get here, so the rule is enforced twice.
-  const outcome = tableOutcome(table.state.players, HUMAN_ID, true)
+  const outcome = tableOutcome(table.state.players, seat, true)
   if (outcome.kind === 'eliminated') throw new TableError('You are out of chips', 409)
   if (outcome.kind === 'winner') throw new TableError('Everyone else is out of chips', 409)
 
@@ -236,8 +293,8 @@ export async function startNextHand(tableId: string): Promise<TableUpdate> {
   // A fresh deal starts from the blinds being posted, so that is the first
   // thing shown before the bots in front of the human take their turns.
   const steps: TableState[] = [dealt]
-  const state = playBots(dealt, steps)
+  const state = playBots(dealt, new Set(Object.keys(table.owners)), steps)
 
   await storage.write(tableId, { ...table, state })
-  return updateFrom(steps, state)
+  return updateFrom(steps, state, seat)
 }

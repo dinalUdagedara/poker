@@ -12,7 +12,7 @@ Everything below assumes the plan's phase numbering.
 | Phase | What | State |
 | --- | --- | --- |
 | 0 | Platform decision | **Decided** — Vercel + Redis, see plan |
-| 1 | Identity | **In progress** |
+| 1 | Identity | **Done** — on the branch, not yet merged |
 | 2 | Waiting room, seating, join by link | Not started |
 | 3 | Concurrency (compare-and-set) | Not started |
 | 4 | Push (SSE) | Not started |
@@ -59,34 +59,53 @@ recipient the sharer's hole cards.
 
 **Done**
 
-- Nothing yet.
+- `lib/player-cookie.ts` — the cookie name, in its own module because the proxy
+  runtime cannot import a `server-only` one.
+- `proxy.ts` — mints the id when absent, and adds it to the *request* as well as
+  the response so the render it precedes already sees it.
+- `lib/server/player.ts` — `currentPlayerId()`, returning null rather than
+  throwing when there is no cookie.
+- `table-storage.ts` — `StoredTable.owners`, engine seat id to player id.
+- `table-store.ts` — `seatOf`, `viewOf(state, viewerSeat)`, and the player id
+  threaded through all five public functions. `playBots` now takes the set of
+  human-held seats instead of comparing against `HUMAN_ID`.
+- `lifecycle.ts` — `tableOutcome` accepts a null viewer and answers
+  `{ kind: 'spectating', finished }`. Without this a spectator was reported as
+  `eliminated`, and the client would have told them they were out of chips.
+- Routes and `app/table/[id]/page.tsx` pass the player id. The action route no
+  longer sends a player id at all — the seat is resolved from the cookie, so a
+  request cannot name a seat it does not hold.
+- `PokerTable.tsx` — a finished table reads "This table has finished" for a
+  spectator rather than "You are out of chips".
+- Tests: 191 passing. The two that matter are a player seeing their own cards
+  and a stranger with the link seeing none.
 
-**Next**
-
-1. `proxy.ts` — mint the cookie when absent.
-2. `lib/server/player.ts` — read the current player id.
-3. `table-store.ts` — `owners`, seat resolution, thread the player id through
-   the five public functions.
-4. Routes and `app/table/[id]/page.tsx` pass the player id.
-5. Tests: two viewers against one state, and seat ownership guards.
+**Verified by hand**, two cookie jars against one table on a production build:
+the owner gets `viewerId: 'you'`, their own hole cards and legal actions; the
+stranger gets `viewerId: null`, no cards, no legal actions, and
+`{ kind: 'spectating' }`; and a stranger's action is refused 403.
 
 **Watch out for**
 
-- Stored tables from before this change have no `owners`. They are unreadable as
-  owned tables and their players will look like spectators. Tables expire in two
-  hours and this is a preview-only branch, so no migration is planned — but do
-  not merge to `main` expecting in-flight tables to survive.
-- `playBots` currently loops until `actingPlayerId === HUMAN_ID`. It has to
-  become "until the acting seat is owned by a human", or bots will play a human
-  seat as soon as there is more than one.
+- Stored tables from before this change have no `owners`, so everyone looks like
+  a spectator at them. Tables expire in two hours and this branch has only ever
+  deployed to preview, so no migration was written — but do not merge to `main`
+  expecting in-flight tables to survive the deploy.
+- A spectator currently sees the betting controls greyed out rather than a
+  spectator-shaped screen. Not wrong and not a leak — `legalActions` is null —
+  but phase 2 should design what watching actually looks like.
+- `HUMAN_ID` still exists as the engine's id for the one human seat. That is
+  deliberate: phase 2 grows `owners` from one entry to several, and the engine's
+  seat ids stay stable strings either way.
 
 ## Verification
 
 Run before every commit. All three were green when this file was written.
 
 ```
-npm test          # unit, 183 passing / 1 skipped
+npm test          # unit, 191 passing / 1 skipped
 npm run lint
+npx tsc --noEmit
 npm run build
 npm run e2e       # 23 passing / 1 conditional skip, in-memory backend
 ```

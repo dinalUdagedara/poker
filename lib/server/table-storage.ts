@@ -24,6 +24,15 @@ import type { TableSettings } from './table-store'
 export type StoredTable = {
   state: TableState
   settings: TableSettings
+  /**
+   * Which session holds which seat: engine seat id to player id.
+   *
+   * The engine's seat ids are stable strings it chose for itself; player ids
+   * come from a cookie and mean nothing to it. Keeping the mapping here is what
+   * lets identity change without `lib/poker` ever learning that sessions exist.
+   * A seat with no entry is a bot.
+   */
+  owners: Record<string, string>
 }
 
 /**

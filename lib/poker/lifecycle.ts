@@ -19,6 +19,11 @@ export type TableOutcome =
   | { kind: 'eliminated' }
   /** The viewer is the last player with chips. Nobody is left to play. */
   | { kind: 'winner' }
+  /**
+   * The viewer holds no seat: they are watching. Nothing here is about them, so
+   * this says only whether the table is still running.
+   */
+  | { kind: 'spectating'; finished: boolean }
 
 /**
  * `handOver` matters: a player who is all-in has a zero stack but has not lost
@@ -26,9 +31,16 @@ export type TableOutcome =
  */
 export function tableOutcome(
   players: Pick<Player, 'id' | 'stack'>[],
-  viewerId: string,
+  viewerId: string | null,
   handOver: boolean,
 ): TableOutcome {
+  // A viewer with no seat is watching. None of the outcomes below are about
+  // them — they cannot be eliminated and cannot win — so the only thing worth
+  // saying is whether the table is still running.
+  if (viewerId === null) {
+    return { kind: 'spectating', finished: handOver && players.filter((p) => p.stack > 0).length < 2 }
+  }
+
   if (!handOver) return { kind: 'playing' }
 
   const withChips = players.filter((p) => p.stack > 0)
@@ -45,6 +57,7 @@ export function tableOutcome(
 
 /** True when the table has finished for good rather than between hands. */
 export function isGameOver(outcome: TableOutcome): boolean {
+  if (outcome.kind === 'spectating') return outcome.finished
   return outcome.kind === 'eliminated' || outcome.kind === 'winner'
 }
 

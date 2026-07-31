@@ -501,20 +501,28 @@ export function PokerTable({
                 <p className="text-center text-base font-medium">
                   {gone
                     ? 'This table is no longer available'
-                    : table.outcome.kind === 'winner'
-                      ? 'You won the table'
-                      : 'You are out of chips'}
+                    : table.outcome.kind === 'spectating'
+                      ? 'This table has finished'
+                      : table.outcome.kind === 'winner'
+                        ? 'You won the table'
+                        : 'You are out of chips'}
                 </p>
                 <p className="text-muted-foreground text-center text-sm">
                   {gone
                     ? 'Tables are held in memory, so a server restart clears them.'
-                    : table.outcome.kind === 'winner'
-                      ? `You finished with ${you?.stack.toLocaleString()} after ${table.handNumber} ${
+                    : table.outcome.kind === 'spectating'
+                      ? // Nothing here was theirs to win or lose: they arrived
+                        // on someone else's table with a link.
+                        `It ran for ${table.handNumber} ${
                           table.handNumber === 1 ? 'hand' : 'hands'
                         }.`
-                      : `You lasted ${table.handNumber} ${
-                          table.handNumber === 1 ? 'hand' : 'hands'
-                        }.`}
+                      : table.outcome.kind === 'winner'
+                        ? `You finished with ${you?.stack.toLocaleString()} after ${table.handNumber} ${
+                            table.handNumber === 1 ? 'hand' : 'hands'
+                          }.`
+                        : `You lasted ${table.handNumber} ${
+                            table.handNumber === 1 ? 'hand' : 'hands'
+                          }.`}
                 </p>
                 {/* This Button has no asChild, so the link carries its styles. */}
                 <Link href="/" className={buttonVariants()} data-testid="new-table">
