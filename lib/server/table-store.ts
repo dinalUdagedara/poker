@@ -96,6 +96,29 @@ const MIN_PLAYERS = 2
  */
 export const TURN_MS = 45_000
 
+/**
+ * How long a seat in a waiting room is held for a browser that has gone quiet.
+ *
+ * A seat is a claim on other people's game: the room does not deal until it is
+ * filled, so a chair held by a closed tab stops everybody else. Nothing tells
+ * the server that a tab was closed, so the claim is renewed while the browser
+ * is there rather than released when it goes — an open stream says "still
+ * here" every few seconds, and this is how long its silence is tolerated.
+ *
+ * Generous on purpose. Releasing a seat someone is still sitting in is much
+ * worse than holding an empty one for another moment, and the platform cuts
+ * and reconnects these streams as a matter of course.
+ */
+export const SEAT_IDLE_MS = 30_000
+
+/**
+ * How often an open stream renews its seat.
+ *
+ * Short enough to leave room for a missed renewal or two inside SEAT_IDLE_MS,
+ * long enough that a full room is not writing to the database constantly.
+ */
+export const SEAT_HEARTBEAT_MS = 8_000
+
 /** Hands at each blind level before the stakes double. */
 export const BLIND_LEVEL_HANDS = 10
 
@@ -180,6 +203,42 @@ function seatOf(table: PlayingTable, playerId: string | null): string | null {
   if (!playerId) return null
   const seat = Object.entries(table.owners).find(([, owner]) => owner === playerId)
   return seat?.[0] ?? null
+}
+
+/**
+ * The room with the people who have stopped answering taken out of it.
+ *
+ * Pure, and applied on the way out of storage rather than by anything that
+ * sweeps: a seat is released the moment anybody looks at the room, whether or
+ * not that look results in a write. Reads and writes therefore agree about who
+ * is in the room without needing the write to have happened first.
+ *
+ * A player with no timestamp is treated as present rather than as long gone.
+ * That is what a room written before presence existed looks like, and reading
+ * it the other way would empty every one of them the instant this deployed.
+ */
+function withPresent(room: WaitingTable, now: number): WaitingTable {
+  const seen: Record<string, number> = {}
+
+  const seats = room.seats.map((player) => {
+    if (player === null) return null
+    const last = room.seen?.[player] ?? now
+    if (now - last > SEAT_IDLE_MS) return null
+    seen[player] = last
+    return player
+  })
+
+  return {
+    ...room,
+    seats,
+    seen,
+    // Ownership follows the people still here. Left with whoever opened the
+    // room and then wandered off, a room that could have been started early
+    // could no longer be started at all.
+    createdBy: seats.includes(room.createdBy)
+      ? room.createdBy
+      : (seats.find((seat) => seat !== null) ?? room.createdBy),
+  }
 }
 
 /**
@@ -282,7 +341,10 @@ function deal(tableId: string, room: WaitingTable): PlayingTable {
     state,
     owners: Object.fromEntries(humanIds.map((id, index) => [id, sitting[index]])),
     names: Object.fromEntries(
-      humanIds.map((id, index) => [id, room.names[sitting[index]] ?? generatedName(sitting[index])]),
+      humanIds.map((id, index) => [
+        id,
+        room.names[sitting[index]] ?? generatedName(sitting[index]),
+      ]),
     ),
     deadline: Date.now() + TURN_MS,
   }
@@ -376,6 +438,15 @@ const lifetimeOf = (table: StoredTable) =>
 const MAX_ATTEMPTS = 4
 
 /**
+ * What a change decided, and what to store.
+ *
+ * A null table means there is nothing to write — the caller looked, found the
+ * table already how it wanted it, and would rather not take a write and a
+ * version bump for the privilege.
+ */
+type Change<T> = { table: StoredTable | null; result: T }
+
+/**
  * Change a table, safely, against everyone else trying to do the same.
  *
  * Read, decide, write only if nothing moved underneath — and if it did, read
@@ -386,21 +457,31 @@ const MAX_ATTEMPTS = 4
  */
 async function mutate<T>(
   tableId: string,
-  change: (
-    table: StoredTable,
-  ) => { table: StoredTable; result: T } | Promise<{ table: StoredTable; result: T }>,
+  change: (table: StoredTable) => Change<T> | Promise<Change<T>>,
+  options: { announce?: boolean } = {},
 ): Promise<T> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const record = await storage.read(tableId)
     if (!record) throw new TableError('No such table', 404)
 
-    // Before anything else: if the player to act ran their clock out, they
-    // have already been folded as far as everyone else is concerned.
+    // Before anything else, two rules that apply whether or not the caller
+    // asked for them: a player who ran their clock out has already been folded
+    // as far as everyone else is concerned, and a seat nobody is sitting in is
+    // free. Both belong here rather than in every caller, because the change
+    // about to be decided has to be decided against them.
+    const now = Date.now()
     const current =
-      record.table.stage === 'playing' ? enforceClock(record.table, Date.now()) : record.table
+      record.table.stage === 'playing'
+        ? enforceClock(record.table, now)
+        : withPresent(record.table, now)
 
     const { table, result } = await change(current)
-    if (await storage.write(tableId, table, lifetimeOf(table), record.version)) {
+
+    // Nothing to write. Writing anyway would bump the version and take the
+    // conflict from somebody who really is changing something.
+    if (table === null) return result
+
+    if (await storage.write(tableId, table, lifetimeOf(table), record.version, options.announce)) {
       return result
     }
   }
@@ -433,6 +514,9 @@ export async function createTable(
     ),
     createdBy: playerId,
     names: { [playerId]: nameFor(playerId, playerName) },
+    // Taking a seat is itself a sign of life, so the clock on it starts here
+    // rather than at the first renewal.
+    seen: { [playerId]: Date.now() },
     // Never inferred. A room is listed for strangers only when it says so.
     isPublic: Boolean((settings as { isPublic?: unknown } | null)?.isPublic),
   }
@@ -490,6 +574,7 @@ export async function joinTable(
       ...current,
       seats,
       names: { ...current.names, [playerId]: nameFor(playerId, playerName) },
+      seen: { ...current.seen, [playerId]: Date.now() },
     }
     if (seats.every((seat) => seat !== null)) {
       const playing = deal(tableId, room)
@@ -575,19 +660,23 @@ export async function publicRooms(): Promise<RoomSummary[]> {
         return null
       }
 
-      const taken = table.seats.filter((seat) => seat !== null).length
+      // Counted after the absent are taken out of it, so the lobby cannot
+      // advertise a room as fuller than the one a player will actually walk
+      // into — the whole point of reading the rooms rather than a tally.
+      const present = withPresent(table, Date.now())
+      const taken = present.seats.filter((seat) => seat !== null).length
       if (taken === 0) {
-        // Everyone who opened it has left. Better no listing than one that
-        // sends people to an empty room.
+        // Everyone who opened it has left or gone quiet. Better no listing
+        // than one that sends people to an empty room.
         await storage.unlist(tableId)
         return null
       }
 
       return {
         tableId,
-        seatCount: table.seats.length,
+        seatCount: present.seats.length,
         taken,
-        botCount: table.settings.botCount,
+        botCount: present.settings.botCount,
       }
     }),
   )
@@ -598,8 +687,48 @@ export async function publicRooms(): Promise<RoomSummary[]> {
 /** How a table looks to this player, whichever stage it is at. */
 function anyViewOf(tableId: string, table: StoredTable, playerId: string | null): AnyTableView {
   return table.stage === 'waiting'
-    ? roomViewOf(tableId, table, playerId)
+    ? roomViewOf(tableId, withPresent(table, Date.now()), playerId)
     : viewOf(table.state, seatOf(table, playerId), table.names)
+}
+
+/**
+ * Say that this player is still sitting in this room.
+ *
+ * Called by their open stream every few seconds. It is the only write in the
+ * app that nobody is told about: presence appears in no view, so waking every
+ * other stream in the room to re-read a table that looks identical would cost
+ * more than the polling that pub/sub replaced.
+ *
+ * Failure is silently fine. A missed renewal is one of several the seat can
+ * absorb, and a stream is not worth breaking over it.
+ */
+export async function keepSeat(tableId: string, playerId: string | null): Promise<void> {
+  if (!playerId) return
+
+  await mutate<void>(
+    tableId,
+    (current) => {
+      // Their seat may have been released while they were away, or the room
+      // may have dealt. Either way there is no claim left to renew.
+      if (current.stage !== 'waiting' || !current.seats.includes(playerId)) {
+        return { table: null, result: undefined }
+      }
+      return {
+        table: { ...current, seen: { ...current.seen, [playerId]: Date.now() } },
+        result: undefined,
+      }
+    },
+    { announce: false },
+  ).catch(() => undefined)
+}
+
+/**
+ * Run `onChange` whenever this table changes, until the returned function is
+ * called. Carries nothing: every watcher builds its own view from its own
+ * cookie, which is the whole reason a change event is not a table.
+ */
+export function watchTable(tableId: string, onChange: () => void): () => void {
+  return storage.watch(tableId, onChange)
 }
 
 export async function getTable(tableId: string, playerId: string | null): Promise<AnyTableView> {
@@ -673,6 +802,67 @@ export async function submitAction(
   })
 }
 
+/**
+ * Carry on with the same people, in a new room.
+ *
+ * The point is that everyone lands in the *same* room, so the new id is
+ * recorded on the table they just finished and the first person through is the
+ * one who picks it. Everybody after that reads it back and joins.
+ *
+ * The room is the shape of the table they came from — as many seats as there
+ * were people, and the same bots — and it is private: a rematch is for whoever
+ * was already there, not for the lobby. Anyone who does not come is an empty
+ * chair the rest can start early over.
+ *
+ * Open to a player the moment their own game is over, which for someone knocked
+ * out is well before the table finishes. That is deliberate: it is the answer
+ * to what a busted player does next, and it is a better one than watching.
+ */
+export async function rematch(
+  tableId: string,
+  playerId: string | null,
+  playerName?: string,
+): Promise<AnyTableView> {
+  if (!playerId) throw new TableError('This game needs cookies enabled', 400)
+
+  const room = await mutate(tableId, (current) => {
+    const table = asPlaying(current)
+    if (!seatOf(table, playerId)) {
+      throw new TableError('You did not have a seat at this table', 403)
+    }
+
+    const shape = {
+      settings: table.settings,
+      seatCount: Object.keys(table.owners).length,
+    }
+
+    // Somebody already asked. Their room is the room.
+    if (table.rematchId) return { table: null, result: { id: table.rematchId, ...shape } }
+
+    const id = crypto.randomUUID()
+    return { table: { ...table, rematchId: id }, result: { id, ...shape } }
+  })
+
+  // Losing this race is fine and expected when two people tap at the same
+  // moment: the winner wrote the same room, and the join below finds it.
+  await storage.write(
+    room.id,
+    {
+      stage: 'waiting',
+      settings: room.settings,
+      seats: Array.from({ length: room.seatCount }, () => null),
+      createdBy: playerId,
+      names: {},
+      seen: {},
+      isPublic: false,
+    },
+    WAITING_TTL_MS,
+    null,
+  )
+
+  return joinTable(room.id, playerId, playerName)
+}
+
 /** Deal the next hand, moving the button and dropping anyone out of chips. */
 export async function startNextHand(
   tableId: string,
@@ -702,13 +892,16 @@ export async function startNextHand(
     const occupied = seats.map((s) => s.seat).sort((a, b) => a - b)
     const buttonSeat = occupied.find((seat) => seat > table.state.buttonSeat) ?? occupied[0]
 
+    // The stakes climb with the hand number rather than staying at what the
+    // table opened on, which is what stops a cautious game going round for
+    // ever — and so bounds how long the player knocked out first is waiting.
+    const handNumber = table.state.handNumber + 1
     const dealt = startHand({
       tableId,
       seats,
       buttonSeat,
-      smallBlind: table.settings.smallBlind,
-      bigBlind: table.settings.bigBlind,
-      handNumber: table.state.handNumber + 1,
+      ...blindsFor(table.settings, handNumber),
+      handNumber,
     })
 
     // A fresh deal starts from the blinds being posted, so that is the first

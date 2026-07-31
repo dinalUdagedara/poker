@@ -1,6 +1,12 @@
 import type Redis from 'ioredis'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { redisStorage, TABLE_TTL_MS, type StoredTable } from '../table-storage'
+import {
+  redisStorage,
+  storage,
+  TABLE_TTL_MS,
+  WAITING_TTL_MS,
+  type StoredTable,
+} from '../table-storage'
 
 /**
  * The Redis backend cannot be exercised without a database, so what is checked
@@ -14,6 +20,7 @@ const fakeRedis = () => {
     eval: vi.fn<(...args: unknown[]) => Promise<number>>().mockResolvedValue(1),
     get: vi.fn(async (): Promise<string | null> => null),
     expire: vi.fn(async () => 1),
+    publish: vi.fn(async () => 1),
   }
   return { calls, redis: calls as unknown as Redis }
 }
@@ -77,6 +84,37 @@ describe('keeping tables in redis', () => {
     expect(calls.expire).not.toHaveBeenCalled()
   })
 
+  it('announces a change on the channel everyone is listening to', async () => {
+    const { calls, redis } = fakeRedis()
+
+    await redisStorage(redis).write('abc', table, TABLE_TTL_MS, null)
+
+    // The id and nothing else. A change event carrying a table would be one
+    // table shown to every subscriber, which is the exact shape of the leak
+    // that redacting per viewer exists to prevent.
+    expect(calls.publish).toHaveBeenCalledWith('changes:preview', 'abc')
+  })
+
+  it('says nothing about a write nobody needs waking for', async () => {
+    // A presence heartbeat changes the record without changing anything any
+    // player can see. Announcing it would have every stream in the room re-read
+    // a table that looks identical, several times a minute.
+    const { calls, redis } = fakeRedis()
+
+    await redisStorage(redis).write('abc', table, TABLE_TTL_MS, null, false)
+
+    expect(calls.publish).not.toHaveBeenCalled()
+  })
+
+  it('says nothing about a write that was refused', async () => {
+    const { calls, redis } = fakeRedis()
+    calls.eval.mockResolvedValue(0)
+
+    await redisStorage(redis).write('abc', table, TABLE_TTL_MS, 7)
+
+    expect(calls.publish).not.toHaveBeenCalled()
+  })
+
   it('keeps environments out of each other, and never collides across them', async () => {
     // The whole point: the same table id in two environments is two keys.
     const { calls, redis } = fakeRedis()
@@ -88,5 +126,59 @@ describe('keeping tables in redis', () => {
     const [preview, production] = calls.eval.mock.calls.map((call) => call[2])
     expect(preview).toBe('table:preview:abc')
     expect(production).toBe('table:production:abc')
+  })
+})
+
+/**
+ * Against the configured backend, which with no Redis credentials is the
+ * in-memory one. What is being checked is the contract both share: a write is
+ * heard by whoever asked about that table, and by nobody else.
+ */
+describe('watching a table for changes', () => {
+  const write = (tableId: string) => storage.write(tableId, table, WAITING_TTL_MS, null)
+
+  it('tells a watcher when the table it asked about is written', async () => {
+    const heard = vi.fn()
+    const stop = storage.watch('watched', heard)
+
+    await write('watched')
+    stop()
+
+    expect(heard).toHaveBeenCalled()
+  })
+
+  it('does not tell them about somebody else’s table', async () => {
+    const heard = vi.fn()
+    const stop = storage.watch('watched-two', heard)
+
+    await write('a-different-table')
+    stop()
+
+    expect(heard).not.toHaveBeenCalled()
+  })
+
+  it('stops telling a watcher that has gone', async () => {
+    // A stream that has been torn down must not be written to, and the map it
+    // was registered in must not grow by one entry per table ever served.
+    const heard = vi.fn()
+    storage.watch('watched-three', heard)()
+
+    await write('watched-three')
+
+    expect(heard).not.toHaveBeenCalled()
+  })
+
+  it('tells every watcher of a table, not just the first', async () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    const stopFirst = storage.watch('watched-four', first)
+    const stopSecond = storage.watch('watched-four', second)
+
+    await write('watched-four')
+    stopFirst()
+    stopSecond()
+
+    expect(first).toHaveBeenCalled()
+    expect(second).toHaveBeenCalled()
   })
 })

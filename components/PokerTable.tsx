@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { CircleQuestionMark } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { CircleQuestionMark, Eye } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ChipStack } from './ChipStack'
@@ -95,13 +96,7 @@ function chipSide(left: number): 'left' | 'right' {
   return left < 50 ? 'right' : 'left'
 }
 
-export function PokerTable({
-  tableId,
-  initial,
-}: {
-  tableId: string
-  initial: TableView
-}) {
+export function PokerTable({ tableId, initial }: { tableId: string; initial: TableView }) {
   const [table, setTable] = useState(initial)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -111,6 +106,7 @@ export function PokerTable({
    * offering is a fresh table.
    */
   const [gone, setGone] = useState(false)
+  const router = useRouter()
 
   /** Pending replay steps, cancelled if another update lands or we unmount. */
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -208,12 +204,44 @@ export function PokerTable({
     [showUpdate],
   )
 
+  /**
+   * Take the same people to a new room.
+   *
+   * The server decides which room: everyone asking about one finished table is
+   * sent to the same one, so this only has to go where it is told.
+   */
+  const playAgain = useCallback(async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/table/${tableId}/rematch`, { method: 'POST' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error ?? 'Could not open another table')
+      router.push(`/table/${payload.tableId}`)
+    } catch (e) {
+      setError((e as Error).message)
+      setBusy(false)
+    }
+  }, [router, tableId])
+
   const you = table.players.find((p) => p.id === table.viewerId)
   const opponents = table.players.filter((p) => p.id !== table.viewerId)
   const callouts = calloutsFor(table)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
   const finished = gone || isGameOver(table.outcome)
+  /**
+   * Watching somebody else's table: they followed a link to a game that was
+   * already full, or to one they were never in.
+   *
+   * Nothing here is theirs to do. The controls were already inert for them —
+   * the server sends a spectator no legal actions — but inert controls read as
+   * a broken table rather than as a game that is not yours.
+   */
+  const spectating = table.outcome.kind === 'spectating'
+  /** Only a player who actually held a seat may take it round again. */
+  const canRematch =
+    !gone && (table.outcome.kind === 'winner' || table.outcome.kind === 'eliminated')
 
   /**
    * A winner, named and placed.
@@ -229,6 +257,9 @@ export function PokerTable({
   }
 
   const winnerNames = [...winners].map(winnerLabel).join(' and ')
+  /** Whose turn it is, for a screen that is only reporting on it. */
+  const actingName =
+    table.actingPlayerId && seatName(table.actingPlayerId, table.names, table.viewerId)
   /** Kept apart from the label, which no longer reads as a bare "You". */
   const youWonAlone = winners.size === 1 && table.viewerId !== null && winners.has(table.viewerId)
   /** Everything paid out. For a split that is the total the winners shared. */
@@ -245,6 +276,36 @@ export function PokerTable({
     const shown = table.result.shownHands[[...winners][0] ?? '']
     return shown ? CATEGORY_NAMES[categoryOf(shown.score)] : null
   })()
+
+  /**
+   * Who won, and with what.
+   *
+   * Shared by the panel a player gets and the one a spectator gets, because it
+   * is the same fact — the only thing that differs is whether there is anything
+   * to do about it.
+   */
+  const resultSummary = table.result && (
+    <div className="flex flex-col items-center gap-1">
+      <p
+        className={cn(
+          'text-center text-xl font-semibold sm:text-2xl',
+          youWon > 0 ? 'text-emerald-400' : 'text-white',
+        )}
+      >
+        {/*
+          "split" rather than "wins" when the pot goes more than one way. It
+          fixes the grammar, and it explains the number: the panel totals the
+          whole pot while the banner shows only the viewer's share, which read
+          as a contradiction otherwise.
+        */}
+        {winnerNames} {winners.size > 1 ? 'split' : youWonAlone ? 'win' : 'wins'}{' '}
+        <span className="font-mono tabular-nums">{potWon.toLocaleString()}</span>
+      </p>
+      {/* How, not just who. A score is all the result keeps, so the category
+          is read back out of it to name the hand. */}
+      <p className="text-sm text-white/55">{winningHand ?? 'everyone else folded'}</p>
+    </div>
+  )
 
   /** Where a player sits, in felt percentages. The viewer is off it entirely. */
   const seatPoint = useCallback(
@@ -308,8 +369,7 @@ export function PokerTable({
   const award = (() => {
     const payouts = table.result?.payouts
     if (!payouts) return null
-    const [winnerId, amount] =
-      Object.entries(payouts).sort(([, a], [, b]) => b - a)[0] ?? []
+    const [winnerId, amount] = Object.entries(payouts).sort(([, a], [, b]) => b - a)[0] ?? []
     if (!winnerId || !amount) return null
     const point = seatPoint(winnerId)
     return point ? { amount, ...point } : null
@@ -331,6 +391,16 @@ export function PokerTable({
           <span className="text-sm text-white/75">Hand {table.handNumber}</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Said at the top as well as at the bottom, because it is the one
+              thing that explains everything else about the screen. */}
+          {spectating && (
+            <Badge
+              className="border-white/15 bg-black/35 text-[11px] text-white/80"
+              data-testid="watching"
+            >
+              <Eye className="size-3" aria-hidden /> Watching
+            </Badge>
+          )}
           <Badge className="border-white/15 bg-black/35 font-mono text-[11px] text-white">
             {table.smallBlind}/{table.bigBlind}
           </Badge>
@@ -514,11 +584,11 @@ export function PokerTable({
           <PlayerSeat
             player={you}
             viewerId={table.viewerId}
-                    names={table.names}
+            names={table.names}
             isActing={table.actingPlayerId === you.id}
             isButton={table.buttonSeat === you.seat}
             isWinner={winners.has(you.id)}
-                    handOver={Boolean(table.result)}
+            handOver={Boolean(table.result)}
             callout={callouts.get(you.id)}
             calloutSide="right"
             bigBlind={table.bigBlind}
@@ -573,36 +643,62 @@ export function PokerTable({
                             table.handNumber === 1 ? 'hand' : 'hands'
                           }.`}
                 </p>
-                {/* This Button has no asChild, so the link carries its styles. */}
-                <Link href="/" className={buttonVariants()} data-testid="new-table">
-                  New table
+                <div className="flex w-full max-w-xs flex-col gap-2">
+                  {/*
+                    Offered first, because it is what somebody who just lost a
+                    table actually wants — and offered to a player who busted
+                    while the table plays on, which is the whole point: there is
+                    somewhere to go that is not the door.
+                  */}
+                  {canRematch && (
+                    <Button
+                      className="h-12 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
+                      disabled={busy}
+                      onClick={() => void playAgain()}
+                      data-testid="play-again"
+                    >
+                      {busy ? 'Opening…' : 'Play again'}
+                    </Button>
+                  )}
+                  {/* This Button has no asChild, so the link carries its styles. */}
+                  <Link
+                    href="/"
+                    className={buttonVariants({
+                      variant: canRematch ? 'ghost' : 'default',
+                      className: 'h-11 w-full',
+                    })}
+                    data-testid="new-table"
+                  >
+                    New table
+                  </Link>
+                </div>
+              </div>
+            ) : spectating ? (
+              /*
+               * Watching. The controls are not merely disabled here, they are
+               * absent: nothing at this table is this person's to do, and a row
+               * of greyed-out buttons says "broken" rather than "not yours".
+               */
+              <div className="flex flex-col items-center gap-3" data-testid="spectating">
+                {resultSummary}
+                <p className="text-center text-sm text-white/55">
+                  {table.result
+                    ? 'Watching. The next hand is theirs to deal.'
+                    : actingName
+                      ? `Watching. It is ${actingName}'s turn.`
+                      : 'Watching this table.'}
+                </p>
+                <Link
+                  href="/"
+                  className={buttonVariants({ variant: 'secondary', className: 'h-11 px-5' })}
+                  data-testid="own-table"
+                >
+                  Open a table of your own
                 </Link>
               </div>
             ) : table.result ? (
               <div className="flex flex-col items-center gap-4" data-testid="hand-result">
-                <div className="flex flex-col items-center gap-1">
-                  <p
-                    className={cn(
-                      'text-center text-xl font-semibold sm:text-2xl',
-                      youWon > 0 ? 'text-emerald-400' : 'text-white',
-                    )}
-                  >
-                    {/*
-                      "split" rather than "wins" when the pot goes more than one
-                      way. It fixes the grammar, and it explains the number: the
-                      panel totals the whole pot while the banner shows only the
-                      viewer's share, which read as a contradiction otherwise.
-                    */}
-                    {winnerNames}{' '}
-                    {winners.size > 1 ? 'split' : youWonAlone ? 'win' : 'wins'}{' '}
-                    <span className="font-mono tabular-nums">{potWon.toLocaleString()}</span>
-                  </p>
-                  {/* How, not just who. A score is all the result keeps, so the
-                      category is read back out of it to name the hand. */}
-                  <p className="text-sm text-white/55">
-                    {winningHand ?? 'everyone else folded'}
-                  </p>
-                </div>
+                {resultSummary}
                 <Button
                   className="h-12 w-full max-w-xs rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
                   disabled={busy}

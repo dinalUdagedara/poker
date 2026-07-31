@@ -7,8 +7,11 @@ import {
   createTable,
   findTable,
   joinTable,
+  keepSeat,
   leaveTable,
   publicRooms,
+  rematch,
+  SEAT_IDLE_MS,
   startEarly,
   startNextHand,
   submitAction,
@@ -332,6 +335,153 @@ describe('forgetting rooms nobody fills', () => {
   })
 })
 
+describe('a seat nobody is sitting in', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('holds a seat for a browser that keeps saying it is there', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, botCount: 0 }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    // What an open stream does: renew, wait, renew. Well past the window in
+    // total, and never silent for long enough inside it.
+    vi.advanceTimersByTime(SEAT_IDLE_MS - 1000)
+    await keepSeat(tableId, STRANGER)
+    vi.advanceTimersByTime(SEAT_IDLE_MS - 1000)
+
+    expect(asRoom(await findTable(tableId, STRANGER)).seats.some((seat) => seat.you)).toBe(true)
+  })
+
+  it('releases a seat once its browser has stopped answering', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, botCount: 0 }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    vi.advanceTimersByTime(SEAT_IDLE_MS + 1000)
+
+    const room = asRoom(await findTable(tableId, STRANGER))
+    expect(room.seats.filter((seat) => seat.taken)).toHaveLength(0)
+  })
+
+  it('lets somebody else have the seat that was released', async () => {
+    // The failure this exists to prevent: one person opens a room, closes the
+    // tab, and everyone who arrives afterwards waits on a chair nobody is in.
+    const { tableId } = asRoom(await createTable({ seatCount: 2, botCount: 0 }, OWNER))
+
+    vi.advanceTimersByTime(SEAT_IDLE_MS + 1000)
+    const view = await joinTable(tableId, STRANGER)
+
+    // Still waiting rather than dealt: the room did not fill, because the
+    // person who was holding the other chair is not there.
+    expect(view.stage).toBe('waiting')
+    expect(asRoom(view).seats.filter((seat) => seat.taken)).toHaveLength(1)
+  })
+
+  it('stops advertising a room to the lobby once it has emptied out', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, isPublic: true }, OWNER))
+
+    vi.advanceTimersByTime(SEAT_IDLE_MS + 1000)
+
+    expect((await publicRooms()).map((room) => room.tableId)).not.toContain(tableId)
+  })
+
+  it('hands the room to somebody still in it when its creator goes', async () => {
+    // Otherwise a room whose creator wandered off could never be started at
+    // all, and everyone left in it would sit there until it expired.
+    const { tableId } = asRoom(await createTable({ seatCount: 4, botCount: 1 }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    vi.advanceTimersByTime(SEAT_IDLE_MS - 1000)
+    await keepSeat(tableId, STRANGER)
+    vi.advanceTimersByTime(SEAT_IDLE_MS - 1000)
+
+    expect((await startEarly(tableId, STRANGER)).viewerId).not.toBeNull()
+  })
+
+  it('never takes a seat away from someone once the cards are out', async () => {
+    // Presence is about holding up a room that has not dealt. A seat at a live
+    // table has chips in front of it and is nobody else's to take.
+    const { tableId } = asRoom(await createTable({ seatCount: 2, botCount: 0 }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    vi.advanceTimersByTime(SEAT_IDLE_MS * 4)
+
+    expect(asTable(await findTable(tableId, STRANGER)).viewerId).not.toBeNull()
+  })
+})
+
+describe('carrying on with the same people', () => {
+  /** A table of two that has dealt, with both players still holding a seat. */
+  const finishedPair = async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 2, botCount: 0 }, OWNER))
+    await joinTable(tableId, STRANGER)
+    return tableId
+  }
+
+  it('sends everyone from one table to the same room', async () => {
+    const tableId = await finishedPair()
+
+    const first = await rematch(tableId, OWNER)
+    const second = await rematch(tableId, STRANGER)
+
+    // The whole point. Two rooms of one would be two people waiting alone.
+    expect(second.tableId).toBe(first.tableId)
+    expect(first.stage).toBe('waiting')
+    // And the second arrival filled it, so it dealt.
+    expect(second.stage).toBe('playing')
+  })
+
+  it('sends them to the same room even when they ask at the same moment', async () => {
+    const tableId = await finishedPair()
+
+    const [first, second] = await Promise.all([rematch(tableId, OWNER), rematch(tableId, STRANGER)])
+
+    expect(first.tableId).toBe(second.tableId)
+  })
+
+  it('opens a room the shape of the table they came from', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 4, botCount: 0 }, OWNER))
+    await joinTable(tableId, STRANGER)
+    await startEarly(tableId, OWNER)
+
+    const room = asRoom(await rematch(tableId, OWNER))
+
+    // Two people were playing, against the two bots that took the chairs
+    // nobody turned up for. The same table, not the one that was asked for.
+    expect(room.seats).toHaveLength(2)
+    expect(room.botCount).toBe(2)
+  })
+
+  it('keeps the rematch out of the lobby', async () => {
+    // A rematch is for the people who were already there. Listing it would
+    // publish a private room's address on their behalf.
+    const tableId = await finishedPair()
+
+    const room = asRoom(await rematch(tableId, OWNER))
+
+    expect(room.isPublic).toBe(false)
+    expect((await publicRooms()).map((r) => r.tableId)).not.toContain(room.tableId)
+  })
+
+  it('deals again at once for a table of one', async () => {
+    // Practice against bots: there is nobody to wait for, so "play again"
+    // means another table rather than another room.
+    const { tableId } = await dealtTable()
+
+    expect((await rematch(tableId, OWNER)).stage).toBe('playing')
+  })
+
+  it('refuses somebody who never had a seat', async () => {
+    const { tableId } = await dealtTable()
+
+    await expect(rematch(tableId, STRANGER)).rejects.toMatchObject({ status: 403 })
+  })
+})
+
 describe('blinds that rise', () => {
   it('starts at the stakes the table was opened with', () => {
     expect(blindsFor(BASE_SETTINGS, 1)).toEqual({ smallBlind: 25, bigBlind: 50 })
@@ -354,6 +504,34 @@ describe('blinds that rise', () => {
     // waits for ever with it.
     const { bigBlind } = blindsFor(BASE_SETTINGS, BLIND_LEVEL_HANDS * 3 + 1)
     expect(BASE_SETTINGS.startingStack / bigBlind).toBeLessThanOrEqual(5)
+  })
+
+  it('actually charges the risen blinds at the table', async () => {
+    /**
+     * Fold every hand until the table reaches `handNumber`.
+     *
+     * Heads up, so folding costs only the blinds and the bot cannot bust —
+     * there is no hand at which the game ends early and nothing to make this
+     * flaky.
+     */
+    const foldThrough = async (tableId: string, handNumber: number) => {
+      let view = asTable(await findTable(tableId, OWNER))
+      while (view.handNumber < handNumber) {
+        view =
+          view.result === null
+            ? asTable(await submitAction(tableId, OWNER, { type: 'fold' }))
+            : asTable(await startNextHand(tableId, OWNER))
+      }
+      return view
+    }
+
+    // The schedule is only worth anything if the table reads it. It was
+    // derived correctly and then dealt with the stakes the table opened on,
+    // which is to say the blinds never rose at all.
+    const { tableId } = asTable(await createTable({ botCount: 1 }, OWNER))
+
+    expect((await foldThrough(tableId, BLIND_LEVEL_HANDS)).bigBlind).toBe(50)
+    expect((await foldThrough(tableId, BLIND_LEVEL_HANDS + 1)).bigBlind).toBe(100)
   })
 
   it('stops doubling rather than running away', () => {
