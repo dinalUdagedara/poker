@@ -13,10 +13,8 @@ async function dealIn(page: Page, opponents = '3') {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Texas Hold/ })).toBeVisible()
 
-  if (opponents !== '3') {
-    await page.getByTestId('opponent-count').click()
-    await page.getByRole('option', { name: opponents, exact: true }).click()
-  }
+  // One tap on the segmented picker rather than opening a menu and choosing.
+  if (opponents !== '3') await page.getByTestId(`opponents-${opponents}`).click()
 
   await page.getByTestId('deal').click()
   await page.waitForURL(/\/table\/[0-9a-f-]+/)
