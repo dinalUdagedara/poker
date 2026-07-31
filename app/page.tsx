@@ -27,6 +27,9 @@ const FAN_TILT = [
   'rotate-[14deg] translate-y-[6px]',
 ]
 
+/** Room sizes worth offering. Nine is the table's limit, five is the sensible top. */
+const ROOM_SIZES = [2, 3, 4, 5, 6] as const
+
 const OPPONENTS = [1, 2, 3, 4, 5]
 
 export default function Home() {
@@ -34,6 +37,9 @@ export default function Home() {
   const [botCount, setBotCount] = useState('3')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<'practice' | 'people'>('practice')
+  const [seatCount, setSeatCount] = useState(4)
+  const [isPublic, setIsPublic] = useState(true)
   /*
    * The field is uncontrolled and the cookie is the source of truth.
    *
@@ -111,7 +117,58 @@ export default function Home() {
               <p className="text-sm text-white/50">No limit, against the house bots.</p>
             </div>
 
+            {/* First, because it is the one thing that applies to everything
+                below it — and blank is a real answer: the server hands out a
+                name rather than refusing to start. */}
             <div className="flex flex-col gap-2">
+              <label htmlFor="player-name" className="text-sm font-medium text-white/70">
+                Your name
+              </label>
+              <input
+                id="player-name"
+                ref={nameField}
+                defaultValue=""
+                maxLength={MAX_NAME_LENGTH}
+                onChange={(e) => rememberName(e.target.value)}
+                placeholder="Leave blank and we will name you"
+                data-testid="player-name"
+                className="h-11 w-full rounded-lg bg-white/5 px-3 text-sm text-white ring-1 ring-white/10 ring-inset transition-colors outline-none placeholder:text-white/30 hover:bg-white/10 focus:bg-white/10 focus:ring-amber-300/50"
+              />
+            </div>
+
+            {/*
+              Two ways to play, not two sets of settings for one. A tab strip
+              keeps whichever you are not using out of the way — stacked, the
+              panel asked you to read past a whole game to reach the other.
+            */}
+            <div role="tablist" aria-label="How to play" className="grid grid-cols-2 gap-1 rounded-lg bg-white/5 p-1 ring-1 ring-white/10 ring-inset">
+              {(
+                [
+                  ['practice', 'Practice'],
+                  ['people', 'With people'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === value}
+                  disabled={busy}
+                  onClick={() => setTab(value)}
+                  data-testid={`tab-${value}`}
+                  className={cn(
+                    'h-9 rounded-md text-sm font-medium transition-colors disabled:opacity-50',
+                    tab === value
+                      ? 'bg-white/12 text-white shadow-sm'
+                      : 'text-white/50 hover:text-white/80',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className={cn('flex-col gap-2', tab === 'practice' ? 'flex' : 'hidden')}>
               <div className="flex items-baseline justify-between">
                 <span className="text-sm font-medium text-white/70">Opponents</span>
                 <span className="text-xs text-white/35">
@@ -150,56 +207,92 @@ export default function Home() {
                   )
                 })}
               </div>
-            </div>
 
-            <Button
-              className="h-14 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
-              disabled={busy}
-              onClick={() => void deal()}
-              data-testid="deal"
-            >
-              {busy ? 'Dealing…' : 'Deal me in'}
-            </Button>
-
-            {/* Left blank on purpose is a real answer: the server gives out a
-                name rather than refusing to start, so nobody is made to invent
-                one before they can play. */}
-            <div className="flex w-full flex-col gap-1.5">
-              <label htmlFor="player-name" className="text-xs font-medium text-white/50">
-                Your name
-              </label>
-              <input
-                id="player-name"
-                ref={nameField}
-                defaultValue=""
-                maxLength={MAX_NAME_LENGTH}
-                onChange={(e) => rememberName(e.target.value)}
-                placeholder="Leave blank and we will name you"
-                data-testid="player-name"
-                className="h-11 w-full rounded-md border border-white/20 bg-white/5 px-3 text-sm text-white placeholder:text-white/30 focus:border-white/40 focus:outline-none"
-              />
-            </div>
-
-            {/* Playing with people is a different thing from playing the
-                bots, so it gets its own pair of buttons rather than a mode
-                switch that changes what the one above means. */}
-            <div className="flex w-full gap-2">
               <Button
-                variant="outline"
-                className="h-11 flex-1 border-white/20 bg-white/5 text-sm text-white hover:bg-white/10"
+                className="mt-2 h-14 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
                 disabled={busy}
-                onClick={() => void deal(4, true)}
-                data-testid="open-public-room"
+                onClick={() => void deal()}
+                data-testid="deal"
               >
-                Open a public room
+                {busy ? 'Dealing…' : 'Deal me in'}
               </Button>
-              <Link
-                href="/rooms"
-                className="flex h-11 flex-1 items-center justify-center rounded-md border border-white/20 bg-white/5 text-sm text-white hover:bg-white/10"
-                data-testid="browse-rooms"
-              >
-                Browse rooms
-              </Link>
+            </div>
+
+            <div className={cn('flex-col gap-3', tab === 'people' ? 'flex' : 'hidden')}>
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium text-white/70">Seats at the table</span>
+                <span className="text-xs text-white/35">
+                  {seatCount === 2 ? 'heads up' : `${seatCount} seats`}
+                </span>
+              </div>
+
+              <div role="radiogroup" aria-label="Seats" className="grid grid-cols-5 gap-1.5">
+                {ROOM_SIZES.map((n) => {
+                  const selected = seatCount === n
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={`${n} seats`}
+                      disabled={busy}
+                      onClick={() => setSeatCount(n)}
+                      data-testid={`seats-${n}`}
+                      className={cn(
+                        'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
+                        'ring-1 ring-inset disabled:opacity-50',
+                        selected
+                          ? 'bg-amber-400 text-neutral-950 ring-amber-300'
+                          : 'bg-white/5 text-white/70 ring-white/10 hover:bg-white/10',
+                      )}
+                    >
+                      {n}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/*
+                Listing publishes the room's address, so it is a deliberate
+                choice rather than a default. Off means the link is the invite,
+                which is what someone playing with friends wants.
+              */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg bg-white/5 p-3 ring-1 ring-white/10 ring-inset hover:bg-white/10">
+                <input
+                  type="checkbox"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                  data-testid="list-publicly"
+                  className="mt-0.5 size-4 accent-amber-400"
+                />
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-sm text-white/80">List it publicly</span>
+                  <span className="text-xs text-white/40">
+                    {isPublic
+                      ? 'Anyone can find this room and sit down.'
+                      : 'Private — only people you send the link to can join.'}
+                  </span>
+                </span>
+              </label>
+
+              <div className="flex gap-2">
+                <Button
+                  className="h-11 flex-1 bg-white/10 text-sm font-semibold text-white ring-1 ring-white/15 ring-inset hover:bg-white/15"
+                  disabled={busy}
+                  onClick={() => void deal(seatCount, isPublic)}
+                  data-testid="open-public-room"
+                >
+                  Open a room
+                </Button>
+                <Link
+                  href="/rooms"
+                  className="flex h-11 flex-1 items-center justify-center rounded-md bg-white/5 text-sm font-medium text-white/80 ring-1 ring-white/10 ring-inset transition-colors hover:bg-white/10 hover:text-white"
+                  data-testid="browse-rooms"
+                >
+                  Browse rooms
+                </Link>
+              </div>
             </div>
 
             {error && (
