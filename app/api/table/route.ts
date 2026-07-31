@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server'
-import { currentPlayerId } from '@/lib/server/player'
+import { currentPlayerId, currentPlayerName } from '@/lib/server/player'
 import { createTable, TableError } from '@/lib/server/table-store'
 
 /**
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}))
-    return Response.json(await createTable(body, playerId))
+    return Response.json(await createTable(body, playerId, await currentPlayerName(playerId)))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })

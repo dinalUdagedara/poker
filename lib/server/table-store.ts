@@ -22,6 +22,7 @@ import {
   type TableUpdate,
   type TableView,
 } from '../poker/lifecycle'
+import { generatedName, nameFor } from '../names'
 import { redactFor } from '../poker/redact'
 import { applyAction, legalActions, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
@@ -95,6 +96,40 @@ const MIN_PLAYERS = 2
  */
 export const TURN_MS = 45_000
 
+/** Hands at each blind level before the stakes double. */
+export const BLIND_LEVEL_HANDS = 10
+
+/**
+ * Stop doubling eventually.
+ *
+ * By the eighth level the big blind is 256 times the first, which is far past
+ * every stack at the table. Past that the numbers stop meaning anything and
+ * only risk arithmetic nobody wants to reason about.
+ */
+const MAX_BLIND_LEVEL = 8
+
+/**
+ * The blinds for a given hand.
+ *
+ * They rise so that a game ends. With them fixed, a cautious table bleeds 75
+ * chips a round out of 2,000 and can go round for ever — and since a game only
+ * finishes when one player holds every chip, "for ever" is exactly how long the
+ * player knocked out first would be waiting. Doubling every ten hands turns a
+ * comfortable forty big blinds into a handful, which forces the decisions that
+ * end it.
+ */
+export function blindsFor(
+  settings: TableSettings,
+  handNumber: number,
+): { smallBlind: number; bigBlind: number } {
+  const level = Math.min(Math.floor((handNumber - 1) / BLIND_LEVEL_HANDS), MAX_BLIND_LEVEL)
+  const multiplier = 2 ** level
+  return {
+    smallBlind: settings.smallBlind * multiplier,
+    bigBlind: settings.bigBlind * multiplier,
+  }
+}
+
 /**
  * Validate the settings a client is allowed to choose.
  *
@@ -153,11 +188,16 @@ function seatOf(table: PlayingTable, playerId: string | null): string | null {
  * `viewerSeat` is the engine's id for their seat, or null for a spectator, for
  * whom `redactFor` already hides every hole card and offers no legal actions.
  */
-function viewOf(state: TableState, viewerSeat: string | null): TableView {
+function viewOf(
+  state: TableState,
+  viewerSeat: string | null,
+  names: Record<string, string> = {},
+): TableView {
   return {
     stage: 'playing',
     ...redactFor(state, viewerSeat),
     outcome: tableOutcome(state.players, viewerSeat, state.result !== null),
+    names,
   }
 }
 
@@ -170,6 +210,7 @@ function roomViewOf(tableId: string, room: WaitingTable, playerId: string | null
     seats: room.seats.map((seat) => ({
       taken: seat !== null,
       you: seat === playerId,
+      name: seat === null ? null : (room.names[seat] ?? generatedName(seat)),
     })),
     botCount: room.settings.botCount,
     isCreator: room.createdBy === playerId,
@@ -230,8 +271,7 @@ function deal(tableId: string, room: WaitingTable): PlayingTable {
       tableId,
       seats: seatsFor(room.settings, humanIds, botCount),
       buttonSeat: 0,
-      smallBlind: room.settings.smallBlind,
-      bigBlind: room.settings.bigBlind,
+      ...blindsFor(room.settings, 1),
     }),
     new Set(humanIds),
   )
@@ -241,6 +281,9 @@ function deal(tableId: string, room: WaitingTable): PlayingTable {
     settings: { ...room.settings, botCount },
     state,
     owners: Object.fromEntries(humanIds.map((id, index) => [id, sitting[index]])),
+    names: Object.fromEntries(
+      humanIds.map((id, index) => [id, room.names[sitting[index]] ?? generatedName(sitting[index])]),
+    ),
     deadline: Date.now() + TURN_MS,
   }
 }
@@ -317,10 +360,11 @@ function updateFrom(
   steps: TableState[],
   final: TableState,
   viewerSeat: string | null,
+  names: Record<string, string>,
 ): TableUpdate {
   return {
-    ...viewOf(final, viewerSeat),
-    replay: steps.slice(0, -1).map((step) => viewOf(step, viewerSeat)),
+    ...viewOf(final, viewerSeat, names),
+    replay: steps.slice(0, -1).map((step) => viewOf(step, viewerSeat, names)),
   }
 }
 
@@ -373,7 +417,11 @@ async function mutate<T>(
  * nobody sees a waiting room — which is exactly the single-player game, and why
  * this returns either kind of view.
  */
-export async function createTable(settings: unknown = {}, playerId: string): Promise<AnyTableView> {
+export async function createTable(
+  settings: unknown = {},
+  playerId: string,
+  playerName?: string,
+): Promise<AnyTableView> {
   const resolved = resolveSettings(settings)
   const tableId = crypto.randomUUID()
 
@@ -384,6 +432,7 @@ export async function createTable(settings: unknown = {}, playerId: string): Pro
       index === 0 ? playerId : null,
     ),
     createdBy: playerId,
+    names: { [playerId]: nameFor(playerId, playerName) },
     // Never inferred. A room is listed for strangers only when it says so.
     isPublic: Boolean((settings as { isPublic?: unknown } | null)?.isPublic),
   }
@@ -391,7 +440,7 @@ export async function createTable(settings: unknown = {}, playerId: string): Pro
   if (room.seats.every((seat) => seat !== null)) {
     const playing = deal(tableId, room)
     await storage.write(tableId, playing, lifetimeOf(playing), null)
-    return viewOf(playing.state, HUMAN_ID)
+    return viewOf(playing.state, HUMAN_ID, playing.names)
   }
 
   await storage.write(tableId, room, lifetimeOf(room), null)
@@ -413,7 +462,11 @@ function asPlaying(table: StoredTable): PlayingTable {
  * Joining is idempotent for someone already sitting: a refreshed tab or a
  * double-tapped button should return the room, not take a second chair.
  */
-export async function joinTable(tableId: string, playerId: string | null): Promise<AnyTableView> {
+export async function joinTable(
+  tableId: string,
+  playerId: string | null,
+  playerName?: string,
+): Promise<AnyTableView> {
   if (!playerId) throw new TableError('This game needs cookies enabled', 400)
 
   return mutate<AnyTableView>(tableId, (current) => {
@@ -422,7 +475,7 @@ export async function joinTable(tableId: string, playerId: string | null): Promi
       // viewer gets anyway.
       return {
         table: current,
-        result: viewOf(current.state, seatOf(current, playerId)),
+        result: viewOf(current.state, seatOf(current, playerId), current.names),
       }
     }
 
@@ -433,12 +486,16 @@ export async function joinTable(tableId: string, playerId: string | null): Promi
       seats[free] = playerId
     }
 
-    const room: WaitingTable = { ...current, seats }
+    const room: WaitingTable = {
+      ...current,
+      seats,
+      names: { ...current.names, [playerId]: nameFor(playerId, playerName) },
+    }
     if (seats.every((seat) => seat !== null)) {
       const playing = deal(tableId, room)
       return {
         table: playing,
-        result: viewOf(playing.state, seatOf(playing, playerId)),
+        result: viewOf(playing.state, seatOf(playing, playerId), playing.names),
       }
     }
 
@@ -487,7 +544,7 @@ export async function startEarly(tableId: string, playerId: string | null): Prom
     const playing = deal(tableId, current)
     return {
       table: playing,
-      result: viewOf(playing.state, seatOf(playing, playerId)),
+      result: viewOf(playing.state, seatOf(playing, playerId), playing.names),
     }
   })
 }
@@ -542,7 +599,7 @@ export async function publicRooms(): Promise<RoomSummary[]> {
 function anyViewOf(tableId: string, table: StoredTable, playerId: string | null): AnyTableView {
   return table.stage === 'waiting'
     ? roomViewOf(tableId, table, playerId)
-    : viewOf(table.state, seatOf(table, playerId))
+    : viewOf(table.state, seatOf(table, playerId), table.names)
 }
 
 export async function getTable(tableId: string, playerId: string | null): Promise<AnyTableView> {
@@ -611,7 +668,7 @@ export async function submitAction(
 
     return {
       table: { ...table, state: next },
-      result: updateFrom(steps, next, seat),
+      result: updateFrom(steps, next, seat, table.names),
     }
   })
 }
@@ -661,7 +718,7 @@ export async function startNextHand(
 
     return {
       table: { ...table, state },
-      result: updateFrom(steps, state, seat),
+      result: updateFrom(steps, state, seat, table.names),
     }
   })
 }

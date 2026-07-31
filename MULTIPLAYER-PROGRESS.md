@@ -16,7 +16,7 @@ Everything below assumes the plan's phase numbering.
 | 2 | Waiting room, seating, join by link | **Done** — on the branch, not yet merged |
 | 3 | Concurrency (compare-and-set) | **Done** |
 | 4 | Push (SSE) | **Done** |
-| 5 | Absent players, turn clock | **Mostly** — see gaps |
+| 5 | Absent players, turn clock | **Done** |
 | 6 | Bots as seat fill | **Done** |
 | 7 | Public rooms | **Done** |
 
@@ -161,7 +161,7 @@ table got `viewerId: null` and no cards.
 Run before every commit. All were green when this file was written.
 
 ```
-npm test          # unit, 218 passing / 1 skipped
+npm test          # unit, 234 passing / 1 skipped
 npm run lint
 npx tsc --noEmit
 npm run build
@@ -216,20 +216,40 @@ so the directory tidies itself. Verified end to end: a public room appeared in
 the lobby, its count tracked joins, and it vanished from the lobby the moment it
 dealt with three humans at it.
 
+## Rising blinds and names
+
+**Rising blinds.** `blindsFor(settings, handNumber)` doubles the stakes every
+ten hands, capped at eight levels. The engine did not change: `startHand`
+already took the blinds per call, so this is those two numbers derived from the
+hand number rather than read from a constant. Forty big blinds becomes a handful
+by the fourth level, which is what bounds a game — and so bounds how long the
+player knocked out first is waiting.
+
+**Names.** A chosen name lives in a `pname` cookie the page owns outright, since
+a display name identifies nobody and grants nothing. Anyone who does not choose
+one gets a stable name derived from their player id, so nothing has to be stored
+and the same person is called the same thing every time.
+
+Names are sanitised before anyone else sees them: control characters,
+zero-width joiners and the bidirectional overrides are stripped, whitespace is
+collapsed and the whole thing is cut to sixteen characters. Left in, those let a
+name hide characters or visually reorder the text beside it, which at a table
+means reading as the seat next door.
+
+The name field is uncontrolled and the cookie is the source of truth. React
+state would be a second copy of something the browser already stores and the
+server already reads, and it cannot be an initial value: the cookie exists only
+in the browser and the page renders on the server first.
+
 ## What is not done
 
 Honest gaps, all of them known rather than discovered:
 
-- **Rising blinds.** The busting-out decision in the plan calls for them, and
-  they are not implemented — blinds are still fixed at 25/50. Without them a
-  game has no bound, which is the whole reason that decision was made. This is
-  the largest remaining piece and `startNextHand` is where it goes.
 - **Presence in a waiting room.** A seat whose stream has gone is not released;
   only the two-minute idle expiry covers it. The plan wanted the SSE connection
   to double as the liveness signal.
 - **Play again.** A finished table dissolves, but nothing yet offers a fresh
   room pre-seated with whoever is still there.
-- **Display names.** A second human shows as `seat1`.
 - **A spectator screen.** Watching works and leaks nothing, but it looks like a
   table with the controls greyed out.
 - **Two-browser e2e.** Everything multiplayer is covered by unit tests and by

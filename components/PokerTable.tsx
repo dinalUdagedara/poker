@@ -25,6 +25,18 @@ import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecy
  */
 const STEP_MS = 900
 
+/**
+ * What to call a seat.
+ *
+ * People are named; bots are numbered from their id. Falling back to the raw id
+ * matters for a table dealt before names existed, where showing `seat1` is ugly
+ * but showing nothing would be broken.
+ */
+function seatName(id: string, names: Record<string, string>, viewerId: string | null): string {
+  if (id === viewerId) return 'You'
+  return names[id] ?? id.replace(/^bot(\d+)$/, 'Bot $1')
+}
+
 const ACTION_VERBS: Record<string, string> = {
   'post-blind': 'posts',
   fold: 'folds',
@@ -465,6 +477,7 @@ export function PokerTable({
                   <PlayerSeat
                     player={player}
                     viewerId={table.viewerId}
+                    names={table.names}
                     isActing={table.actingPlayerId === player.id}
                     isButton={table.buttonSeat === player.seat}
                     isWinner={winners.has(player.id)}
@@ -488,6 +501,7 @@ export function PokerTable({
           <PlayerSeat
             player={you}
             viewerId={table.viewerId}
+                    names={table.names}
             isActing={table.actingPlayerId === you.id}
             isButton={table.buttonSeat === you.seat}
             isWinner={winners.has(you.id)}
@@ -616,9 +630,7 @@ export function PokerTable({
               <li key={i}>
                 <span className="text-neutral-600">{entry.street}</span>{' '}
                 <span className="text-neutral-300">
-                  {entry.playerId === table.viewerId
-                    ? 'You'
-                    : entry.playerId.replace(/^bot(\d+)$/, 'Bot $1')}
+                  {seatName(entry.playerId, table.names, table.viewerId)}
                 </span>{' '}
                 {ACTION_VERBS[entry.type] ?? entry.type}
                 {/* The level, not the chips added: "raises to 300" was reading

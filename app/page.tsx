@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PlayingCard } from '@/components/PlayingCard'
 import { parseCards } from '@/lib/poker/cards'
+import { MAX_NAME_LENGTH } from '@/lib/names'
 import { cn } from '@/lib/utils'
 
 /** Dealt face up behind the panel, purely as a sign of what game this is. */
@@ -33,6 +34,26 @@ export default function Home() {
   const [botCount, setBotCount] = useState('3')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /*
+   * The field is uncontrolled and the cookie is the source of truth.
+   *
+   * React state would be a second copy of something the browser already stores
+   * and the server already reads. It also cannot be an initial value: the
+   * cookie exists only in the browser, and this page renders on the server
+   * first, so reading it during render would hydrate to a different value than
+   * it rendered with.
+   */
+  const nameField = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const found = document.cookie.match(/(?:^|; )pname=([^;]*)/)
+    if (found && nameField.current) nameField.current.value = decodeURIComponent(found[1])
+  }, [])
+
+  /** A year, because a name is a preference rather than a session. */
+  function rememberName(value: string) {
+    document.cookie = `pname=${encodeURIComponent(value.slice(0, MAX_NAME_LENGTH))}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
+  }
 
   /**
    * Open a table.
@@ -139,6 +160,25 @@ export default function Home() {
             >
               {busy ? 'Dealing…' : 'Deal me in'}
             </Button>
+
+            {/* Left blank on purpose is a real answer: the server gives out a
+                name rather than refusing to start, so nobody is made to invent
+                one before they can play. */}
+            <div className="flex w-full flex-col gap-1.5">
+              <label htmlFor="player-name" className="text-xs font-medium text-white/50">
+                Your name
+              </label>
+              <input
+                id="player-name"
+                ref={nameField}
+                defaultValue=""
+                maxLength={MAX_NAME_LENGTH}
+                onChange={(e) => rememberName(e.target.value)}
+                placeholder="Leave blank and we will name you"
+                data-testid="player-name"
+                className="h-11 w-full rounded-md border border-white/20 bg-white/5 px-3 text-sm text-white placeholder:text-white/30 focus:border-white/40 focus:outline-none"
+              />
+            </div>
 
             {/* Playing with people is a different thing from playing the
                 bots, so it gets its own pair of buttons rather than a mode

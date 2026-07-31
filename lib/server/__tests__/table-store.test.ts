@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AnyTableView, RoomView, TableView } from '../../poker/lifecycle'
 import { TABLE_TTL_MS, WAITING_TTL_MS } from '../table-storage'
 import {
+  BLIND_LEVEL_HANDS,
+  blindsFor,
   createTable,
   findTable,
   joinTable,
@@ -17,6 +19,15 @@ import {
 const OWNER = 'player-who-dealt-it'
 const STRANGER = 'player-with-the-link'
 const THIRD = 'player-who-came-along'
+
+/** The stakes and stack every table starts with. */
+const BASE_SETTINGS = {
+  seatCount: 2,
+  botCount: 0,
+  startingStack: 2000,
+  smallBlind: 25,
+  bigBlind: 50,
+}
 
 /** Narrow a view that the test knows has dealt. */
 const asTable = (view: AnyTableView | null): TableView => {
@@ -318,6 +329,61 @@ describe('forgetting rooms nobody fills', () => {
     vi.advanceTimersByTime(WAITING_TTL_MS - 1000)
 
     expect(await findTable(tableId, OWNER)).not.toBeNull()
+  })
+})
+
+describe('blinds that rise', () => {
+  it('starts at the stakes the table was opened with', () => {
+    expect(blindsFor(BASE_SETTINGS, 1)).toEqual({ smallBlind: 25, bigBlind: 50 })
+  })
+
+  it('holds a level for ten hands', () => {
+    expect(blindsFor(BASE_SETTINGS, BLIND_LEVEL_HANDS)).toEqual({ smallBlind: 25, bigBlind: 50 })
+  })
+
+  it('doubles once the level is up', () => {
+    expect(blindsFor(BASE_SETTINGS, BLIND_LEVEL_HANDS + 1)).toEqual({
+      smallBlind: 50,
+      bigBlind: 100,
+    })
+  })
+
+  it('climbs far enough to end a game', () => {
+    // The point of the whole mechanism: forty big blinds has to become a
+    // handful, or a cautious table plays for ever and whoever busted first
+    // waits for ever with it.
+    const { bigBlind } = blindsFor(BASE_SETTINGS, BLIND_LEVEL_HANDS * 3 + 1)
+    expect(BASE_SETTINGS.startingStack / bigBlind).toBeLessThanOrEqual(5)
+  })
+
+  it('stops doubling rather than running away', () => {
+    const far = blindsFor(BASE_SETTINGS, 10_000)
+    const further = blindsFor(BASE_SETTINGS, 100_000)
+    expect(far).toEqual(further)
+    expect(Number.isFinite(far.bigBlind)).toBe(true)
+  })
+})
+
+describe('what players are called', () => {
+  it('remembers the name someone joined with', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 2 }, OWNER, 'Ada'))
+    const view = asTable(await joinTable(tableId, STRANGER, 'Grace'))
+
+    expect(Object.values(view.names)).toEqual(expect.arrayContaining(['Ada', 'Grace']))
+  })
+
+  it('names a player who did not choose one', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 2 }, OWNER))
+    const view = asTable(await joinTable(tableId, STRANGER))
+
+    // Everybody gets a name; nobody is made to invent one before playing.
+    expect(Object.values(view.names).every((name) => name.length > 0)).toBe(true)
+  })
+
+  it('does not let a name be padded out or hidden', async () => {
+    const room = asRoom(await createTable({ seatCount: 2 }, OWNER, '   Ada   '))
+
+    expect(room.seats[0].name).toBe('Ada')
   })
 })
 

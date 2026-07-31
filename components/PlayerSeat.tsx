@@ -24,9 +24,20 @@ const STACK_TEXT: Record<StackTone, string> = {
  */
 const TILT = ['-rotate-6', 'rotate-6', '-rotate-3', 'rotate-3'] as const
 
-function displayName(player: RedactedPlayer, viewerId: string | null): string {
+/**
+ * What to call this seat.
+ *
+ * People are named; bots are numbered from their id. The raw id is the last
+ * resort, for a table dealt before names existed — ugly, but showing nothing
+ * would be broken.
+ */
+function displayName(
+  player: RedactedPlayer,
+  viewerId: string | null,
+  names: Record<string, string>,
+): string {
   if (player.id === viewerId) return 'You'
-  return player.id.replace(/^bot(\d+)$/, 'Bot $1')
+  return names[player.id] ?? player.id.replace(/^bot(\d+)$/, 'Bot $1')
 }
 
 /**
@@ -38,6 +49,7 @@ function displayName(player: RedactedPlayer, viewerId: string | null): string {
 export function PlayerSeat({
   player,
   viewerId,
+  names,
   isActing,
   isButton,
   isWinner,
@@ -51,6 +63,8 @@ export function PlayerSeat({
 }: {
   player: RedactedPlayer
   viewerId: string | null
+  /** Display names by seat id. Absent for a bot, which is named from its id. */
+  names: Record<string, string>
   isActing: boolean
   isButton: boolean
   isWinner: boolean
@@ -180,7 +194,7 @@ export function PlayerSeat({
               isOut ? 'text-neutral-500' : 'text-white/55',
             )}
           >
-            {displayName(player, viewerId)}
+            {displayName(player, viewerId, names)}
           </div>
         </div>
       </Card>

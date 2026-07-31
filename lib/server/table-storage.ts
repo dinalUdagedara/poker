@@ -34,6 +34,8 @@ export type WaitingTable = {
   settings: TableSettings
   seats: (string | null)[]
   createdBy: string
+  /** What to call each player in the room, by player id. */
+  names: Record<string, string>
   /**
    * Whether this room is listed for strangers to find.
    *
@@ -58,6 +60,8 @@ export type PlayingTable = {
    * A seat with no entry is a bot.
    */
   owners: Record<string, string>
+  /** What to call whoever holds each seat, by engine seat id. */
+  names: Record<string, string>
   /**
    * When the seat to act must have acted by, as a timestamp.
    *

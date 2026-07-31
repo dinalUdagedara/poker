@@ -80,9 +80,9 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                 seat.taken ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-dashed opacity-60',
               )}
             >
-              <span>Seat {index + 1}</span>
+              <span>{seat.name ?? `Seat ${index + 1}`}</span>
               <span className="text-muted-foreground">
-                {seat.you ? 'You' : seat.taken ? 'Taken' : 'Open'}
+                {seat.you ? 'You' : seat.taken ? 'Seated' : 'Open'}
               </span>
             </li>
           ))}

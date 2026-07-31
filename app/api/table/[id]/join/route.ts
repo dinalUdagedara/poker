@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server'
-import { currentPlayerId } from '@/lib/server/player'
+import { currentPlayerId, currentPlayerName } from '@/lib/server/player'
 import { joinTable, TableError } from '@/lib/server/table-store'
 
 /**
@@ -12,7 +12,9 @@ import { joinTable, TableError } from '@/lib/server/table-store'
 export async function POST(_request: NextRequest, ctx: RouteContext<'/api/table/[id]/join'>) {
   const { id } = await ctx.params
   try {
-    return Response.json(await joinTable(id, await currentPlayerId()))
+    const playerId = await currentPlayerId()
+    const name = playerId ? await currentPlayerName(playerId) : undefined
+    return Response.json(await joinTable(id, playerId, name))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })

@@ -2,7 +2,8 @@ import 'server-only'
 
 import { cookies } from 'next/headers'
 
-import { PLAYER_COOKIE } from '../player-cookie'
+import { nameFor } from '../names'
+import { NAME_COOKIE, PLAYER_COOKIE } from '../player-cookie'
 
 /**
  * Who is asking.
@@ -27,4 +28,17 @@ export { PLAYER_COOKIE }
 export async function currentPlayerId(): Promise<string | null> {
   const store = await cookies()
   return store.get(PLAYER_COOKIE)?.value ?? null
+}
+
+/**
+ * What to call this player.
+ *
+ * Their chosen name if they set one and it survived being made safe to show to
+ * other people, otherwise one generated from their id. Unlike the id, this
+ * cookie is not http-only: it is a display name the page itself sets, and it
+ * grants nothing.
+ */
+export async function currentPlayerName(playerId: string): Promise<string> {
+  const store = await cookies()
+  return nameFor(playerId, store.get(NAME_COOKIE)?.value)
 }

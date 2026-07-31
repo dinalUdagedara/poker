@@ -66,7 +66,18 @@ export function isGameOver(outcome: TableOutcome): boolean {
  * left to play. Declared here rather than beside the store so client components
  * can name the type without importing a server-only module.
  */
-export type TableView = RedactedTableState & { outcome: TableOutcome; stage: 'playing' }
+export type TableView = RedactedTableState & {
+  outcome: TableOutcome
+  stage: 'playing'
+  /**
+   * What to call each seat, by engine seat id.
+   *
+   * A lookup beside the state rather than a field on each player, so the engine
+   * and its redaction stay ignorant of the fact that seats have names at all.
+   * Bots are absent from it and are named from their id.
+   */
+  names: Record<string, string>
+}
 
 /**
  * A room that has not dealt yet, as the person looking at it sees it.
@@ -78,7 +89,7 @@ export type TableView = RedactedTableState & { outcome: TableOutcome; stage: 'pl
 export type RoomView = {
   stage: 'waiting'
   tableId: string
-  seats: { taken: boolean; you: boolean }[]
+  seats: { taken: boolean; you: boolean; name: string | null }[]
   botCount: number
   isCreator: boolean
   /** Whether strangers can find this room in the lobby. */
