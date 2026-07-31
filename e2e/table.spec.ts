@@ -118,19 +118,27 @@ test('never ships an opponent’s cards to the browser mid-hand', async ({ page 
 })
 
 test('plays a hand through to a result and deals the next one', async ({ page }) => {
-  await dealIn(page)
+  // Calling every bet can lose the whole stack in one hand, which ends the
+  // table rather than the hand. That is a real outcome and has its own test,
+  // but it leaves this one with no second hand to deal — so deal again until a
+  // hand finishes with chips still on the table.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await dealIn(page)
+    await playUntil(page, handSettled(page))
+    if (await showing(page, 'game-over')) continue
 
-  const result = page.getByTestId('hand-result')
-  await playUntil(page, handSettled(page))
+    await expect(page.getByTestId('hand-result')).toBeVisible()
+    await expect(page.getByTestId('next-hand')).toBeVisible()
 
-  await expect(result).toBeVisible()
-  await expect(page.getByTestId('next-hand')).toBeVisible()
+    // The hand number advancing is the whole claim. The result panel is not
+    // asserted gone: the bots can fold hand two out before the check runs,
+    // which puts a perfectly correct result back on screen for a different hand.
+    await page.getByTestId('next-hand').click()
+    await expect(page.getByText('Hand 2')).toBeVisible()
+    return
+  }
 
-  // The hand number advancing is the whole claim. The result panel is not
-  // asserted gone: the bots can fold hand two out before the check runs, which
-  // puts a perfectly correct result back on screen for a different hand.
-  await page.getByTestId('next-hand').click()
-  await expect(page.getByText('Hand 2')).toBeVisible()
+  throw new Error('Busted out of five tables in a row without a hand to follow')
 })
 
 test('reveals the board as the streets come out', async ({ page }) => {
