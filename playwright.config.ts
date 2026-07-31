@@ -29,6 +29,10 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npx next start --port 3210',
     url: 'http://127.0.0.1:3210',
+    // Blanked rather than inherited from .env: the suite deals dozens of
+    // tables, and it should not need a network or a real database to do it.
+    // Drop this line to run the same tests against Redis.
+    env: { REDIS_URL: '' },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

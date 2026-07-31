@@ -16,7 +16,7 @@
 
 import 'server-only'
 
-import { Redis } from '@upstash/redis'
+import Redis from 'ioredis'
 
 import type { TableState } from '../poker/types'
 import type { TableSettings } from './table-store'
@@ -46,30 +46,29 @@ export interface TableStorage {
 const keyFor = (tableId: string) => `table:${tableId}`
 
 /**
- * Redis, via Upstash's REST client.
- *
- * REST rather than a socket because the server may be serverless, where a
- * connection pool has nothing to pool: instances are created and discarded per
- * burst of traffic, and a TCP client would spend its life reconnecting.
+ * Redis over the wire protocol.
  *
  * Expiry is the database's job here. There is no sweep to run and no way for a
  * forgotten table to outlive its window, however many instances are writing.
+ *
+ * Values are JSON: a table is a plain tree of numbers, strings and arrays, so
+ * there is nothing to serialise around and no schema to keep in step.
  */
 export function redisStorage(redis: Redis): TableStorage {
   return {
     async read(tableId) {
       const key = keyFor(tableId)
-      const table = await redis.get<StoredTable>(key)
-      if (!table) return null
+      const stored = await redis.get(key)
+      if (!stored) return null
 
       // A player sitting on the table page without acting is still a live
       // session, so a read pushes the expiry out exactly as a move would.
       await redis.expire(key, TABLE_TTL_SECONDS)
-      return table
+      return JSON.parse(stored) as StoredTable
     },
 
     async write(tableId, table) {
-      await redis.set(keyFor(tableId), table, { ex: TABLE_TTL_SECONDS })
+      await redis.set(keyFor(tableId), JSON.stringify(table), 'EX', TABLE_TTL_SECONDS)
     },
   }
 }
@@ -122,17 +121,36 @@ function memoryStorage(): TableStorage {
 }
 
 /**
+ * One client per process, kept on globalThis.
+ *
+ * A serverless instance answers many requests before it is discarded, so the
+ * connection is worth holding on to — opening one per request would spend more
+ * time on handshakes than on commands, and burn through the connection cap the
+ * database enforces. `lazyConnect` keeps that cost out of the cold start of a
+ * request that may never touch a table at all.
+ */
+function connect(url: string): Redis {
+  const global = globalThis as unknown as { __pokerRedis?: Redis }
+  return (global.__pokerRedis ??= new Redis(url, {
+    lazyConnect: true,
+    // A table is worth one retry, not a hung request: the player is waiting on
+    // this, and the client already tells them when a table cannot be reached.
+    maxRetriesPerRequest: 1,
+  }))
+}
+
+/**
  * Pick a backend from the environment.
  *
- * Vercel's Upstash integration provisions `KV_*`; connecting an Upstash
- * database by hand gives you `UPSTASH_*`. They are the same two values, so both
- * spellings are accepted rather than making the deployment match ours.
+ * `REDIS_URL` is what the Redis integration provisions; the `KV_*` and
+ * `UPSTASH_*` spellings are accepted too, since the same code runs whichever
+ * provider a deployment ends up with.
  */
 function selectStorage(): TableStorage {
-  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN
+  const url =
+    process.env.REDIS_URL ?? process.env.KV_URL ?? process.env.UPSTASH_REDIS_URL
 
-  if (url && token) return redisStorage(new Redis({ url, token }))
+  if (url) return redisStorage(connect(url))
 
   if (process.env.NODE_ENV === 'production') {
     // Loud, because the failure it precedes is quiet: the map answers happily
