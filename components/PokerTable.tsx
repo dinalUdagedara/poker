@@ -215,9 +215,22 @@ export function PokerTable({
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
   const finished = gone || isGameOver(table.outcome)
 
-  const winnerNames = [...winners]
-    .map((w) => (w === table.viewerId ? 'You' : w.replace(/^bot(\d+)$/, 'Bot $1')))
-    .join(' and ')
+  /**
+   * A winner, named and placed.
+   *
+   * The seat number matters more here than anywhere else on the table: nothing
+   * stops two people choosing the same name, since a name identifies nobody, so
+   * the seat is what says which of them just took the pot.
+   */
+  const winnerLabel = (id: string) => {
+    const name = seatName(id, table.names, table.viewerId)
+    const seat = table.players.find((p) => p.id === id)?.seat
+    return seat === undefined ? name : `${name} (seat ${seat + 1})`
+  }
+
+  const winnerNames = [...winners].map(winnerLabel).join(' and ')
+  /** Kept apart from the label, which no longer reads as a bare "You". */
+  const youWonAlone = winners.size === 1 && table.viewerId !== null && winners.has(table.viewerId)
   /** Everything paid out. For a split that is the total the winners shared. */
   const potWon = Object.values(table.result?.payouts ?? {}).reduce((sum, n) => sum + n, 0)
   /**
@@ -581,7 +594,7 @@ export function PokerTable({
                       viewer's share, which read as a contradiction otherwise.
                     */}
                     {winnerNames}{' '}
-                    {winners.size > 1 ? 'split' : winnerNames === 'You' ? 'win' : 'wins'}{' '}
+                    {winners.size > 1 ? 'split' : youWonAlone ? 'win' : 'wins'}{' '}
                     <span className="font-mono tabular-nums">{potWon.toLocaleString()}</span>
                   </p>
                   {/* How, not just who. A score is all the result keeps, so the
