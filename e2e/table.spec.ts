@@ -323,7 +323,7 @@ test('says who won, how much, and what they won it with', async ({ page }) => {
   if (!(await showing(page, 'hand-result'))) test.skip()
 
   const result = page.getByTestId('hand-result')
-  await expect(result).toContainText(/\b(You win|wins)\b/)
+  await expect(result).toContainText(/\b(You win|wins|split)\b/)
   // The amount, always — a result that names a winner but not the pot leaves
   // the one number that matters to be worked out from the stacks.
   await expect(result).toContainText(/[\d,]+/)

@@ -241,6 +241,60 @@
   animation: wager-in 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
+/*
+ * The felt lit under whoever is to act.
+ *
+ * A tinted border on the nameplate is easy to miss on a busy table — it is the
+ * same weight as every other border on screen. A patch of lit felt under the
+ * seat is not competing with anything, so it says whose turn it is from across
+ * the table rather than only once you are already looking at the right seat.
+ */
+@keyframes seat-spotlight {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.04);
+  }
+}
+
+.animate-spotlight {
+  animation: seat-spotlight 1.9s ease-in-out infinite;
+}
+
+/*
+ * The moment a hand is won, said loudly and then gotten out of the way.
+ *
+ * Fades itself out rather than waiting to be dismissed: the result panel keeps
+ * the same facts underneath, so there is nothing here worth making anyone click
+ * past before they can deal again.
+ */
+@keyframes win-banner {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  10% {
+    opacity: 1;
+    transform: none;
+  }
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+.animate-win {
+  animation: win-banner 3s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
 /* The winning seat breathes rather than just sitting in a static ring, so the
    eye is pulled to who took it down before the result panel is read. */
 @keyframes winner-pulse {
@@ -297,12 +351,18 @@
   .animate-deal,
   .animate-callout,
   .animate-winner,
-  .animate-wager {
+  .animate-wager,
+  .animate-spotlight {
     animation: none;
   }
 
-  /* Nothing travels; the award simply is not shown. */
-  .animate-award {
+  /*
+   * These two end on nothing — the award has flown away and the banner has
+   * faded — so stopping the animation would strand them on screen. They are
+   * dropped instead, and the result panel says the same thing in text.
+   */
+  .animate-award,
+  .animate-win {
     display: none;
   }
 }

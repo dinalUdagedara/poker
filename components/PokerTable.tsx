@@ -291,6 +291,38 @@ export function PokerTable({
               </div>
             </div>
 
+            {youWon > 0 && (
+              /*
+               * Winning gets its own moment on the felt rather than only a line
+               * in the panel below. Keyed on the hand so it plays once, inert so
+               * it cannot intercept a click, and it fades itself out — the panel
+               * keeps the same facts, so there is nothing to dismiss.
+               */
+              <div
+                key={`win-${table.handNumber}`}
+                className={cn(
+                  'animate-win pointer-events-none absolute inset-0 z-40 grid place-items-center',
+                  // The felt dims flat rather than through a gradient. A soft
+                  // one left the middle barely darker than the table, and the
+                  // pot read straight through the word sitting on top of it.
+                  'rounded-[46%/54%] bg-[oklch(0.14_0.03_160/0.78)] backdrop-blur-[2px]',
+                )}
+                data-testid="win-banner"
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-4xl font-bold tracking-tight text-amber-300 drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-5xl">
+                    You win
+                  </span>
+                  <span className="font-mono text-3xl font-bold tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)]">
+                    {youWon.toLocaleString()}
+                  </span>
+                  {winningHand && (
+                    <span className="text-base font-medium text-amber-100/75">{winningHand}</span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {award && (
               /*
                * Keyed on the hand so it plays once per result: without that,
@@ -414,7 +446,14 @@ export function PokerTable({
                       youWon > 0 ? 'text-emerald-400' : 'text-white',
                     )}
                   >
-                    {winnerNames} {winnerNames === 'You' ? 'win' : 'wins'}{' '}
+                    {/*
+                      "split" rather than "wins" when the pot goes more than one
+                      way. It fixes the grammar, and it explains the number: the
+                      panel totals the whole pot while the banner shows only the
+                      viewer's share, which read as a contradiction otherwise.
+                    */}
+                    {winnerNames}{' '}
+                    {winners.size > 1 ? 'split' : winnerNames === 'You' ? 'win' : 'wins'}{' '}
                     <span className="font-mono tabular-nums">{potWon.toLocaleString()}</span>
                   </p>
                   {/* How, not just who. A score is all the result keeps, so the

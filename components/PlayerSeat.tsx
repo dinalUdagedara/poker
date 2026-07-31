@@ -77,6 +77,18 @@ export function PlayerSeat({
 
   return (
     <div className="relative flex flex-col items-center gap-1.5" data-testid={`seat-${player.id}`}>
+      {isActing && (
+        /*
+         * Lit felt under the seat whose turn it is. First in the DOM so
+         * everything else paints over it, and inert so it cannot swallow a
+         * click meant for the cards or the plate above it.
+         */
+        <span
+          className="animate-spotlight pointer-events-none absolute -inset-x-7 -inset-y-4 rounded-[50%] border border-dashed border-amber-200/35 bg-[radial-gradient(closest-side,oklch(0.86_0.15_85/0.3),transparent)]"
+          data-testid={`turn-${player.id}`}
+        />
+      )}
+
       {/*
         Folding dims the hand, not each card in it. Per-card opacity made the
         overlap show one card through the other and darken twice where they
