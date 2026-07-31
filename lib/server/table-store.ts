@@ -39,6 +39,8 @@ export type TableSettings = {
 type StoredTable = {
   state: TableState
   settings: TableSettings
+  /** Last time anything read or wrote this table. Drives eviction, nothing else. */
+  touchedAt: number
 }
 
 /**
@@ -48,6 +50,37 @@ type StoredTable = {
 const store: Map<string, StoredTable> = ((
   globalThis as unknown as { __pokerTables?: Map<string, StoredTable> }
 ).__pokerTables ??= new Map())
+
+/**
+ * How long a table survives untouched before it is swept.
+ *
+ * A table is only ever created, never closed — a player who shuts the tab says
+ * nothing to the server. Left alone the map would grow for the life of the
+ * process, which on the long-lived host this is meant to run on is the life of
+ * the deployment. Two hours is longer than any real session and short enough
+ * that abandoned tables do not pile up.
+ */
+export const TABLE_TTL_MS = 2 * 60 * 60 * 1000
+
+/**
+ * Forget tables nobody has touched lately.
+ *
+ * Driven by table creation rather than a timer: the map only grows when a table
+ * is created, so that is the only moment a sweep can be owed. An interval would
+ * also hold the process open and survive the hot reloads the store is written
+ * to survive, leaving a stray timer per edit.
+ */
+function sweep(now: number): void {
+  for (const [id, table] of store) {
+    if (now - table.touchedAt > TABLE_TTL_MS) store.delete(id)
+  }
+}
+
+/** Mark a table as still in use. Any access counts, reads included. */
+function touch(table: StoredTable): StoredTable {
+  table.touchedAt = Date.now()
+  return table
+}
 
 export class TableError extends Error {
   constructor(
@@ -151,6 +184,8 @@ function updateFrom(steps: TableState[], final: TableState): TableUpdate {
 
 export function createTable(settings: unknown = {}): TableView {
   const resolved = resolveSettings(settings)
+  sweep(Date.now())
+
   const tableId = crypto.randomUUID()
   const state = playBots(
     startHand({
@@ -162,14 +197,14 @@ export function createTable(settings: unknown = {}): TableView {
     }),
   )
 
-  store.set(tableId, { state, settings: resolved })
+  store.set(tableId, { state, settings: resolved, touchedAt: Date.now() })
   return viewOf(state)
 }
 
 function load(tableId: string): StoredTable {
   const table = store.get(tableId)
   if (!table) throw new TableError('No such table', 404)
-  return table
+  return touch(table)
 }
 
 export function getTable(tableId: string): TableView {
@@ -179,7 +214,7 @@ export function getTable(tableId: string): TableView {
 /** Like getTable, but returns null for an unknown table instead of throwing. */
 export function findTable(tableId: string): TableView | null {
   const table = store.get(tableId)
-  return table ? viewOf(table.state) : null
+  return table ? viewOf(touch(table).state) : null
 }
 
 /**
@@ -213,7 +248,7 @@ export function submitAction(tableId: string, action: Action): TableUpdate {
   const steps: TableState[] = [next]
   next = playBots(next, steps)
 
-  store.set(tableId, { ...table, state: next })
+  store.set(tableId, { ...table, state: next, touchedAt: Date.now() })
   return updateFrom(steps, next)
 }
 
@@ -250,6 +285,6 @@ export function startNextHand(tableId: string): TableUpdate {
   const steps: TableState[] = [dealt]
   const state = playBots(dealt, steps)
 
-  store.set(tableId, { ...table, state })
+  store.set(tableId, { ...table, state, touchedAt: Date.now() })
   return updateFrom(steps, state)
 }
