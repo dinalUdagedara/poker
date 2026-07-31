@@ -2,21 +2,12 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { useTableStream } from '@/lib/use-table-stream'
 import type { RoomView } from '@/lib/poker/lifecycle'
-
-/**
- * How often the room re-checks who has arrived.
- *
- * A poll, and deliberately a temporary one. Phase 4 replaces it with the SSE
- * stream that the game itself will need anyway; until then a room that never
- * updated would make joining feel broken. Three seconds is slow enough to be
- * cheap and fast enough that a new arrival appears while you are still looking.
- */
-const POLL_MS = 3000
 
 /**
  * The room before the cards come out.
@@ -59,19 +50,14 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
     [router],
   )
 
-  useEffect(() => {
-    const poll = setInterval(async () => {
-      const response = await fetch(`/api/table/${room.tableId}`).catch(() => null)
-      if (!response?.ok) return
-      const payload = await response.json()
-      // The room dealt while we were sitting here. Re-render the route so the
-      // server hands back the table instead.
-      if (payload.stage === 'playing') return router.refresh()
-      setRoom(payload as RoomView)
-    }, POLL_MS)
-
-    return () => clearInterval(poll)
-  }, [room.tableId, router])
+  // Seats filling, and the deal itself, arrive without asking. A room that
+  // dealt is no longer a room: re-render the route and the server hands back
+  // the table instead.
+  useTableStream(
+    room.tableId,
+    (view) => (view.stage === 'playing' ? router.refresh() : setRoom(view)),
+    () => router.refresh(),
+  )
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col items-center justify-center gap-6 p-6">

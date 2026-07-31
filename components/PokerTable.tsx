@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
+import { useTableStream } from '@/lib/use-table-stream'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecycle'
@@ -106,6 +107,27 @@ export function PokerTable({
     timers.current = []
   }, [])
   useEffect(() => clearReplay, [clearReplay])
+
+  /**
+   * Take what other people did at this table, when it is safe to look.
+   *
+   * Only while idle. An update that landed mid-replay would cut off the moves
+   * being stepped through, and one that landed mid-request would be overwritten
+   * by that request's own answer a moment later — in both cases the player
+   * would watch the table jump for reasons they could not see.
+   *
+   * There is no replay for these: the animation exists to show the consequences
+   * of your own move, and someone else's turn arriving is not that.
+   */
+  useTableStream(
+    tableId,
+    (view) => {
+      if (view.stage !== 'playing') return
+      if (busy || timers.current.length > 0) return
+      setTable(view)
+    },
+    () => setGone(true),
+  )
 
   /**
    * Show an update, stepping through how it was reached.
