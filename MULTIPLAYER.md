@@ -71,6 +71,12 @@ Platform-independent, so it can start immediately.
 Today a seat is a constant: `HUMAN_ID = 'you'` in `table-store.ts`. The server
 needs to know which of several people is asking.
 
+This is also a fix, not only groundwork. `viewOf` redacts for `HUMAN_ID` rather
+than for whoever is asking, so **sharing a table URL today serves the recipient
+the view built for you, hole cards included**. Nobody can guess a UUID, so it is
+not exploitable as things stand, but it is the reason no link should be shared
+before this phase lands.
+
 - Issue a signed, http-only cookie carrying a random player id on first visit.
   No accounts, no email, no passwords — the id only has to be unforgeable and
   stable for a session.
@@ -83,13 +89,30 @@ needs to know which of several people is asking.
 neither sees the other's. This is the security property of the whole feature and
 it should be the first test written.
 
-## Phase 2 — seating
+## Phase 2 — seating, and joining by link
+
+Private tables shared as a link. This is the first form worth building, because
+almost all of it already exists.
+
+The table URL is `/table/<uuid>` from `crypto.randomUUID()` — 122 bits of
+entropy, so the link is already an unguessable capability. The link *is* the
+invite: no lobby, no invite records, no accounts. The same model as a document
+shared with anyone who has the URL.
 
 - A table is created with a number of seats and a number of bot fills.
-- A second player opens the table URL and takes an empty seat.
-- A lobby state before the first hand: who has sat down, who is still empty,
+- `POST /api/table/:id/join` — the server picks a free seat for the requesting
+  player and returns their own redacted view. Seat assignment is server-owned,
+  like the blinds already are.
+- A lobby state before the first hand: who has sat down, which seats are empty,
   and who starts it.
-- Seat assignment is server-owned, like the blinds already are.
+- **Full table falls back to spectating**, which costs nothing to support:
+  `redactFor` already accepts `viewerId: string | null`, and a null viewer sees
+  no hole cards and no legal actions. A spectator view is a call the redaction
+  layer can already answer.
+
+Optional and small: a short code (6–8 characters) mapped to the table id in
+Redis, so people can read it aloud rather than paste a UUID. A short code is
+guessable in a way a UUID is not, so the lookup needs rate limiting.
 
 ## Phase 3 — concurrency
 
@@ -141,6 +164,39 @@ Mostly deletion. `playBots` already plays every non-human seat; once seats know
 whether they are human or bot, the existing loop covers a table of two humans
 and two bots with no new logic.
 
+## Phase 7 — public rooms
+
+Strangers, matched automatically. A thin layer over the primitives from phases 2
+to 5, but it depends on all of them — particularly the turn clock, for reasons
+below.
+
+**Quick join.** A "play now" button that finds a table with a free seat or
+creates one. Backed by a Redis sorted set of open tables scored by expiry.
+
+The upkeep is the part that will bite. A table key expires on its own TTL, but
+its entry in the directory does not, so stale listings accumulate and quick join
+starts handing people tables that no longer exist. Prune the set on read, and
+treat a listing as a hint to be verified rather than a fact — the join has to
+cope with the table having vanished between being listed and being joined.
+
+**The turn clock stops being optional.** Among friends, a player who wanders off
+mid-hand is a message in a group chat. Among strangers it is a table stuck until
+its TTL collects it, taking everyone else's game with it. Phase 5 is a hard
+prerequisite here in a way it is not for phase 2.
+
+**Keep the moderation surface small.** No chat, and server-generated display
+names. That keeps abuse close to nil for a chips-only game. Player-chosen names
+or a chat box means signing up for a reporting and blocking story — a feature in
+its own right, not a detail of this one.
+
+**Decide what a public table does when it empties.** A private table can sit
+until its TTL collects it. A public one that quick join keeps advertising while
+nobody is at it is worse than no listing at all.
+
+Sizing: quick join and the directory are small. Everything expensive about this
+phase is the turn clock it stands on and the griefing it exposes, which is why
+it comes last rather than alongside phase 2.
+
 ## Testing
 
 - The engine suite does not change.
@@ -154,14 +210,25 @@ and two bots with no new logic.
 
 Phase 1 first, and it is worth merging on its own — it is a strict improvement
 even for single-player, since it removes a hardcoded constant from the trust
-boundary. Phases 2 and 3 next. Phase 4 is where it becomes multiplayer in any
-visible sense, and it is also the phase most likely to reveal that phase 3 was
-not thorough enough. Phase 5 is what makes it usable by people who are not you.
+boundary, and it closes the shared-link leak described there. Phases 2 and 3
+next. Phase 4 is where it becomes multiplayer in any visible sense, and it is
+also the phase most likely to reveal that phase 3 was not thorough enough.
+Phase 5 is what makes it usable by people who are not you.
+
+Both ways of joining are in scope, but they are not the same size and should not
+be built together. Link-shared tables (phase 2) need no infrastructure beyond
+what phases 1 and 3 already provide, and they are what friends actually want.
+Public rooms (phase 7) are a directory and a button on top of the same
+primitives — cheap in themselves, but only safe once the turn clock exists,
+because strangers do not wait for each other the way friends do.
+
+The natural release points are: phase 5 for a private game people can be given a
+link to, and phase 7 for a public one.
 
 ## Open questions
 
 - Chips only, presumably. Anything involving real money changes the legal and
   security picture completely and is out of scope for this plan.
-- Private tables by link, or a public lobby? A link is much less to build and
-  needs no moderation story.
-- Should a disconnected player's seat be held, and for how long?
+- Should a disconnected player's seat be held, and for how long? Likely a
+  different answer for a private table than a public one.
+- Do public tables need a stake level, or is one set of blinds enough to start?
