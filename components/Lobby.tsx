@@ -102,6 +102,11 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
                   <Card
                     className="border-white/10 bg-neutral-950/80 shadow-xl backdrop-blur transition-colors hover:bg-neutral-900/80"
                     data-testid="room"
+                    // The id is already in the payload this row was built from,
+                    // so putting it on the row publishes nothing new — and it
+                    // lets a test pick out its own room rather than the first
+                    // one a shared lobby happens to be showing.
+                    data-table-id={room.tableId}
                   >
                     <CardContent className="flex items-center gap-4 py-1">
                       {/*

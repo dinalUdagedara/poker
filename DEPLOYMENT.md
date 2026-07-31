@@ -5,9 +5,9 @@ checked against the code rather than assumed.
 
 ## What it is
 
-Single-player no-limit Texas Hold'em against bots. Next.js 16.2.12, App Router,
-TypeScript, Tailwind v4. No auth, no relational database. Table state lives in
-Redis; everything else is computed per request.
+No-limit Texas Hold'em, against bots or against other people in a shared room.
+Next.js 16.2.12, App Router, TypeScript, Tailwind v4. No auth, no relational
+database. Table state lives in Redis; everything else is computed per request.
 
 - `npm run build` — production build
 - `npm start` — serve the build (`next start`)
@@ -42,7 +42,8 @@ So after any deploy where the storage might have changed, confirm which backend
 is live rather than inferring it from the app appearing to work:
 
 - Runtime logs should **not** contain `No Redis credentials found`.
-- The database should show keys named `table:<uuid>` while anyone is playing.
+- The database should show keys named `table:<environment>:<uuid>` while
+  anyone is playing.
 
 ## How table state is stored
 
@@ -58,12 +59,28 @@ writes records production cannot read, and a local `next dev` writes into the
 live game. The prefix is the whole defence, so keep it if `keyFor` is ever
 touched.
 
-Tables expire two hours after they were last touched (`TABLE_TTL_MS`). A table
+Rooms that have not dealt expire after two minutes of sitting idle
+(`WAITING_TTL_MS`); tables expire two hours after they were last touched
+(`TABLE_TTL_MS`). A table
 is only ever created, never closed — a player who shuts the tab says nothing to
 the server — so something has to decide when to stop believing in it. Both
 backends implement this: Redis with `SET … EX` and an `EXPIRE` refresh on read,
 the in-memory map with an expiry check on read and a sweep on write. Reads count
 as use, because someone sitting on the table page without acting is still there.
+
+Two other keys exist. `rooms:<environment>` is a set holding the ids of rooms
+that asked to be listed publicly — ids only, because seat counts kept beside
+them would be a second copy of the truth and would drift. It is pruned as it is
+read, so nothing sweeps it. And `changes:<environment>` is a pub/sub channel,
+not a stored key: every write publishes the id of the table that changed, and
+the open streams on every instance hear it. Nothing is persisted there and
+nothing needs clearing.
+
+That channel is why a second Redis connection is opened — a connection in
+subscriber mode can run no other commands. It is created on first use and held
+for the life of the instance. If it cannot be established the app still works:
+each stream also polls every five seconds underneath, so push degrades to a
+slower table rather than a broken one.
 
 `lib/server/table-store.ts` is the trust boundary. Callers hand it an intent, it
 validates that intent against the authoritative state, and it returns a redacted

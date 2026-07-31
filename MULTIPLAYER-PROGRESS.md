@@ -1,8 +1,10 @@
 # Multiplayer: state of the work
 
-Living status for the `multiplayer` branch. `MULTIPLAYER.md` is the plan and
-does not change often; this file is where things stand and is updated as work
-lands.
+Living status for the multiplayer work. `MULTIPLAYER.md` is the plan and does
+not change often; this file is where things stand and is updated as work lands.
+The phase sections below are kept as they were written, as a record of what was
+decided and why — where a later section contradicts one, the later one is what
+the code does.
 
 **If you are picking this up cold: read `MULTIPLAYER.md` first, then this.**
 Everything below assumes the plan's phase numbering.
@@ -19,17 +21,14 @@ Everything below assumes the plan's phase numbering.
 | 5 | Absent players, turn clock | **Done** |
 | 6 | Bots as seat fill | **Done** |
 | 7 | Public rooms | **Done** |
+| — | Presence, rematch, spectator screen, pub/sub | **Done** — see "closing the gaps" |
 
-Everything is on the `multiplayer` branch and none of it is merged. `main` still
-serves the single-player game.
+All of it is merged. `main` serves the multiplayer game.
 
-## Where the branch is
+## Where the code is
 
-Branched from `main`, rebased onto it as `main` moves. `main` carries the
-deployed single-player game; keep it deployable.
-
-Everything before phase 1 is already on `main`: Redis storage, environment-
-namespaced keys, the Node pin, and the rewritten `DEPLOYMENT.md`.
+All of it is on `main`, which is what is deployed. Phases 1 to 7 landed as one
+pull request; the work in "closing the gaps" followed as a second.
 
 ## Phase 1 — identity
 
@@ -161,11 +160,11 @@ table got `viewerId: null` and no cards.
 Run before every commit. All were green when this file was written.
 
 ```
-npm test          # unit, 234 passing / 1 skipped
+npm test          # unit, 254 passing / 1 skipped
 npm run lint
 npx tsc --noEmit
 npm run build
-npm run e2e       # 24 passing, in-memory backend
+npm run e2e       # 27 passing / 1 skipped, in-memory backend
 ```
 
 The e2e suite deliberately runs on the in-memory backend —
@@ -241,25 +240,115 @@ state would be a second copy of something the browser already stores and the
 server already reads, and it cannot be an initial value: the cookie exists only
 in the browser and the page renders on the server first.
 
-## What is not done
+## Closing the gaps
 
-Honest gaps, all of them known rather than discovered:
+Everything listed here as missing was picked up afterwards. What follows is
+what was done and why, in the order it mattered.
 
-- **Presence in a waiting room.** A seat whose stream has gone is not released;
-  only the two-minute idle expiry covers it. The plan wanted the SSE connection
-  to double as the liveness signal.
-- **Play again.** A finished table dissolves, but nothing yet offers a fresh
-  room pre-seated with whoever is still there.
-- **A spectator screen.** Watching works and leaks nothing, but it looks like a
-  table with the controls greyed out.
-- **Two-browser e2e.** Everything multiplayer is covered by unit tests and by
-  hand against a real build; Playwright still only drives one context.
+**Presence in a waiting room.** A seat is now a claim that has to be renewed
+rather than one that is assumed. `WaitingTable.seen` records when each player
+last said they were there; the open SSE stream says so every eight seconds, and
+a seat silent for thirty is released.
+
+The release is a *pure function applied on the way out of storage*, not a sweep.
+`withPresent` is folded into `mutate` and into every read, so a reader and a
+writer agree about who is in the room without the write having had to happen
+first — there is nothing scheduled, and a room nobody ever looks at again
+simply expires. Thirty seconds is deliberately generous: releasing a seat
+somebody is still in is far worse than holding an empty one a moment longer,
+and the platform cuts and reconnects these streams as a matter of course.
+
+Two things fall out of it. The lobby counts seats *after* the absent are
+removed, so it can no longer advertise a room as fuller than the one a player
+walks into. And ownership follows the people still present — a room whose
+creator wandered off would otherwise be a room nobody could start.
+
+The heartbeat is the one write in the app that announces nothing (see push,
+below). Presence appears in no view, so waking every stream in the room to
+re-read an identical table would cost more than the polling this replaced.
+
+**Play again.** `rematch` opens a room the shape of the table that just
+finished — as many seats as there were people, the same bots, and private,
+because a rematch is for whoever was already there.
+
+The crux is that everyone lands in the *same* room, so the new id is recorded
+on the finished table (`PlayingTable.rematchId`) and the first person through is
+the one who picks it. Without that, four people tapping "play again" would open
+four rooms of one. Two people tapping at the same instant is handled by the
+same compare-and-set everything else uses, and by the room being created with
+`expectedVersion: null` — the loser of that race joins the winner's room.
+
+It is offered the moment a player's own game is over, which for somebody
+knocked out is well before the table finishes. That is the answer to the
+question this plan left open about what a busted player does next, and it is a
+better one than watching.
+
+**A spectator screen.** The controls are now absent rather than disabled. A
+spectator gets their own panel — who is to act, or who won the last hand — and
+a "watching" badge in the header.
+
+This also fixed a real dead end: a spectator looking at a finished hand was
+being offered "next hand", which the server refuses with a 403. Nothing at the
+table is theirs to do, and greyed-out buttons read as a broken table rather
+than as somebody else's game.
+
+**Two-browser e2e.** `e2e/multiplayer.spec.ts` drives two independent browser
+contexts — two cookie jars, so two players. It covers a room found in the
+lobby, filled and dealt, with the deal *pushed* to the player who was already
+sitting there; a rematch sending both players to one room; and a link-follower
+getting the spectator screen. The card assertions read the wire rather than the
+screen: a test that checked the interface draws face-down backs would still
+pass while the server shipped everybody's hand to everybody.
+
+**Push, properly.** The stream no longer polls storage once a second. Writes
+publish to a Redis channel and every open stream on every instance hears it, so
+a change reaches a player as it happens instead of on the next tick.
+
+One channel for all tables rather than one per table: a channel per table means
+subscribing and unsubscribing as players come and go, on a shared connection,
+racing every other stream in the process — for the saving of not hearing about
+tables this instance has nobody watching. Worth splitting only when one instance
+watches a small fraction of a large number of live tables.
+
+A subscriber connection cannot run other commands, so it is a second connection,
+opened on first use and held on `globalThis`. Under it, a five-second poll
+remains as the safety net — for a notification lost in transit, and for the one
+thing nothing announces: the turn clock running out at a table everybody has
+walked away from, which is settled by whoever next looks.
+
+*Measured against the real database:* a player watching a room received the deal
+**0.48s** after the join returned, where the fallback poll would not have fired
+for another 4.5 seconds. Presence was checked the same way: a room with an
+unattended seat reported one seat taken, and thirty-two seconds later reported
+none and had dropped itself out of the lobby.
+
+**And a bug found on the way.** Rising blinds were derived correctly and then
+never used: `startNextHand` dealt with `settings.smallBlind` and
+`settings.bigBlind`, which are what the table opened on. The schedule existed,
+was unit-tested in isolation, and had no effect on any game ever played. It now
+deals `blindsFor(settings, handNumber)`, and there is a test that plays eleven
+hands through the store and asserts the big blind actually doubled — it fails
+against the old code.
 
 ## Open questions still unanswered
 
-Carried from the plan; none of them block phase 1.
-
-- How long a disconnected player's seat is held.
 - Whether public rooms need more than one starting stake.
-- How fast the blind schedule should climb (doubling every ten hands is a
-  starting point, not a finding).
+- How fast the blind schedule should climb. Doubling every ten hands is still a
+  starting point rather than a finding — but it is now a starting point that
+  reaches the table, which it was not before.
+- Whether thirty seconds is the right window for holding a seat. It was chosen
+  to be forgiving rather than measured, and the failure it guards against
+  (releasing a chair somebody is still in) is invisible from the server. Worth
+  revisiting if anyone reports being bumped out of a room.
+
+Answered since: *how long a disconnected player's seat is held* — thirty
+seconds of silence from their stream, see "closing the gaps".
+
+## Still not done
+
+- **A room cannot be re-entered under a new name.** The name is read from the
+  cookie at the moment of joining and fixed on the table from then on.
+- **Nothing surfaces the turn clock.** It is enforced, but a player has no way
+  to see how long they have left; the deadline is not in the view.
+- **The lobby shows no stakes.** Every room is 25/50 to start, so there is
+  nothing to choose between rooms except how full they are.

@@ -55,7 +55,10 @@ async function actPassively(page: Page): Promise<boolean> {
 }
 
 const showing = (page: Page, testId: string) =>
-  page.getByTestId(testId).isVisible().catch(() => false)
+  page
+    .getByTestId(testId)
+    .isVisible()
+    .catch(() => false)
 
 /** Play passively until `isDone` holds, sitting out the bots' turns. */
 async function playUntil(page: Page, isDone: () => Promise<boolean>, steps = 40) {
@@ -224,8 +227,7 @@ test.describe('seat callouts', () => {
 })
 
 test.describe('chip stacks', () => {
-  const chips = (page: Page, id: string) =>
-    page.getByTestId(`chips-${id}`).locator('[data-chip]')
+  const chips = (page: Page, id: string) => page.getByTestId(`chips-${id}`).locator('[data-chip]')
 
   test('draws a stack for everyone who has chips', async ({ page }) => {
     await dealIn(page, '1')
@@ -474,11 +476,8 @@ test('shows a useful message for a table that does not exist', async ({ page }) 
 })
 
 test.describe('when the table is finished', () => {
-  test('ends the game instead of offering a hand that cannot be dealt', async ({ page }) => {
-    // Two players at two big blinds each: within a few hands one of them is out
-    // of chips, whichever way it falls.
-    await shortStackedTable(page, 100)
-
+  /** Play hand after hand, passively, until somebody has all the chips. */
+  async function playToTheEnd(page: Page) {
     const gameOver = page.getByTestId('game-over')
     for (let hand = 0; hand < 40; hand++) {
       if (await gameOver.isVisible().catch(() => false)) break
@@ -492,6 +491,15 @@ test.describe('when the table is finished', () => {
       await actPassively(page)
       await page.waitForTimeout(60)
     }
+    return gameOver
+  }
+
+  test('ends the game instead of offering a hand that cannot be dealt', async ({ page }) => {
+    // Two players at two big blinds each: within a few hands one of them is out
+    // of chips, whichever way it falls.
+    await shortStackedTable(page, 100)
+
+    const gameOver = await playToTheEnd(page)
 
     await expect(gameOver).toBeVisible()
     // The dead end was offering an action the server would refuse. It is gone.
@@ -502,6 +510,25 @@ test.describe('when the table is finished', () => {
     // The only thing on offer actually works.
     await page.getByTestId('new-table').click()
     await expect(page.getByRole('heading', { name: /Showdown/ })).toBeVisible()
+  })
+
+  test('deals another table with the same people rather than sending anyone home', async ({
+    page,
+  }) => {
+    const tableId = await shortStackedTable(page, 100)
+
+    await expect(await playToTheEnd(page)).toBeVisible()
+    await page.getByTestId('play-again').click()
+
+    // A different table, and a live one: practice has nobody to wait for, so
+    // playing again means cards rather than a room. Waited for by the id
+    // changing, since the page starts on a URL of exactly this shape.
+    await page.waitForURL(
+      (url) => /\/table\/[0-9a-f-]+/.test(url.pathname) && !url.pathname.includes(tableId),
+    )
+    await expect(page.getByTestId('pot')).toBeVisible()
+    await expect(page.getByTestId('game-over')).toHaveCount(0)
+    await expect(page.getByTestId('error')).toHaveCount(0)
   })
 
   test('rejects a buy-in the server will not accept', async ({ page }) => {

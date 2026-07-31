@@ -37,6 +37,15 @@ export type WaitingTable = {
   /** What to call each player in the room, by player id. */
   names: Record<string, string>
   /**
+   * When each seated player last said they were still there, by player id.
+   *
+   * A seat is a claim on somebody else's game, and closing a tab says nothing
+   * to the server — so the claim has to be renewed rather than assumed. Absent
+   * for rooms written before presence existed, which is why every reader
+   * defaults a missing entry to now rather than to zero.
+   */
+  seen?: Record<string, number>
+  /**
    * Whether this room is listed for strangers to find.
    *
    * Explicit, and never inferred. Listing a room publishes its id, which is
@@ -70,6 +79,14 @@ export type PlayingTable = {
    * touches the table, with nothing scheduled and nothing to run in between.
    */
   deadline: number
+  /**
+   * The room this table's players agreed to carry on in, once anybody asked.
+   *
+   * Recorded on the finished table rather than worked out per player, because
+   * the whole point is that everyone lands in the *same* new room. Without it,
+   * four people tapping "play again" would open four rooms of one.
+   */
+  rematchId?: string
 }
 
 export type StoredTable = WaitingTable | PlayingTable
@@ -121,13 +138,30 @@ export interface TableStorage {
    * exist yet and `expectedVersion` is null. Returns false when it has moved.
    *
    * `ttlMs` is how long this record may then sit untouched.
+   *
+   * A successful write announces itself to everyone watching, unless
+   * `announce` says otherwise. Pass false for a write nobody needs waking for
+   * — a presence heartbeat changes the record without changing anything any
+   * player can see, and waking every open stream for it would cost more reads
+   * than the polling this exists to replace.
    */
   write(
     tableId: string,
     table: StoredTable,
     ttlMs: number,
     expectedVersion: number | null,
+    announce?: boolean,
   ): Promise<boolean>
+  /**
+   * Run `onChange` whenever this table is written, until the returned function
+   * is called.
+   *
+   * Deliberately carries no payload. A notification says only "look again",
+   * and every watcher then builds its own view from its own cookie — a change
+   * event carrying a table would be one table shown to every subscriber, which
+   * is the exact shape of the bug `redactFor` exists to prevent.
+   */
+  watch(tableId: string, onChange: () => void): () => void
 }
 
 /**
@@ -169,6 +203,15 @@ const keyFor = (tableId: string) => `table:${process.env.VERCEL_ENV ?? 'local'}:
  */
 export function redisStorage(redis: Redis): TableStorage {
   return {
+    /**
+     * The notifications arrive on one connection for the whole process, and
+     * are handed to whichever streams in it care.
+     */
+    watch(tableId, onChange) {
+      subscribe(redis)
+      return watchLocally(tableId, onChange)
+    },
+
     async read(tableId) {
       const key = keyFor(tableId)
       const stored = await redis.get(key)
@@ -182,7 +225,7 @@ export function redisStorage(redis: Redis): TableStorage {
       return { table: envelope.table, version: envelope.version }
     },
 
-    async write(tableId, table, ttlMs, expectedVersion) {
+    async write(tableId, table, ttlMs, expectedVersion, announce = true) {
       const envelope: Envelope = { table, ttlMs, version: (expectedVersion ?? 0) + 1 }
       const applied = await redis.eval(
         COMPARE_AND_SET,
@@ -192,7 +235,14 @@ export function redisStorage(redis: Redis): TableStorage {
         String(ttlMs / 1000),
         expectedVersion === null ? '' : String(expectedVersion),
       )
-      return applied === 1
+      if (applied !== 1) return false
+
+      // Published after the write lands, so a watcher that reads the instant it
+      // hears about the change reads the change. Fire and forget: a lost
+      // notification costs one player a few seconds, and the streams poll
+      // slowly underneath for exactly that reason.
+      if (announce) await redis.publish(changesKey(), tableId).catch(() => 0)
+      return true
     },
 
     async list(tableId) {
@@ -211,6 +261,77 @@ export function redisStorage(redis: Redis): TableStorage {
 
 /** The set of publicly listed rooms, namespaced like everything else. */
 const directoryKey = () => `rooms:${process.env.VERCEL_ENV ?? 'local'}`
+
+/**
+ * The channel every change is announced on.
+ *
+ * One channel for all tables rather than one per table. A channel per table
+ * would mean subscribing and unsubscribing as players come and go, on a shared
+ * connection, racing every other stream in the process — for the saving of not
+ * hearing about tables this instance has nobody watching. At this size that
+ * saving is a few dropped strings a second and the complexity is a real source
+ * of bugs. Split it if a single instance ever watches a small fraction of a
+ * large number of live tables.
+ */
+const changesKey = () => `changes:${process.env.VERCEL_ENV ?? 'local'}`
+
+/**
+ * Everyone in this process waiting on a table, by table id.
+ *
+ * On globalThis for the same reason the table map is: hot reloading replaces
+ * the module, and a stream opened before the reload would otherwise go deaf
+ * while still holding its connection open.
+ */
+const listeners: Map<string, Set<() => void>> = ((
+  globalThis as unknown as { __pokerWatchers?: Map<string, Set<() => void>> }
+).__pokerWatchers ??= new Map())
+
+function watchLocally(tableId: string, onChange: () => void): () => void {
+  const forTable = listeners.get(tableId) ?? new Set<() => void>()
+  listeners.set(tableId, forTable)
+  forTable.add(onChange)
+
+  return () => {
+    forTable.delete(onChange)
+    // Dropped rather than left empty: the map is keyed by table id and would
+    // otherwise grow by one entry per table this instance ever served.
+    if (forTable.size === 0) listeners.delete(tableId)
+  }
+}
+
+function announce(tableId: string) {
+  for (const listener of listeners.get(tableId) ?? []) {
+    try {
+      listener()
+    } catch {
+      // One stream failing is that stream's problem. The others are watching
+      // the same table and are entitled to hear about it.
+    }
+  }
+}
+
+/**
+ * Start listening for changes, once per process.
+ *
+ * A connection in subscriber mode can run no other commands, so this is a
+ * second connection rather than the one everything else uses. It is opened the
+ * first time something watches a table and then held: on a serverless instance
+ * that is for as long as a stream is open, which is exactly as long as it is
+ * useful.
+ */
+function subscribe(redis: Redis) {
+  const global = globalThis as unknown as { __pokerSubscriber?: Redis }
+  if (global.__pokerSubscriber) return
+
+  const subscriber = (global.__pokerSubscriber = redis.duplicate())
+  subscriber.on('message', (_channel, tableId) => announce(tableId))
+  // ioredis restores its subscriptions after a reconnect, so this is said
+  // once. If it is ever missed, the streams' slow poll is what covers it.
+  subscriber.subscribe(changesKey()).catch(() => {
+    // Nothing to fall back to and nothing to tell a player. Watching degrades
+    // to that poll, which is what the whole design already tolerates.
+  })
+}
 
 /**
  * Set the record only if nobody has changed it since it was read.
@@ -263,6 +384,10 @@ const directory: Set<string> = ((
  */
 function memoryStorage(): TableStorage {
   return {
+    // Nothing to subscribe to: one process, so the write itself is already in
+    // earshot of every watcher there is.
+    watch: watchLocally,
+
     async read(tableId) {
       const entry = map.get(tableId)
       if (!entry) return null
@@ -275,7 +400,7 @@ function memoryStorage(): TableStorage {
       return { table: entry.table, version: entry.version }
     },
 
-    async write(tableId, table, ttlMs, expectedVersion) {
+    async write(tableId, table, ttlMs, expectedVersion, shouldAnnounce = true) {
       const now = Date.now()
       for (const [id, entry] of map) {
         if (entry.expiresAt <= now) map.delete(id)
@@ -288,7 +413,13 @@ function memoryStorage(): TableStorage {
       const live = current && current.expiresAt > now ? current : undefined
       if ((live?.version ?? null) !== expectedVersion) return false
 
-      map.set(tableId, { table, ttlMs, version: (expectedVersion ?? 0) + 1, expiresAt: now + ttlMs })
+      map.set(tableId, {
+        table,
+        ttlMs,
+        version: (expectedVersion ?? 0) + 1,
+        expiresAt: now + ttlMs,
+      })
+      if (shouldAnnounce) announce(tableId)
       return true
     },
 
@@ -333,8 +464,7 @@ function connect(url: string): Redis {
  * provider a deployment ends up with.
  */
 function selectStorage(): TableStorage {
-  const url =
-    process.env.REDIS_URL ?? process.env.KV_URL ?? process.env.UPSTASH_REDIS_URL
+  const url = process.env.REDIS_URL ?? process.env.KV_URL ?? process.env.UPSTASH_REDIS_URL
 
   if (url) return redisStorage(connect(url))
 
