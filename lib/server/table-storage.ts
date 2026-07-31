@@ -50,6 +50,14 @@ export type PlayingTable = {
    * A seat with no entry is a bot.
    */
   owners: Record<string, string>
+  /**
+   * When the seat to act must have acted by, as a timestamp.
+   *
+   * Only meaningful while a person is to act; bots answer within the same
+   * request. It is a plain number so the rule can be enforced by whoever next
+   * touches the table, with nothing scheduled and nothing to run in between.
+   */
+  deadline: number
 }
 
 export type StoredTable = WaitingTable | PlayingTable

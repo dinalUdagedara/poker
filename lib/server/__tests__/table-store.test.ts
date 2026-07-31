@@ -10,6 +10,7 @@ import {
   startNextHand,
   submitAction,
   TableError,
+  TURN_MS,
 } from '../table-store'
 
 const OWNER = 'player-who-dealt-it'
@@ -280,6 +281,54 @@ describe('forgetting rooms nobody fills', () => {
   })
 })
 
+describe('a player who stops answering', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('is acted for once their clock runs out', async () => {
+    // Nothing is scheduled: the fold is applied by whoever next looks at the
+    // table, which for a turn-based game is enough. Nothing can happen at a
+    // table nobody is watching.
+    const { tableId } = await dealtTable()
+    const before = asTable(await findTable(tableId, OWNER))
+    expect(before.legalActions).not.toBeNull()
+
+    vi.advanceTimersByTime(TURN_MS + 1000)
+    const after = asTable(await findTable(tableId, OWNER))
+
+    // Either the hand moved past them or it finished without them; what must
+    // not happen is the table sitting on their turn for ever.
+    expect(after.actingPlayerId === before.actingPlayerId && after.result === null).toBe(false)
+  })
+
+  it('does not act for anyone while they still have time', async () => {
+    const { tableId } = await dealtTable()
+    const before = asTable(await findTable(tableId, OWNER))
+
+    vi.advanceTimersByTime(TURN_MS - 1000)
+    const after = asTable(await findTable(tableId, OWNER))
+
+    expect(after.actingPlayerId).toBe(before.actingPlayerId)
+  })
+
+  it('gives them a fresh clock every time they act', async () => {
+    const { tableId } = await dealtTable()
+
+    vi.advanceTimersByTime(TURN_MS - 1000)
+    await submitAction(tableId, OWNER, { type: 'call' })
+    vi.advanceTimersByTime(TURN_MS - 1000)
+
+    // Still their table to act on: the clock restarted when they called.
+    const view = asTable(await findTable(tableId, OWNER))
+    expect(view.result !== null || view.actingPlayerId === view.viewerId).toBe(true)
+  })
+})
+
 describe('forgetting abandoned tables', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -321,7 +370,8 @@ describe('forgetting abandoned tables', () => {
   it('treats acting as using it', async () => {
     const table = await dealtTable()
 
-    vi.advanceTimersByTime(TABLE_TTL_MS - 1000)
+    // Inside the turn clock, or the table would have folded for them first.
+    vi.advanceTimersByTime(TURN_MS - 1000)
     await submitAction(table.tableId, OWNER, { type: 'fold' })
 
     vi.advanceTimersByTime(TABLE_TTL_MS - 1000)

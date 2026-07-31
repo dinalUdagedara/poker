@@ -22,7 +22,7 @@ import {
   type TableView,
 } from '../poker/lifecycle'
 import { redactFor } from '../poker/redact'
-import { applyAction, startHand, type SeatConfig } from '../poker/state-machine'
+import { applyAction, legalActions, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
 import {
   storage,
@@ -83,6 +83,16 @@ const LIMITS = {
 
 /** A table needs two players, however they are made up. */
 const MIN_PLAYERS = 2
+
+/**
+ * How long a person has to act before the table moves on without them.
+ *
+ * Among friends someone wandering off mid-hand is a message in a group chat.
+ * Among strangers it is a table stuck until its own expiry collects it, taking
+ * everyone else's game with it. Long enough to think about a real decision,
+ * short enough that nobody is held hostage.
+ */
+export const TURN_MS = 45_000
 
 /**
  * Validate the settings a client is allowed to choose.
@@ -229,7 +239,43 @@ function deal(tableId: string, room: WaitingTable): PlayingTable {
     settings: { ...room.settings, botCount },
     state,
     owners: Object.fromEntries(humanIds.map((id, index) => [id, sitting[index]])),
+    deadline: Date.now() + TURN_MS,
   }
+}
+
+/**
+ * Fold — or check, if it is free — for whoever ran out of time, and play on.
+ *
+ * Checking rather than folding when nothing is owed is the ordinary courtesy of
+ * the game: a player who is merely slow should not be thrown out of a hand they
+ * could have stayed in for nothing.
+ *
+ * Applied by whoever next touches the table rather than by a timer. A serverless
+ * deployment has nowhere to keep a timer, and for a turn-based game it does not
+ * need one: nothing can happen at a table nobody is looking at.
+ */
+function outOfTime(table: StoredTable, now: number): boolean {
+  if (table.stage !== 'playing' || table.state.result || table.deadline > now) return false
+  const acting = table.state.actingPlayerId
+  return Boolean(acting && acting in table.owners)
+}
+
+function enforceClock(table: PlayingTable, now: number): PlayingTable {
+  if (!outOfTime(table, Date.now())) return table
+
+  const acting = table.state.actingPlayerId
+  if (!acting) return table
+
+  const legal = legalActions(table.state)
+  const state = playBots(
+    applyAction(table.state, {
+      type: legal?.canCheck ? 'check' : 'fold',
+      playerId: acting,
+    }),
+    new Set(Object.keys(table.owners)),
+  )
+
+  return { ...table, state, deadline: now + TURN_MS }
 }
 
 /**
@@ -302,7 +348,12 @@ async function mutate<T>(
     const record = await storage.read(tableId)
     if (!record) throw new TableError('No such table', 404)
 
-    const { table, result } = await change(record.table)
+    // Before anything else: if the player to act ran their clock out, they
+    // have already been folded as far as everyone else is concerned.
+    const current =
+      record.table.stage === 'playing' ? enforceClock(record.table, Date.now()) : record.table
+
+    const { table, result } = await change(current)
     if (await storage.write(tableId, table, lifetimeOf(table), record.version)) {
       return result
     }
@@ -341,12 +392,6 @@ export async function createTable(settings: unknown = {}, playerId: string): Pro
 
   await storage.write(tableId, room, lifetimeOf(room), null)
   return roomViewOf(tableId, room, playerId)
-}
-
-async function load(tableId: string): Promise<StoredTable> {
-  const record = await storage.read(tableId)
-  if (!record) throw new TableError('No such table', 404)
-  return record.table
 }
 
 /** A table that has dealt, or an error saying it has not. */
@@ -450,7 +495,9 @@ function anyViewOf(tableId: string, table: StoredTable, playerId: string | null)
 }
 
 export async function getTable(tableId: string, playerId: string | null): Promise<AnyTableView> {
-  return anyViewOf(tableId, await load(tableId), playerId)
+  const view = await findTable(tableId, playerId)
+  if (!view) throw new TableError('No such table', 404)
+  return view
 }
 
 /** Like getTable, but returns null for an unknown table instead of throwing. */
@@ -459,7 +506,18 @@ export async function findTable(
   playerId: string | null,
 ): Promise<AnyTableView | null> {
   const record = await storage.read(tableId)
-  return record ? anyViewOf(tableId, record.table, playerId) : null
+  if (!record) return null
+
+  // A table nobody is acting on has to be moved along by whoever looks at it,
+  // since nothing else is running. The write is only attempted when the clock
+  // has actually run out, so the ordinary read stays a read.
+  if (outOfTime(record.table, Date.now())) {
+    await mutate(tableId, (table) => ({ table, result: null })).catch(() => null)
+    const settled = await storage.read(tableId)
+    return settled ? anyViewOf(tableId, settled.table, playerId) : null
+  }
+
+  return anyViewOf(tableId, record.table, playerId)
 }
 
 /**
