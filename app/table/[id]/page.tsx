@@ -11,7 +11,7 @@ import { findTable } from '@/lib/server/table-store'
  */
 export default async function TablePage({ params }: PageProps<'/table/[id]'>) {
   const { id } = await params
-  const initial = findTable(id)
+  const initial = await findTable(id)
   if (!initial) notFound()
 
   return <PokerTable tableId={id} initial={initial} />

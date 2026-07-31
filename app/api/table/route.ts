@@ -10,7 +10,7 @@ import { createTable, TableError } from '@/lib/server/table-store'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
-    return Response.json(createTable(body))
+    return Response.json(await createTable(body))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })

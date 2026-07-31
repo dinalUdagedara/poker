@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createTable, findTable, submitAction, TABLE_TTL_MS } from '../table-store'
+import { TABLE_TTL_MS } from '../table-storage'
+import { createTable, findTable, submitAction } from '../table-store'
 
 /**
- * The store is process-wide and outlives any one test, so each case works with
- * the tables it created itself rather than assuming an empty map.
+ * Against the in-memory backend, which is what runs with no Redis configured.
+ * The map is process-wide and outlives any one test, so each case works with
+ * the tables it created itself rather than assuming it starts empty.
  */
 describe('forgetting abandoned tables', () => {
   beforeEach(() => {
@@ -14,50 +16,43 @@ describe('forgetting abandoned tables', () => {
     vi.useRealTimers()
   })
 
-  it('keeps a table that is still inside its window', () => {
-    const { tableId } = createTable()
+  it('keeps a table that is still inside its window', async () => {
+    const { tableId } = await createTable()
 
     vi.advanceTimersByTime(TABLE_TTL_MS - 1000)
-    createTable()
 
-    expect(findTable(tableId)).not.toBeNull()
+    expect(await findTable(tableId)).not.toBeNull()
   })
 
-  it('drops a table nobody has touched past its window', () => {
-    const { tableId } = createTable()
+  it('drops a table nobody has touched past its window', async () => {
+    const { tableId } = await createTable()
 
-    // The sweep rides on the next table creation, so it takes one to collect
-    // the last. Nothing may read the table in between: a read is a touch, and
-    // would put it back inside its window.
     vi.advanceTimersByTime(TABLE_TTL_MS + 1000)
-    createTable()
 
-    expect(findTable(tableId)).toBeNull()
+    expect(await findTable(tableId)).toBeNull()
   })
 
-  it('treats reading a table as using it', () => {
-    const { tableId } = createTable()
+  it('treats reading a table as using it', async () => {
+    const { tableId } = await createTable()
 
     // A player sitting on the table page without acting is still a live
     // session, so the render that reads the table has to count.
     vi.advanceTimersByTime(TABLE_TTL_MS - 1000)
-    expect(findTable(tableId)).not.toBeNull()
+    expect(await findTable(tableId)).not.toBeNull()
 
     vi.advanceTimersByTime(TABLE_TTL_MS - 1000)
-    createTable()
 
-    expect(findTable(tableId)).not.toBeNull()
+    expect(await findTable(tableId)).not.toBeNull()
   })
 
-  it('treats acting as using it', () => {
-    const table = createTable()
+  it('treats acting as using it', async () => {
+    const table = await createTable()
 
     vi.advanceTimersByTime(TABLE_TTL_MS - 1000)
-    submitAction(table.tableId, { type: 'fold', playerId: 'you' })
+    await submitAction(table.tableId, { type: 'fold', playerId: 'you' })
 
     vi.advanceTimersByTime(TABLE_TTL_MS - 1000)
-    createTable()
 
-    expect(findTable(table.tableId)).not.toBeNull()
+    expect(await findTable(table.tableId)).not.toBeNull()
   })
 })

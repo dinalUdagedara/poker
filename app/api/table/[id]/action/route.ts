@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<'/api/table/[
     // The player id comes from the session, never from the request body.
     const action = { type: body.type, playerId: HUMAN_ID, amount: body.amount } as Action
 
-    return Response.json(submitAction(id, action))
+    return Response.json(await submitAction(id, action))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })

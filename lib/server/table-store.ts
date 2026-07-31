@@ -1,14 +1,14 @@
 /**
  * Server-side home for live tables.
  *
- * In-memory for development, which is all single-player needs: the process
- * that holds the state is the same one answering the request. Anything
- * persistent or multi-instance replaces this module with Redis or a Durable
- * Object; nothing outside it knows how tables are stored.
- *
  * This module is the trust boundary. Callers hand it an intent, it validates
  * that intent against the authoritative state, and it hands back a redacted
  * view. It never returns a raw TableState.
+ *
+ * Where the state physically sits is table-storage's business, not this one's.
+ * Everything here is async for that reason: the store is a network hop in
+ * production, and pretending otherwise would put the decision back in this
+ * module and in every caller.
  */
 
 import 'server-only'
@@ -18,6 +18,7 @@ import { tableOutcome, type TableUpdate, type TableView } from '../poker/lifecyc
 import { redactFor } from '../poker/redact'
 import { applyAction, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
+import { storage, type StoredTable } from './table-storage'
 
 // The outcome travels with the state so the interface never offers an action
 // the server would refuse. The type lives in lib/poker/lifecycle so client
@@ -34,52 +35,6 @@ export type TableSettings = {
   startingStack: number
   smallBlind: number
   bigBlind: number
-}
-
-type StoredTable = {
-  state: TableState
-  settings: TableSettings
-  /** Last time anything read or wrote this table. Drives eviction, nothing else. */
-  touchedAt: number
-}
-
-/**
- * Held on globalThis so the map survives the module reloads that hot reloading
- * causes in development. Without this, every edit silently empties every table.
- */
-const store: Map<string, StoredTable> = ((
-  globalThis as unknown as { __pokerTables?: Map<string, StoredTable> }
-).__pokerTables ??= new Map())
-
-/**
- * How long a table survives untouched before it is swept.
- *
- * A table is only ever created, never closed — a player who shuts the tab says
- * nothing to the server. Left alone the map would grow for the life of the
- * process, which on the long-lived host this is meant to run on is the life of
- * the deployment. Two hours is longer than any real session and short enough
- * that abandoned tables do not pile up.
- */
-export const TABLE_TTL_MS = 2 * 60 * 60 * 1000
-
-/**
- * Forget tables nobody has touched lately.
- *
- * Driven by table creation rather than a timer: the map only grows when a table
- * is created, so that is the only moment a sweep can be owed. An interval would
- * also hold the process open and survive the hot reloads the store is written
- * to survive, leaving a stray timer per edit.
- */
-function sweep(now: number): void {
-  for (const [id, table] of store) {
-    if (now - table.touchedAt > TABLE_TTL_MS) store.delete(id)
-  }
-}
-
-/** Mark a table as still in use. Any access counts, reads included. */
-function touch(table: StoredTable): StoredTable {
-  table.touchedAt = Date.now()
-  return table
 }
 
 export class TableError extends Error {
@@ -182,10 +137,8 @@ function updateFrom(steps: TableState[], final: TableState): TableUpdate {
   return { ...viewOf(final), replay: steps.slice(0, -1).map(viewOf) }
 }
 
-export function createTable(settings: unknown = {}): TableView {
+export async function createTable(settings: unknown = {}): Promise<TableView> {
   const resolved = resolveSettings(settings)
-  sweep(Date.now())
-
   const tableId = crypto.randomUUID()
   const state = playBots(
     startHand({
@@ -197,24 +150,24 @@ export function createTable(settings: unknown = {}): TableView {
     }),
   )
 
-  store.set(tableId, { state, settings: resolved, touchedAt: Date.now() })
+  await storage.write(tableId, { state, settings: resolved })
   return viewOf(state)
 }
 
-function load(tableId: string): StoredTable {
-  const table = store.get(tableId)
+async function load(tableId: string): Promise<StoredTable> {
+  const table = await storage.read(tableId)
   if (!table) throw new TableError('No such table', 404)
-  return touch(table)
+  return table
 }
 
-export function getTable(tableId: string): TableView {
-  return viewOf(load(tableId).state)
+export async function getTable(tableId: string): Promise<TableView> {
+  return viewOf((await load(tableId)).state)
 }
 
 /** Like getTable, but returns null for an unknown table instead of throwing. */
-export function findTable(tableId: string): TableView | null {
-  const table = store.get(tableId)
-  return table ? viewOf(touch(table).state) : null
+export async function findTable(tableId: string): Promise<TableView | null> {
+  const table = await storage.read(tableId)
+  return table ? viewOf(table.state) : null
 }
 
 /**
@@ -223,8 +176,8 @@ export function findTable(tableId: string): TableView | null {
  * The client sends an intent and nothing else. Whether it is legal, what it
  * costs and what happens next are all decided here.
  */
-export function submitAction(tableId: string, action: Action): TableUpdate {
-  const table = load(tableId)
+export async function submitAction(tableId: string, action: Action): Promise<TableUpdate> {
+  const table = await load(tableId)
 
   if (table.state.result) throw new TableError('That hand is already over', 409)
   if (table.state.actingPlayerId !== HUMAN_ID) {
@@ -248,13 +201,13 @@ export function submitAction(tableId: string, action: Action): TableUpdate {
   const steps: TableState[] = [next]
   next = playBots(next, steps)
 
-  store.set(tableId, { ...table, state: next, touchedAt: Date.now() })
+  await storage.write(tableId, { ...table, state: next })
   return updateFrom(steps, next)
 }
 
 /** Deal the next hand, moving the button and dropping anyone out of chips. */
-export function startNextHand(tableId: string): TableUpdate {
-  const table = load(tableId)
+export async function startNextHand(tableId: string): Promise<TableUpdate> {
+  const table = await load(tableId)
   if (!table.state.result) throw new TableError('The current hand is still in progress', 409)
 
   // The client is told the outcome and hides the button, but a stale tab or a
@@ -285,6 +238,6 @@ export function startNextHand(tableId: string): TableUpdate {
   const steps: TableState[] = [dealt]
   const state = playBots(dealt, steps)
 
-  store.set(tableId, { ...table, state, touchedAt: Date.now() })
+  await storage.write(tableId, { ...table, state })
   return updateFrom(steps, state)
 }

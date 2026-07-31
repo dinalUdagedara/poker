@@ -5,7 +5,7 @@ import { startNextHand, TableError } from '@/lib/server/table-store'
 export async function POST(_request: NextRequest, ctx: RouteContext<'/api/table/[id]/next-hand'>) {
   const { id } = await ctx.params
   try {
-    return Response.json(startNextHand(id))
+    return Response.json(await startNextHand(id))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })
