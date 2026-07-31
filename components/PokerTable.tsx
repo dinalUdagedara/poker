@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
+import { RankingsButton } from './RankingsButton'
 import { useTableStream } from '@/lib/use-table-stream'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
@@ -407,11 +408,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
           <Badge className="border-white/15 bg-black/35 text-[11px] text-white capitalize">
             {table.street}
           </Badge>
+          {/* The chart itself, right here — the question it answers is one you
+              have in the middle of a decision, and anything that takes you off
+              the table to answer it is the wrong shape. */}
+          <RankingsButton />
           {/*
-            Opens in its own tab rather than navigating. Looking up what beats
-            what is something you do in the middle of a decision, and leaving
-            the table would throw away any replay still stepping through the
-            opponents' moves — the one thing the server will not send twice.
+            The full guide, opened in its own tab rather than navigating.
+            Leaving the table would throw away any replay still stepping through
+            the opponents' moves — the one thing the server will not send twice.
           */}
           <Link
             href="/how-to-play"
