@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
-import { HUMAN_ID, submitAction, TableError } from '@/lib/server/table-store'
+import { currentPlayerId } from '@/lib/server/player'
+import { submitAction, TableError } from '@/lib/server/table-store'
 import type { Action } from '@/lib/poker/types'
 
 const ACTION_TYPES = new Set(['fold', 'check', 'call', 'bet', 'raise'])
@@ -26,10 +27,11 @@ export async function POST(request: NextRequest, ctx: RouteContext<'/api/table/[
       return Response.json({ error: 'That action needs an amount' }, { status: 400 })
     }
 
-    // The player id comes from the session, never from the request body.
-    const action = { type: body.type, playerId: HUMAN_ID, amount: body.amount } as Action
+    // No player id is sent at all. The store resolves the caller's seat from
+    // their cookie, so a request cannot name a seat it does not hold.
+    const action = { type: body.type, amount: body.amount } as Omit<Action, 'playerId'>
 
-    return Response.json(await submitAction(id, action))
+    return Response.json(await submitAction(id, await currentPlayerId(), action))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })

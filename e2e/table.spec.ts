@@ -11,7 +11,7 @@ import { expect, test, type Page } from '@playwright/test'
 /** Deal a table from the lobby and land on it. */
 async function dealIn(page: Page, opponents = '3') {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Texas Hold/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Showdown/ })).toBeVisible()
 
   // One tap on the segmented picker rather than opening a menu and choosing.
   if (opponents !== '3') await page.getByTestId(`opponents-${opponents}`).click()
@@ -331,7 +331,12 @@ test('says who won, how much, and what they won it with', async ({ page }) => {
   if (!(await showing(page, 'hand-result'))) test.skip()
 
   const result = page.getByTestId('hand-result')
-  await expect(result).toContainText(/\b(You win|wins|split)\b/)
+  // The winner is named and placed — "Ada (seat 2) wins", "You (seat 1) win" —
+  // so the verb is matched on its own rather than glued to a name.
+  await expect(result).toContainText(/\b(win|wins|split)\b/)
+  // Whoever won is identified by seat, which is what tells two players who
+  // chose the same name apart.
+  await expect(result).toContainText(/\(seat \d+\)|You/)
   // The amount, always — a result that names a winner but not the pot leaves
   // the one number that matters to be worked out from the stacks.
   await expect(result).toContainText(/[\d,]+/)
@@ -496,7 +501,7 @@ test.describe('when the table is finished', () => {
 
     // The only thing on offer actually works.
     await page.getByTestId('new-table').click()
-    await expect(page.getByRole('heading', { name: /Texas Hold/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Showdown/ })).toBeVisible()
   })
 
   test('rejects a buy-in the server will not accept', async ({ page }) => {

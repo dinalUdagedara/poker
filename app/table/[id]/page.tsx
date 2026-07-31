@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import { PokerTable } from '@/components/PokerTable'
+import { WaitingRoom } from '@/components/WaitingRoom'
+import { currentPlayerId } from '@/lib/server/player'
 import { findTable } from '@/lib/server/table-store'
 
 /**
@@ -11,8 +13,13 @@ import { findTable } from '@/lib/server/table-store'
  */
 export default async function TablePage({ params }: PageProps<'/table/[id]'>) {
   const { id } = await params
-  const initial = await findTable(id)
+  const initial = await findTable(id, await currentPlayerId())
   if (!initial) notFound()
+
+  // The same URL is the room and then the game. Someone who followed a link
+  // before it filled watches it fill; the page they are already on becomes the
+  // table without them going anywhere.
+  if (initial.stage === 'waiting') return <WaitingRoom initial={initial} />
 
   return <PokerTable tableId={id} initial={initial} />
 }

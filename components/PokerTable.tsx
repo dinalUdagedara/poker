@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { CircleQuestionMark } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ChipStack } from './ChipStack'
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
+import { useTableStream } from '@/lib/use-table-stream'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecycle'
@@ -22,6 +24,18 @@ import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecy
  * round of five opponents does not become a wait. Real rooms sit in this range.
  */
 const STEP_MS = 900
+
+/**
+ * What to call a seat.
+ *
+ * People are named; bots are numbered from their id. Falling back to the raw id
+ * matters for a table dealt before names existed, where showing `seat1` is ugly
+ * but showing nothing would be broken.
+ */
+function seatName(id: string, names: Record<string, string>, viewerId: string | null): string {
+  if (id === viewerId) return 'You'
+  return names[id] ?? id.replace(/^bot(\d+)$/, 'Bot $1')
+}
 
 const ACTION_VERBS: Record<string, string> = {
   'post-blind': 'posts',
@@ -107,6 +121,27 @@ export function PokerTable({
   useEffect(() => clearReplay, [clearReplay])
 
   /**
+   * Take what other people did at this table, when it is safe to look.
+   *
+   * Only while idle. An update that landed mid-replay would cut off the moves
+   * being stepped through, and one that landed mid-request would be overwritten
+   * by that request's own answer a moment later — in both cases the player
+   * would watch the table jump for reasons they could not see.
+   *
+   * There is no replay for these: the animation exists to show the consequences
+   * of your own move, and someone else's turn arriving is not that.
+   */
+  useTableStream(
+    tableId,
+    (view) => {
+      if (view.stage !== 'playing') return
+      if (busy || timers.current.length > 0) return
+      setTable(view)
+    },
+    () => setGone(true),
+  )
+
+  /**
    * Show an update, stepping through how it was reached.
    *
    * The bots all move inside one server call, so landing straight on the final
@@ -180,9 +215,22 @@ export function PokerTable({
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
   const finished = gone || isGameOver(table.outcome)
 
-  const winnerNames = [...winners]
-    .map((w) => (w === table.viewerId ? 'You' : w.replace(/^bot(\d+)$/, 'Bot $1')))
-    .join(' and ')
+  /**
+   * A winner, named and placed.
+   *
+   * The seat number matters more here than anywhere else on the table: nothing
+   * stops two people choosing the same name, since a name identifies nobody, so
+   * the seat is what says which of them just took the pot.
+   */
+  const winnerLabel = (id: string) => {
+    const name = seatName(id, table.names, table.viewerId)
+    const seat = table.players.find((p) => p.id === id)?.seat
+    return seat === undefined ? name : `${name} (seat ${seat + 1})`
+  }
+
+  const winnerNames = [...winners].map(winnerLabel).join(' and ')
+  /** Kept apart from the label, which no longer reads as a bare "You". */
+  const youWonAlone = winners.size === 1 && table.viewerId !== null && winners.has(table.viewerId)
   /** Everything paid out. For a split that is the total the winners shared. */
   const potWon = Object.values(table.result?.payouts ?? {}).reduce((sum, n) => sum + n, 0)
   /**
@@ -289,6 +337,23 @@ export function PokerTable({
           <Badge className="border-white/15 bg-black/35 text-[11px] text-white capitalize">
             {table.street}
           </Badge>
+          {/*
+            Opens in its own tab rather than navigating. Looking up what beats
+            what is something you do in the middle of a decision, and leaving
+            the table would throw away any replay still stepping through the
+            opponents' moves — the one thing the server will not send twice.
+          */}
+          <Link
+            href="/how-to-play"
+            target="_blank"
+            rel="noopener"
+            aria-label="How to play"
+            title="How to play"
+            className="grid size-7 place-items-center rounded-full border border-white/15 bg-black/35 text-white/80 transition-colors hover:bg-black/55 hover:text-white"
+            data-testid="how-to-play"
+          >
+            <CircleQuestionMark className="size-4" aria-hidden />
+          </Link>
         </div>
       </header>
 
@@ -425,6 +490,7 @@ export function PokerTable({
                   <PlayerSeat
                     player={player}
                     viewerId={table.viewerId}
+                    names={table.names}
                     isActing={table.actingPlayerId === player.id}
                     isButton={table.buttonSeat === player.seat}
                     isWinner={winners.has(player.id)}
@@ -448,6 +514,7 @@ export function PokerTable({
           <PlayerSeat
             player={you}
             viewerId={table.viewerId}
+                    names={table.names}
             isActing={table.actingPlayerId === you.id}
             isButton={table.buttonSeat === you.seat}
             isWinner={winners.has(you.id)}
@@ -483,20 +550,28 @@ export function PokerTable({
                 <p className="text-center text-base font-medium">
                   {gone
                     ? 'This table is no longer available'
-                    : table.outcome.kind === 'winner'
-                      ? 'You won the table'
-                      : 'You are out of chips'}
+                    : table.outcome.kind === 'spectating'
+                      ? 'This table has finished'
+                      : table.outcome.kind === 'winner'
+                        ? 'You won the table'
+                        : 'You are out of chips'}
                 </p>
                 <p className="text-muted-foreground text-center text-sm">
                   {gone
                     ? 'Tables are held in memory, so a server restart clears them.'
-                    : table.outcome.kind === 'winner'
-                      ? `You finished with ${you?.stack.toLocaleString()} after ${table.handNumber} ${
+                    : table.outcome.kind === 'spectating'
+                      ? // Nothing here was theirs to win or lose: they arrived
+                        // on someone else's table with a link.
+                        `It ran for ${table.handNumber} ${
                           table.handNumber === 1 ? 'hand' : 'hands'
                         }.`
-                      : `You lasted ${table.handNumber} ${
-                          table.handNumber === 1 ? 'hand' : 'hands'
-                        }.`}
+                      : table.outcome.kind === 'winner'
+                        ? `You finished with ${you?.stack.toLocaleString()} after ${table.handNumber} ${
+                            table.handNumber === 1 ? 'hand' : 'hands'
+                          }.`
+                        : `You lasted ${table.handNumber} ${
+                            table.handNumber === 1 ? 'hand' : 'hands'
+                          }.`}
                 </p>
                 {/* This Button has no asChild, so the link carries its styles. */}
                 <Link href="/" className={buttonVariants()} data-testid="new-table">
@@ -519,7 +594,7 @@ export function PokerTable({
                       viewer's share, which read as a contradiction otherwise.
                     */}
                     {winnerNames}{' '}
-                    {winners.size > 1 ? 'split' : winnerNames === 'You' ? 'win' : 'wins'}{' '}
+                    {winners.size > 1 ? 'split' : youWonAlone ? 'win' : 'wins'}{' '}
                     <span className="font-mono tabular-nums">{potWon.toLocaleString()}</span>
                   </p>
                   {/* How, not just who. A score is all the result keeps, so the
@@ -568,9 +643,7 @@ export function PokerTable({
               <li key={i}>
                 <span className="text-neutral-600">{entry.street}</span>{' '}
                 <span className="text-neutral-300">
-                  {entry.playerId === table.viewerId
-                    ? 'You'
-                    : entry.playerId.replace(/^bot(\d+)$/, 'Bot $1')}
+                  {seatName(entry.playerId, table.names, table.viewerId)}
                 </span>{' '}
                 {ACTION_VERBS[entry.type] ?? entry.type}
                 {/* The level, not the chips added: "raises to 300" was reading

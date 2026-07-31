@@ -21,13 +21,61 @@ import Redis from 'ioredis'
 import type { TableState } from '../poker/types'
 import type { TableSettings } from './table-store'
 
-export type StoredTable = {
-  state: TableState
+/**
+ * A room that has not dealt yet.
+ *
+ * Seats are positional: index is the seat number, and a null is an open chair.
+ * There is no `TableState` because there is no hand — the engine is not
+ * involved until the room fills, which is what keeps `lib/poker` free of a
+ * null-shaped case for a hand that has not started.
+ */
+export type WaitingTable = {
+  stage: 'waiting'
   settings: TableSettings
+  seats: (string | null)[]
+  createdBy: string
+  /** What to call each player in the room, by player id. */
+  names: Record<string, string>
+  /**
+   * Whether this room is listed for strangers to find.
+   *
+   * Explicit, and never inferred. Listing a room publishes its id, which is
+   * fine for a room that wanted to be found and a betrayal for one shared with
+   * friends by link.
+   */
+  isPublic: boolean
 }
 
+/** A room that has dealt. From here on the engine owns what happens. */
+export type PlayingTable = {
+  stage: 'playing'
+  settings: TableSettings
+  state: TableState
+  /**
+   * Which session holds which seat: engine seat id to player id.
+   *
+   * The engine's seat ids are stable strings it chose for itself; player ids
+   * come from a cookie and mean nothing to it. Keeping the mapping here is what
+   * lets identity change without `lib/poker` ever learning that sessions exist.
+   * A seat with no entry is a bot.
+   */
+  owners: Record<string, string>
+  /** What to call whoever holds each seat, by engine seat id. */
+  names: Record<string, string>
+  /**
+   * When the seat to act must have acted by, as a timestamp.
+   *
+   * Only meaningful while a person is to act; bots answer within the same
+   * request. It is a plain number so the rule can be enforced by whoever next
+   * touches the table, with nothing scheduled and nothing to run in between.
+   */
+  deadline: number
+}
+
+export type StoredTable = WaitingTable | PlayingTable
+
 /**
- * How long a table survives without being touched.
+ * How long a dealt table survives without being touched.
  *
  * A table is only ever created, never closed — a player who shuts the tab says
  * nothing to the server. Something has to decide when to stop believing in it,
@@ -35,12 +83,64 @@ export type StoredTable = {
  * abandoned ones do not accumulate.
  */
 export const TABLE_TTL_MS = 2 * 60 * 60 * 1000
-const TABLE_TTL_SECONDS = TABLE_TTL_MS / 1000
+
+/**
+ * How long a room may sit waiting to fill.
+ *
+ * Far shorter than a dealt table, because an empty room advertised to people
+ * who might join it goes stale fast. Idle time, not lifetime: every join resets
+ * it, so a room filling one player at a time is never collected out from under
+ * the people already sitting in it.
+ */
+export const WAITING_TTL_MS = 2 * 60 * 1000
+
+/**
+ * A record and the version it was read at.
+ *
+ * The version is what makes a write safe. Two people taking the last seat at
+ * the same moment both read version 4; whichever writes second is told the
+ * table moved and has to look again, rather than overwriting a decision it
+ * never saw.
+ */
+export type StoredRecord = {
+  table: StoredTable
+  version: number
+}
 
 export interface TableStorage {
-  /** The table, if it still exists. Reading counts as using it. */
-  read(tableId: string): Promise<StoredTable | null>
-  write(tableId: string, table: StoredTable): Promise<void>
+  /** The record, if it still exists. Reading counts as using it. */
+  read(tableId: string): Promise<StoredRecord | null>
+  /** Remember a room as publicly listed. */
+  list(tableId: string): Promise<void>
+  /** Forget a listing. Safe to call for one that was never listed. */
+  unlist(tableId: string): Promise<void>
+  /** Every id ever listed, including ones whose rooms have since expired. */
+  listed(): Promise<string[]>
+  /**
+   * Write only if the record is still at `expectedVersion`, or if it does not
+   * exist yet and `expectedVersion` is null. Returns false when it has moved.
+   *
+   * `ttlMs` is how long this record may then sit untouched.
+   */
+  write(
+    tableId: string,
+    table: StoredTable,
+    ttlMs: number,
+    expectedVersion: number | null,
+  ): Promise<boolean>
+}
+
+/**
+ * What is actually stored: the table plus how long it may idle.
+ *
+ * The lifetime travels with the record so that reading can renew it without the
+ * storage layer having to know the difference between a room and a game. That
+ * distinction belongs to table-store, and this module stays incurious about it.
+ */
+type Envelope = {
+  table: StoredTable
+  ttlMs: number
+  version: number
 }
 
 /**
@@ -75,19 +175,68 @@ export function redisStorage(redis: Redis): TableStorage {
       if (!stored) return null
 
       // A player sitting on the table page without acting is still a live
-      // session, so a read pushes the expiry out exactly as a move would.
-      await redis.expire(key, TABLE_TTL_SECONDS)
-      return JSON.parse(stored) as StoredTable
+      // session, so a read pushes the expiry out exactly as a move would — by
+      // the record's own lifetime, since a waiting room's is much shorter.
+      const envelope = JSON.parse(stored) as Envelope
+      await redis.expire(key, envelope.ttlMs / 1000)
+      return { table: envelope.table, version: envelope.version }
     },
 
-    async write(tableId, table) {
-      await redis.set(keyFor(tableId), JSON.stringify(table), 'EX', TABLE_TTL_SECONDS)
+    async write(tableId, table, ttlMs, expectedVersion) {
+      const envelope: Envelope = { table, ttlMs, version: (expectedVersion ?? 0) + 1 }
+      const applied = await redis.eval(
+        COMPARE_AND_SET,
+        1,
+        keyFor(tableId),
+        JSON.stringify(envelope),
+        String(ttlMs / 1000),
+        expectedVersion === null ? '' : String(expectedVersion),
+      )
+      return applied === 1
+    },
+
+    async list(tableId) {
+      await redis.sadd(directoryKey(), tableId)
+    },
+
+    async unlist(tableId) {
+      await redis.srem(directoryKey(), tableId)
+    },
+
+    async listed() {
+      return redis.smembers(directoryKey())
     },
   }
 }
 
+/** The set of publicly listed rooms, namespaced like everything else. */
+const directoryKey = () => `rooms:${process.env.VERCEL_ENV ?? 'local'}`
+
+/**
+ * Set the record only if nobody has changed it since it was read.
+ *
+ * A script rather than WATCH/MULTI because it is one round trip and cannot be
+ * left half-done: Redis runs it to completion with nothing interleaved, which
+ * is the entire property being bought. An empty version argument means the
+ * caller believes the table does not exist yet.
+ */
+const COMPARE_AND_SET = `
+local raw = redis.call('GET', KEYS[1])
+if raw then
+  if ARGV[3] == '' then return 0 end
+  local existing = cjson.decode(raw)
+  if tostring(existing.version) ~= ARGV[3] then return 0 end
+elseif ARGV[3] ~= '' then
+  return 0
+end
+redis.call('SET', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[2]))
+return 1
+`
+
 type Entry = {
   table: StoredTable
+  ttlMs: number
+  version: number
   expiresAt: number
 }
 
@@ -98,6 +247,10 @@ type Entry = {
 const map: Map<string, Entry> = ((
   globalThis as unknown as { __pokerTables?: Map<string, Entry> }
 ).__pokerTables ??= new Map())
+
+const directory: Set<string> = ((
+  globalThis as unknown as { __pokerRooms?: Set<string> }
+).__pokerRooms ??= new Set())
 
 /**
  * The single-process stand-in for Redis.
@@ -118,17 +271,37 @@ function memoryStorage(): TableStorage {
         return null
       }
 
-      entry.expiresAt = Date.now() + TABLE_TTL_MS
-      return entry.table
+      entry.expiresAt = Date.now() + entry.ttlMs
+      return { table: entry.table, version: entry.version }
     },
 
-    async write(tableId, table) {
+    async write(tableId, table, ttlMs, expectedVersion) {
       const now = Date.now()
       for (const [id, entry] of map) {
         if (entry.expiresAt <= now) map.delete(id)
       }
 
-      map.set(tableId, { table, expiresAt: now + TABLE_TTL_MS })
+      // Nothing can interleave here — one process, one thread — so the check
+      // and the set are already atomic. The comparison still has to happen, or
+      // the backends would disagree about what a conflict is.
+      const current = map.get(tableId)
+      const live = current && current.expiresAt > now ? current : undefined
+      if ((live?.version ?? null) !== expectedVersion) return false
+
+      map.set(tableId, { table, ttlMs, version: (expectedVersion ?? 0) + 1, expiresAt: now + ttlMs })
+      return true
+    },
+
+    async list(tableId) {
+      directory.add(tableId)
+    },
+
+    async unlist(tableId) {
+      directory.delete(tableId)
+    },
+
+    async listed() {
+      return [...directory]
     },
   }
 }

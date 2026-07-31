@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { currentPlayerId, currentPlayerName } from '@/lib/server/player'
 import { createTable, TableError } from '@/lib/server/table-store'
 
 /**
@@ -9,8 +10,15 @@ import { createTable, TableError } from '@/lib/server/table-store'
  */
 export async function POST(request: NextRequest) {
   try {
+    const playerId = await currentPlayerId()
+    if (!playerId) {
+      // The proxy mints one on every request that reaches the app, so this
+      // means cookies are being refused rather than simply not sent yet.
+      return Response.json({ error: 'This game needs cookies enabled' }, { status: 400 })
+    }
+
     const body = await request.json().catch(() => ({}))
-    return Response.json(await createTable(body))
+    return Response.json(await createTable(body, playerId, await currentPlayerName(playerId)))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })
