@@ -184,9 +184,47 @@ seats are open, and it fills or starts early exactly like any other room. No
 "finished but restartable" state, and nothing in the lifecycle that only happens
 once.
 
-The question this really raises is not about the ending. It is what an
-eliminated player does for the twenty minutes between busting and the game
-finishing — see the open questions.
+### Busting out
+
+The sharpest problem the model creates, so it gets an answer rather than a
+question. A table plays until one player holds every chip. In a room of five,
+someone is knocked out early — and without a decision here, their game is "watch
+strangers play for twenty minutes".
+
+**Bound the game, and let the busted player go immediately.** Two parts, and
+they only work together.
+
+**Rising blinds.** Blinds go up on a schedule — doubling every ten hands is a
+reasonable starting point — so a game cannot run indefinitely. Starting stacks of
+2,000 at 25/50 are forty big blinds; by the third level the average stack across
+five players is a handful of blinds and the thing resolves itself. This is what
+makes elimination a short wait rather than an open-ended one, and it is why the
+answer is not simply "let them leave".
+
+It is also cheap. `startHand` already takes `smallBlind` and `bigBlind` per call,
+and `startNextHand` passes them straight from settings — the schedule is those
+two values derived from `handNumber` instead of read from a constant. No engine
+change, and the existing tests all pass fixed blinds explicitly.
+
+**Leaving is immediate and expected.** A busted player gets their result and a
+way out in the same breath — back to the lobby, or straight into a new room.
+They are never made to sit through the rest. The seat empties and the game
+carries on shorthanded, which the engine already does: `startNextHand` filters
+seats to `stack > 0`, so a busted player is simply not dealt in.
+
+**Spectating is offered, never imposed.** Someone who wants to see how it ends
+can, and it costs nothing to support — `redactFor` with a null viewer is already
+a valid call. But it is a choice, not the default, and certainly not the only
+option on the screen.
+
+**What this rules out, deliberately: rebuys.** Letting a busted player buy back
+in is the other credible answer, and it is the wrong one *here*. Rebuys turn a
+tournament into a cash game — no natural ending, no winner, and a room that fills
+to five and starts together stops making sense as a shape. The waiting-room model
+is already tournament-shaped; this keeps it coherent rather than fighting it.
+
+If the game later wants cash-game semantics, that is a different product with a
+different lobby, and it should be built as one rather than bolted on.
 
 ### Presence while waiting
 
@@ -360,16 +398,10 @@ link to, and phase 7 for a public one.
   security picture completely and is out of scope for this plan.
 - Should a disconnected player's seat be held, and for how long? Likely a
   different answer for a private table than a public one.
-- Do public tables need a stake level, or is one set of blinds enough to start?
-  If the lobby lists more than one, it needs a column for it and probably a
-  filter, which is the point where the lobby becomes a screen rather than a list.
-- **What does a player do between busting out and the game ending?** The sharpest
-  question in this plan, and the one the waiting-room model surfaces. A table
-  plays until one player holds every chip, so in a room of five, someone is
-  knocked out early and then has nothing to do for as long as the rest takes.
-  Broadly three answers, and they are different products: let them leave easily
-  and go find another room, which is honest and cheap; let them rebuy, which
-  turns a tournament into a cash game and changes what winning means; or make
-  games short enough that it barely matters, with rising blinds or shallower
-  stacks. Worth deciding before public rooms, because a stranger who busts in
-  five minutes and has nothing to do simply leaves and does not come back.
+- Do public rooms need more than one stake level — meaning a choice of starting
+  blinds, since the schedule takes over from there? If the lobby lists several,
+  it needs a column for it and probably a filter, which is the point where the
+  lobby stops being a list and becomes a screen.
+- How fast the blind schedule should actually climb. Doubling every ten hands is
+  a starting point, not a finding; it is the one number in this plan that can
+  only be settled by watching people play.
