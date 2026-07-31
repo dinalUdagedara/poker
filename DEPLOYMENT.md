@@ -50,6 +50,14 @@ One key per table, holding the whole `TableState` as JSON — about 2 KB for a
 four-handed table. The state is a plain tree of numbers, strings and arrays, so
 there is no schema and nothing to migrate.
 
+Keys are `table:<environment>:<uuid>`, where the environment comes from
+`VERCEL_ENV` and anything off Vercel is `local`. The integration points preview
+deployments and local development at the *same database* as production, which is
+easy not to notice — without the prefix, a branch that changes the stored shape
+writes records production cannot read, and a local `next dev` writes into the
+live game. The prefix is the whole defence, so keep it if `keyFor` is ever
+touched.
+
 Tables expire two hours after they were last touched (`TABLE_TTL_MS`). A table
 is only ever created, never closed — a player who shuts the tab says nothing to
 the server — so something has to decide when to stop believing in it. Both

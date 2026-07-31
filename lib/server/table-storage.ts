@@ -43,7 +43,20 @@ export interface TableStorage {
   write(tableId: string, table: StoredTable): Promise<void>
 }
 
-const keyFor = (tableId: string) => `table:${tableId}`
+/**
+ * Keys carry the environment that wrote them.
+ *
+ * Preview deployments and local development are pointed at the same database as
+ * production — that is how the integration provisions credentials, and it is
+ * easy not to notice. Without a prefix they share one keyspace, so a branch that
+ * changes the stored shape writes records production cannot read, and a local
+ * `next dev` writes into the live game.
+ *
+ * `VERCEL_ENV` is `production`, `preview` or `development`. Anything running
+ * outside Vercel is local, which includes this machine and the test suites.
+ * Read per call rather than once at import, so a test can pin it.
+ */
+const keyFor = (tableId: string) => `table:${process.env.VERCEL_ENV ?? 'local'}:${tableId}`
 
 /**
  * Redis over the wire protocol.
