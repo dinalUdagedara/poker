@@ -47,6 +47,12 @@ function seatPosition(index: number, count: number): { left: number; top: number
   const radians = (angle * Math.PI) / 180
   return {
     left: 50 + 43 * Math.cos(radians),
+    /*
+     * The vertical reach is what keeps neighbours apart. Near the left and
+     * right extremes two seats are only a few percent apart horizontally, so
+     * all of the room between them is vertical — shrinking this to keep the top
+     * seat clear of the header closed that gap and overlapped them instead.
+     */
     top: 50 + 44 * Math.sin(radians),
   }
 }
@@ -325,6 +331,7 @@ export function PokerTable({
                     isButton={table.buttonSeat === player.seat}
                     isWinner={winners.has(player.id)}
                     handOver={Boolean(table.result)}
+                    compact={opponents.length >= 4}
                     callout={callouts.get(player.id)}
                     calloutSide={calloutSide(left)}
                     chipSide={chipSide(left)}

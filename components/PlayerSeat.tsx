@@ -42,6 +42,7 @@ export function PlayerSeat({
   isButton,
   isWinner,
   handOver = false,
+  compact = false,
   callout,
   calloutSide = 'below',
   chipSide = 'left',
@@ -55,6 +56,12 @@ export function PlayerSeat({
   isWinner: boolean
   /** The hand has settled, so nothing is still staked in front of anyone. */
   handOver?: boolean
+  /**
+   * Draw the seat small. A full table has only a few percent of felt between
+   * neighbours at the left and right of the arc, and seats drawn at the roomier
+   * size run into each other there.
+   */
+  compact?: boolean
   bigBlind: number
   /** What this player last did on this street, or null for nothing to say. */
   callout?: string | null
@@ -75,12 +82,18 @@ export function PlayerSeat({
         overlap show one card through the other and darken twice where they
         crossed; a group is composited first and faded once.
       */}
-      <div className={cn('flex', isOut && 'opacity-40 saturate-50')}>
+      {/*
+        The cards tuck behind the nameplate rather than floating above it, so a
+        seat reads as one object instead of three stacked pieces. Only the
+        bottom edge goes under: these cards carry rank and suit in the middle,
+        so burying more would cover the very thing a revealed card is for.
+      */}
+      <div className={cn('-mb-3.5 flex', isOut && 'opacity-40 saturate-50')}>
         {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
           <PlayingCard
             key={i}
             card={player.holeCards?.[i] ?? null}
-            size={hero ? 'lg' : 'xs'}
+            size={hero ? 'lg' : compact ? 'xs' : 'sm'}
             dealDelay={i * 90}
             className={cn(
               TILT[i % TILT.length],
@@ -132,25 +145,30 @@ export function PlayerSeat({
           )}
         />
 
+        {/*
+          The stack leads and the name is the caption under it. Whose seat this
+          is gets read once; what they have left is read on every decision, and
+          it was the smaller of the two.
+        */}
         <div className="text-center leading-tight">
           <div
             className={cn(
-              'truncate font-medium',
-              hero ? 'text-sm' : 'text-xs',
-              isOut ? 'text-neutral-500' : 'text-neutral-100',
-            )}
-          >
-            {displayName(player, viewerId)}
-          </div>
-          <div
-            className={cn(
-              'font-mono tabular-nums',
-              hero ? 'text-sm' : 'text-xs',
+              'font-mono font-semibold tabular-nums',
+              hero ? 'text-base' : 'text-sm',
               player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
             )}
             data-testid={`stack-${player.id}`}
           >
             {player.stack.toLocaleString()}
+          </div>
+          <div
+            className={cn(
+              'truncate font-medium',
+              hero ? 'text-xs' : 'text-[10px]',
+              isOut ? 'text-neutral-500' : 'text-white/55',
+            )}
+          >
+            {displayName(player, viewerId)}
           </div>
         </div>
       </Card>
