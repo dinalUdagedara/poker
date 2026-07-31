@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Texas Hold'em",
-  description: 'No-limit Texas Hold’em against AI bots.',
+  title: 'Showdown',
+  description: 'No-limit Texas Hold’em, against bots or against your friends.',
 }
 
 export default function RootLayout({

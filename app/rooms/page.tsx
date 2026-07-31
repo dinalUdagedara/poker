@@ -2,6 +2,15 @@ import { Lobby } from '@/components/Lobby'
 import { publicRooms } from '@/lib/server/table-store'
 
 /**
+ * Never prerendered.
+ *
+ * The list is read from the database at request time, and without this Next
+ * would happily bake it into the build — where there are no rooms and never
+ * will be, so every visitor's first paint would say nobody is waiting.
+ */
+export const dynamic = 'force-dynamic'
+
+/**
  * The public lobby.
  *
  * Rendered on the server so the first paint already has rooms in it, then kept

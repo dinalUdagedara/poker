@@ -11,7 +11,7 @@ import { expect, test, type Page } from '@playwright/test'
 /** Deal a table from the lobby and land on it. */
 async function dealIn(page: Page, opponents = '3') {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Texas Hold/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Showdown/ })).toBeVisible()
 
   // One tap on the segmented picker rather than opening a menu and choosing.
   if (opponents !== '3') await page.getByTestId(`opponents-${opponents}`).click()
@@ -501,7 +501,7 @@ test.describe('when the table is finished', () => {
 
     // The only thing on offer actually works.
     await page.getByTestId('new-table').click()
-    await expect(page.getByRole('heading', { name: /Texas Hold/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Showdown/ })).toBeVisible()
   })
 
   test('rejects a buy-in the server will not accept', async ({ page }) => {

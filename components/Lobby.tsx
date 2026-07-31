@@ -85,7 +85,7 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
                 Open one yourself and it will show up here for other players.
               </p>
               <Link
-                href="/"
+                href="/?play=people"
                 className="mt-1 flex h-11 items-center justify-center rounded-lg bg-amber-400 px-5 text-sm font-bold tracking-wide text-neutral-950 uppercase hover:bg-amber-300"
                 data-testid="no-rooms"
               >
