@@ -170,6 +170,50 @@ describe('a room filling up', () => {
   })
 })
 
+describe('two people reaching for the same seat', () => {
+  it('seats exactly one of them', async () => {
+    // The ordinary case for a room advertised to more than one person, not an
+    // exotic one: both read the same room, both try to take the last chair.
+    const { tableId } = asRoom(await createTable({ seatCount: 2, botCount: 0 }, OWNER))
+
+    const [first, second] = await Promise.all([
+      joinTable(tableId, STRANGER),
+      joinTable(tableId, THIRD),
+    ])
+
+    // Whoever lost is looking at a table that dealt without them.
+    const dealt = [first, second].filter((view) => view.stage === 'playing')
+    expect(dealt).toHaveLength(2)
+
+    const seated = [first, second].filter(
+      (view) => view.stage === 'playing' && view.viewerId !== null,
+    )
+    expect(seated).toHaveLength(1)
+  })
+
+  it('never lets a seat be held by two people', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 4, botCount: 0 }, OWNER))
+
+    await Promise.all([joinTable(tableId, STRANGER), joinTable(tableId, THIRD)])
+
+    const room = asRoom(await findTable(tableId, OWNER))
+    expect(room.seats.filter((seat) => seat.taken)).toHaveLength(3)
+  })
+
+  it('lets only one of two colliding actions through', async () => {
+    // Only one player can be to act, so the loser of the race is not merely
+    // overwritten — they are re-validated and told it is not their turn.
+    const { tableId } = await dealtTable()
+
+    const results = await Promise.allSettled([
+      submitAction(tableId, OWNER, { type: 'fold' }),
+      submitAction(tableId, OWNER, { type: 'fold' }),
+    ])
+
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+  })
+})
+
 describe('starting a room early', () => {
   it('fills the empty seats with bots', async () => {
     const { tableId } = asRoom(await createTable({ seatCount: 4, botCount: 0 }, OWNER))

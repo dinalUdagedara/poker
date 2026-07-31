@@ -74,11 +74,34 @@ export const TABLE_TTL_MS = 2 * 60 * 60 * 1000
  */
 export const WAITING_TTL_MS = 2 * 60 * 1000
 
+/**
+ * A record and the version it was read at.
+ *
+ * The version is what makes a write safe. Two people taking the last seat at
+ * the same moment both read version 4; whichever writes second is told the
+ * table moved and has to look again, rather than overwriting a decision it
+ * never saw.
+ */
+export type StoredRecord = {
+  table: StoredTable
+  version: number
+}
+
 export interface TableStorage {
   /** The record, if it still exists. Reading counts as using it. */
-  read(tableId: string): Promise<StoredTable | null>
-  /** `ttlMs` is how long this record may now sit untouched. */
-  write(tableId: string, table: StoredTable, ttlMs: number): Promise<void>
+  read(tableId: string): Promise<StoredRecord | null>
+  /**
+   * Write only if the record is still at `expectedVersion`, or if it does not
+   * exist yet and `expectedVersion` is null. Returns false when it has moved.
+   *
+   * `ttlMs` is how long this record may then sit untouched.
+   */
+  write(
+    tableId: string,
+    table: StoredTable,
+    ttlMs: number,
+    expectedVersion: number | null,
+  ): Promise<boolean>
 }
 
 /**
@@ -91,6 +114,7 @@ export interface TableStorage {
 type Envelope = {
   table: StoredTable
   ttlMs: number
+  version: number
 }
 
 /**
@@ -129,19 +153,49 @@ export function redisStorage(redis: Redis): TableStorage {
       // the record's own lifetime, since a waiting room's is much shorter.
       const envelope = JSON.parse(stored) as Envelope
       await redis.expire(key, envelope.ttlMs / 1000)
-      return envelope.table
+      return { table: envelope.table, version: envelope.version }
     },
 
-    async write(tableId, table, ttlMs) {
-      const envelope: Envelope = { table, ttlMs }
-      await redis.set(keyFor(tableId), JSON.stringify(envelope), 'EX', ttlMs / 1000)
+    async write(tableId, table, ttlMs, expectedVersion) {
+      const envelope: Envelope = { table, ttlMs, version: (expectedVersion ?? 0) + 1 }
+      const applied = await redis.eval(
+        COMPARE_AND_SET,
+        1,
+        keyFor(tableId),
+        JSON.stringify(envelope),
+        String(ttlMs / 1000),
+        expectedVersion === null ? '' : String(expectedVersion),
+      )
+      return applied === 1
     },
   }
 }
 
+/**
+ * Set the record only if nobody has changed it since it was read.
+ *
+ * A script rather than WATCH/MULTI because it is one round trip and cannot be
+ * left half-done: Redis runs it to completion with nothing interleaved, which
+ * is the entire property being bought. An empty version argument means the
+ * caller believes the table does not exist yet.
+ */
+const COMPARE_AND_SET = `
+local raw = redis.call('GET', KEYS[1])
+if raw then
+  if ARGV[3] == '' then return 0 end
+  local existing = cjson.decode(raw)
+  if tostring(existing.version) ~= ARGV[3] then return 0 end
+elseif ARGV[3] ~= '' then
+  return 0
+end
+redis.call('SET', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[2]))
+return 1
+`
+
 type Entry = {
   table: StoredTable
   ttlMs: number
+  version: number
   expiresAt: number
 }
 
@@ -173,16 +227,24 @@ function memoryStorage(): TableStorage {
       }
 
       entry.expiresAt = Date.now() + entry.ttlMs
-      return entry.table
+      return { table: entry.table, version: entry.version }
     },
 
-    async write(tableId, table, ttlMs) {
+    async write(tableId, table, ttlMs, expectedVersion) {
       const now = Date.now()
       for (const [id, entry] of map) {
         if (entry.expiresAt <= now) map.delete(id)
       }
 
-      map.set(tableId, { table, ttlMs, expiresAt: now + ttlMs })
+      // Nothing can interleave here — one process, one thread — so the check
+      // and the set are already atomic. The comparison still has to happen, or
+      // the backends would disagree about what a conflict is.
+      const current = map.get(tableId)
+      const live = current && current.expiresAt > now ? current : undefined
+      if ((live?.version ?? null) !== expectedVersion) return false
+
+      map.set(tableId, { table, ttlMs, version: (expectedVersion ?? 0) + 1, expiresAt: now + ttlMs })
+      return true
     },
   }
 }

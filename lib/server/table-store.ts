@@ -156,7 +156,10 @@ function roomViewOf(tableId: string, room: WaitingTable, playerId: string | null
   return {
     stage: 'waiting',
     tableId,
-    seats: room.seats.map((seat) => ({ taken: seat !== null, you: seat === playerId })),
+    seats: room.seats.map((seat) => ({
+      taken: seat !== null,
+      you: seat === playerId,
+    })),
     botCount: room.settings.botCount,
     isCreator: room.createdBy === playerId,
     // The escape hatch for a room nobody else joins. Bots take the empty
@@ -273,9 +276,41 @@ function updateFrom(
   }
 }
 
-/** Save a record under the lifetime its stage deserves. */
-async function save(tableId: string, table: StoredTable): Promise<void> {
-  await storage.write(tableId, table, table.stage === 'waiting' ? WAITING_TTL_MS : TABLE_TTL_MS)
+/** How long a record of this stage may sit untouched. */
+const lifetimeOf = (table: StoredTable) =>
+  table.stage === 'waiting' ? WAITING_TTL_MS : TABLE_TTL_MS
+
+/** Attempts before a caller is told the table is too busy to change. */
+const MAX_ATTEMPTS = 4
+
+/**
+ * Change a table, safely, against everyone else trying to do the same.
+ *
+ * Read, decide, write only if nothing moved underneath — and if it did, read
+ * again and decide again. Deciding again is the point: a conflict usually means
+ * the action is no longer legal, and re-running `change` re-runs every rule
+ * rather than forcing a stale decision through. Two people taking the last seat
+ * is the ordinary case, not an exotic one.
+ */
+async function mutate<T>(
+  tableId: string,
+  change: (
+    table: StoredTable,
+  ) => { table: StoredTable; result: T } | Promise<{ table: StoredTable; result: T }>,
+): Promise<T> {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const record = await storage.read(tableId)
+    if (!record) throw new TableError('No such table', 404)
+
+    const { table, result } = await change(record.table)
+    if (await storage.write(tableId, table, lifetimeOf(table), record.version)) {
+      return result
+    }
+  }
+
+  // Four rounds of losing means genuine contention, not a stale tab. Better to
+  // say so than to keep a player waiting on a loop that may not settle.
+  throw new TableError('That table is busy, try again', 409)
 }
 
 /**
@@ -285,39 +320,37 @@ async function save(tableId: string, table: StoredTable): Promise<void> {
  * nobody sees a waiting room — which is exactly the single-player game, and why
  * this returns either kind of view.
  */
-export async function createTable(
-  settings: unknown = {},
-  playerId: string,
-): Promise<AnyTableView> {
+export async function createTable(settings: unknown = {}, playerId: string): Promise<AnyTableView> {
   const resolved = resolveSettings(settings)
   const tableId = crypto.randomUUID()
 
   const room: WaitingTable = {
     stage: 'waiting',
     settings: resolved,
-    seats: Array.from({ length: resolved.seatCount }, (_, index) => (index === 0 ? playerId : null)),
+    seats: Array.from({ length: resolved.seatCount }, (_, index) =>
+      index === 0 ? playerId : null,
+    ),
     createdBy: playerId,
   }
 
   if (room.seats.every((seat) => seat !== null)) {
     const playing = deal(tableId, room)
-    await save(tableId, playing)
+    await storage.write(tableId, playing, lifetimeOf(playing), null)
     return viewOf(playing.state, HUMAN_ID)
   }
 
-  await save(tableId, room)
+  await storage.write(tableId, room, lifetimeOf(room), null)
   return roomViewOf(tableId, room, playerId)
 }
 
 async function load(tableId: string): Promise<StoredTable> {
-  const table = await storage.read(tableId)
-  if (!table) throw new TableError('No such table', 404)
-  return table
+  const record = await storage.read(tableId)
+  if (!record) throw new TableError('No such table', 404)
+  return record.table
 }
 
 /** A table that has dealt, or an error saying it has not. */
-async function loadPlaying(tableId: string): Promise<PlayingTable> {
-  const table = await load(tableId)
+function asPlaying(table: StoredTable): PlayingTable {
   if (table.stage === 'waiting') {
     throw new TableError('This table has not started yet', 409)
   }
@@ -333,42 +366,52 @@ async function loadPlaying(tableId: string): Promise<PlayingTable> {
 export async function joinTable(tableId: string, playerId: string | null): Promise<AnyTableView> {
   if (!playerId) throw new TableError('This game needs cookies enabled', 400)
 
-  const table = await load(tableId)
-  if (table.stage === 'playing') {
-    // Not an error. They arrived late and can watch, which is what a seatless
-    // viewer gets anyway.
-    return viewOf(table.state, seatOf(table, playerId))
-  }
+  return mutate<AnyTableView>(tableId, (current) => {
+    if (current.stage === 'playing') {
+      // Not an error. They arrived late and can watch, which is what a seatless
+      // viewer gets anyway.
+      return {
+        table: current,
+        result: viewOf(current.state, seatOf(current, playerId)),
+      }
+    }
 
-  if (!table.seats.includes(playerId)) {
-    const free = table.seats.indexOf(null)
-    if (free === -1) throw new TableError('This room is full', 409)
-    table.seats[free] = playerId
-  }
+    const seats = [...current.seats]
+    if (!seats.includes(playerId)) {
+      const free = seats.indexOf(null)
+      if (free === -1) throw new TableError('This room is full', 409)
+      seats[free] = playerId
+    }
 
-  if (table.seats.every((seat) => seat !== null)) {
-    const playing = deal(tableId, table)
-    await save(tableId, playing)
-    return viewOf(playing.state, seatOf(playing, playerId))
-  }
+    const room: WaitingTable = { ...current, seats }
+    if (seats.every((seat) => seat !== null)) {
+      const playing = deal(tableId, room)
+      return {
+        table: playing,
+        result: viewOf(playing.state, seatOf(playing, playerId)),
+      }
+    }
 
-  await save(tableId, table)
-  return roomViewOf(tableId, table, playerId)
+    return { table: room, result: roomViewOf(tableId, room, playerId) }
+  })
 }
 
 /** Give up a seat before the room deals. */
 export async function leaveTable(tableId: string, playerId: string | null): Promise<RoomView> {
-  const table = await load(tableId)
-  if (table.stage === 'playing') {
-    throw new TableError('This table has already started', 409)
-  }
+  return mutate(tableId, (current) => {
+    if (current.stage === 'playing') {
+      throw new TableError('This table has already started', 409)
+    }
 
-  const seat = table.seats.indexOf(playerId ?? '')
-  if (seat === -1) throw new TableError('You are not in this room', 403)
-  table.seats[seat] = null
+    const seat = current.seats.indexOf(playerId ?? '')
+    if (seat === -1) throw new TableError('You are not in this room', 403)
 
-  await save(tableId, table)
-  return roomViewOf(tableId, table, playerId)
+    const seats = [...current.seats]
+    seats[seat] = null
+    const room: WaitingTable = { ...current, seats }
+
+    return { table: room, result: roomViewOf(tableId, room, playerId) }
+  })
 }
 
 /**
@@ -378,22 +421,25 @@ export async function leaveTable(tableId: string, playerId: string | null): Prom
  * the people still on their way to it.
  */
 export async function startEarly(tableId: string, playerId: string | null): Promise<TableView> {
-  const table = await load(tableId)
-  if (table.stage === 'playing') {
-    throw new TableError('This table has already started', 409)
-  }
-  if (table.createdBy !== playerId) {
-    throw new TableError('Only the player who opened this room can start it', 403)
-  }
+  return mutate(tableId, (current) => {
+    if (current.stage === 'playing') {
+      throw new TableError('This table has already started', 409)
+    }
+    if (current.createdBy !== playerId) {
+      throw new TableError('Only the player who opened this room can start it', 403)
+    }
 
-  const sitting = table.seats.filter((seat) => seat !== null).length
-  if (sitting + table.settings.botCount < MIN_PLAYERS) {
-    throw new TableError('A table needs at least two players', 409)
-  }
+    const sitting = current.seats.filter((seat) => seat !== null).length
+    if (sitting + current.settings.botCount < MIN_PLAYERS) {
+      throw new TableError('A table needs at least two players', 409)
+    }
 
-  const playing = deal(tableId, table)
-  await save(tableId, playing)
-  return viewOf(playing.state, seatOf(playing, playerId))
+    const playing = deal(tableId, current)
+    return {
+      table: playing,
+      result: viewOf(playing.state, seatOf(playing, playerId)),
+    }
+  })
 }
 
 /** How a table looks to this player, whichever stage it is at. */
@@ -412,8 +458,8 @@ export async function findTable(
   tableId: string,
   playerId: string | null,
 ): Promise<AnyTableView | null> {
-  const table = await storage.read(tableId)
-  return table ? anyViewOf(tableId, table, playerId) : null
+  const record = await storage.read(tableId)
+  return record ? anyViewOf(tableId, record.table, playerId) : null
 }
 
 /**
@@ -429,32 +475,36 @@ export async function submitAction(
   playerId: string | null,
   action: Omit<Action, 'playerId'>,
 ): Promise<TableUpdate> {
-  const table = await loadPlaying(tableId)
+  return mutate(tableId, (current) => {
+    const table = asPlaying(current)
 
-  const seat = seatOf(table, playerId)
-  if (!seat) throw new TableError('You do not have a seat at this table', 403)
+    const seat = seatOf(table, playerId)
+    if (!seat) throw new TableError('You do not have a seat at this table', 403)
 
-  if (table.state.result) throw new TableError('That hand is already over', 409)
-  if (table.state.actingPlayerId !== seat) {
-    throw new TableError('It is not your turn', 409)
-  }
+    if (table.state.result) throw new TableError('That hand is already over', 409)
+    if (table.state.actingPlayerId !== seat) {
+      throw new TableError('It is not your turn', 409)
+    }
 
-  let next: TableState
-  try {
-    next = applyAction(table.state, { ...action, playerId: seat } as Action)
-  } catch (error) {
-    // An illegal action is a client bug or a tampered request, not a server
-    // fault, and the table is left exactly as it was.
-    throw new TableError((error as Error).message, 400)
-  }
+    let next: TableState
+    try {
+      next = applyAction(table.state, { ...action, playerId: seat } as Action)
+    } catch (error) {
+      // An illegal action is a client bug or a tampered request, not a server
+      // fault, and the table is left exactly as it was.
+      throw new TableError((error as Error).message, 400)
+    }
 
-  // The player's own move is the first thing replayed: without it their fold or
-  // raise would be swallowed by whatever the bots did in response.
-  const steps: TableState[] = [next]
-  next = playBots(next, new Set(Object.keys(table.owners)), steps)
+    // The player's own move is the first thing replayed: without it their fold or
+    // raise would be swallowed by whatever the bots did in response.
+    const steps: TableState[] = [next]
+    next = playBots(next, new Set(Object.keys(table.owners)), steps)
 
-  await save(tableId, { ...table, state: next })
-  return updateFrom(steps, next, seat)
+    return {
+      table: { ...table, state: next },
+      result: updateFrom(steps, next, seat),
+    }
+  })
 }
 
 /** Deal the next hand, moving the button and dropping anyone out of chips. */
@@ -462,44 +512,47 @@ export async function startNextHand(
   tableId: string,
   playerId: string | null,
 ): Promise<TableUpdate> {
-  const table = await loadPlaying(tableId)
+  return mutate(tableId, (current) => {
+    const table = asPlaying(current)
 
-  const seat = seatOf(table, playerId)
-  if (!seat) throw new TableError('You do not have a seat at this table', 403)
+    const seat = seatOf(table, playerId)
+    if (!seat) throw new TableError('You do not have a seat at this table', 403)
 
-  if (!table.state.result) throw new TableError('The current hand is still in progress', 409)
+    if (!table.state.result) throw new TableError('The current hand is still in progress', 409)
 
-  // The client is told the outcome and hides the button, but a stale tab or a
-  // hand-rolled request can still get here, so the rule is enforced twice.
-  const outcome = tableOutcome(table.state.players, seat, true)
-  if (outcome.kind === 'eliminated') throw new TableError('You are out of chips', 409)
-  if (outcome.kind === 'winner') throw new TableError('Everyone else is out of chips', 409)
+    // The client is told the outcome and hides the button, but a stale tab or a
+    // hand-rolled request can still get here, so the rule is enforced twice.
+    const outcome = tableOutcome(table.state.players, seat, true)
+    if (outcome.kind === 'eliminated') throw new TableError('You are out of chips', 409)
+    if (outcome.kind === 'winner') throw new TableError('Everyone else is out of chips', 409)
 
-  const stacks = new Map(table.state.players.map((p) => [p.id, p.stack]))
-  const humanIds = Object.keys(table.owners)
-  const seats = seatsFor(table.settings, humanIds, table.settings.botCount, stacks).filter(
-    (s) => s.stack > 0,
-  )
+    const stacks = new Map(table.state.players.map((p) => [p.id, p.stack]))
+    const humanIds = Object.keys(table.owners)
+    const seats = seatsFor(table.settings, humanIds, table.settings.botCount, stacks).filter(
+      (s) => s.stack > 0,
+    )
 
-  // The button moves one live seat clockwise.
-  const occupied = seats.map((s) => s.seat).sort((a, b) => a - b)
-  const buttonSeat =
-    occupied.find((seat) => seat > table.state.buttonSeat) ?? occupied[0]
+    // The button moves one live seat clockwise.
+    const occupied = seats.map((s) => s.seat).sort((a, b) => a - b)
+    const buttonSeat = occupied.find((seat) => seat > table.state.buttonSeat) ?? occupied[0]
 
-  const dealt = startHand({
-    tableId,
-    seats,
-    buttonSeat,
-    smallBlind: table.settings.smallBlind,
-    bigBlind: table.settings.bigBlind,
-    handNumber: table.state.handNumber + 1,
+    const dealt = startHand({
+      tableId,
+      seats,
+      buttonSeat,
+      smallBlind: table.settings.smallBlind,
+      bigBlind: table.settings.bigBlind,
+      handNumber: table.state.handNumber + 1,
+    })
+
+    // A fresh deal starts from the blinds being posted, so that is the first
+    // thing shown before the bots in front of the human take their turns.
+    const steps: TableState[] = [dealt]
+    const state = playBots(dealt, new Set(Object.keys(table.owners)), steps)
+
+    return {
+      table: { ...table, state },
+      result: updateFrom(steps, state, seat),
+    }
   })
-
-  // A fresh deal starts from the blinds being posted, so that is the first
-  // thing shown before the bots in front of the human take their turns.
-  const steps: TableState[] = [dealt]
-  const state = playBots(dealt, new Set(Object.keys(table.owners)), steps)
-
-  await save(tableId, { ...table, state })
-  return updateFrom(steps, state, seat)
 }
