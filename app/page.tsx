@@ -34,14 +34,25 @@ export default function Home() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function deal() {
+  /**
+   * Open a table.
+   *
+   * `seatCount` is how many people it waits for. One is the game this lobby has
+   * always dealt — full the moment it is made, so it deals straight away and
+   * nobody sees a waiting room.
+   */
+  async function deal(seatCount = 1, isPublic = false) {
     setBusy(true)
     setError(null)
     try {
       const response = await fetch('/api/table', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ botCount: Number(botCount) }),
+        body: JSON.stringify({
+          botCount: seatCount > 1 ? 0 : Number(botCount),
+          seatCount,
+          isPublic,
+        }),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error ?? 'Could not start a table')
@@ -128,6 +139,28 @@ export default function Home() {
             >
               {busy ? 'Dealing…' : 'Deal me in'}
             </Button>
+
+            {/* Playing with people is a different thing from playing the
+                bots, so it gets its own pair of buttons rather than a mode
+                switch that changes what the one above means. */}
+            <div className="flex w-full gap-2">
+              <Button
+                variant="outline"
+                className="h-11 flex-1 border-white/20 bg-white/5 text-sm text-white hover:bg-white/10"
+                disabled={busy}
+                onClick={() => void deal(4, true)}
+                data-testid="open-public-room"
+              >
+                Open a public room
+              </Button>
+              <Link
+                href="/rooms"
+                className="flex h-11 flex-1 items-center justify-center rounded-md border border-white/20 bg-white/5 text-sm text-white hover:bg-white/10"
+                data-testid="browse-rooms"
+              >
+                Browse rooms
+              </Link>
+            </div>
 
             {error && (
               <p className="text-center text-sm text-rose-300" role="alert" data-testid="error">

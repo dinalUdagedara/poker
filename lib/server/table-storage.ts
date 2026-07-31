@@ -34,6 +34,14 @@ export type WaitingTable = {
   settings: TableSettings
   seats: (string | null)[]
   createdBy: string
+  /**
+   * Whether this room is listed for strangers to find.
+   *
+   * Explicit, and never inferred. Listing a room publishes its id, which is
+   * fine for a room that wanted to be found and a betrayal for one shared with
+   * friends by link.
+   */
+  isPublic: boolean
 }
 
 /** A room that has dealt. From here on the engine owns what happens. */
@@ -98,6 +106,12 @@ export type StoredRecord = {
 export interface TableStorage {
   /** The record, if it still exists. Reading counts as using it. */
   read(tableId: string): Promise<StoredRecord | null>
+  /** Remember a room as publicly listed. */
+  list(tableId: string): Promise<void>
+  /** Forget a listing. Safe to call for one that was never listed. */
+  unlist(tableId: string): Promise<void>
+  /** Every id ever listed, including ones whose rooms have since expired. */
+  listed(): Promise<string[]>
   /**
    * Write only if the record is still at `expectedVersion`, or if it does not
    * exist yet and `expectedVersion` is null. Returns false when it has moved.
@@ -176,8 +190,23 @@ export function redisStorage(redis: Redis): TableStorage {
       )
       return applied === 1
     },
+
+    async list(tableId) {
+      await redis.sadd(directoryKey(), tableId)
+    },
+
+    async unlist(tableId) {
+      await redis.srem(directoryKey(), tableId)
+    },
+
+    async listed() {
+      return redis.smembers(directoryKey())
+    },
   }
 }
+
+/** The set of publicly listed rooms, namespaced like everything else. */
+const directoryKey = () => `rooms:${process.env.VERCEL_ENV ?? 'local'}`
 
 /**
  * Set the record only if nobody has changed it since it was read.
@@ -214,6 +243,10 @@ type Entry = {
 const map: Map<string, Entry> = ((
   globalThis as unknown as { __pokerTables?: Map<string, Entry> }
 ).__pokerTables ??= new Map())
+
+const directory: Set<string> = ((
+  globalThis as unknown as { __pokerRooms?: Set<string> }
+).__pokerRooms ??= new Set())
 
 /**
  * The single-process stand-in for Redis.
@@ -253,6 +286,18 @@ function memoryStorage(): TableStorage {
 
       map.set(tableId, { table, ttlMs, version: (expectedVersion ?? 0) + 1, expiresAt: now + ttlMs })
       return true
+    },
+
+    async list(tableId) {
+      directory.add(tableId)
+    },
+
+    async unlist(tableId) {
+      directory.delete(tableId)
+    },
+
+    async listed() {
+      return [...directory]
     },
   }
 }

@@ -17,6 +17,7 @@ import { decideAction } from '../poker/bots/equity'
 import {
   tableOutcome,
   type AnyTableView,
+  type RoomSummary,
   type RoomView,
   type TableUpdate,
   type TableView,
@@ -36,7 +37,7 @@ import {
 // The outcome travels with the state so the interface never offers an action
 // the server would refuse. The type lives in lib/poker/lifecycle so client
 // components can name it without importing this server-only module.
-export type { AnyTableView, RoomView, TableUpdate, TableView }
+export type { AnyTableView, RoomSummary, RoomView, TableUpdate, TableView }
 
 export const HUMAN_ID = 'you'
 
@@ -172,6 +173,7 @@ function roomViewOf(tableId: string, room: WaitingTable, playerId: string | null
     })),
     botCount: room.settings.botCount,
     isCreator: room.createdBy === playerId,
+    isPublic: room.isPublic,
     // The escape hatch for a room nobody else joins. Bots take the empty
     // chairs, so it only needs enough players to make a table at all.
     canStartEarly: taken + room.settings.botCount >= MIN_PLAYERS && taken < room.seats.length,
@@ -382,6 +384,8 @@ export async function createTable(settings: unknown = {}, playerId: string): Pro
       index === 0 ? playerId : null,
     ),
     createdBy: playerId,
+    // Never inferred. A room is listed for strangers only when it says so.
+    isPublic: Boolean((settings as { isPublic?: unknown } | null)?.isPublic),
   }
 
   if (room.seats.every((seat) => seat !== null)) {
@@ -391,6 +395,7 @@ export async function createTable(settings: unknown = {}, playerId: string): Pro
   }
 
   await storage.write(tableId, room, lifetimeOf(room), null)
+  if (room.isPublic) await storage.list(tableId)
   return roomViewOf(tableId, room, playerId)
 }
 
@@ -485,6 +490,52 @@ export async function startEarly(tableId: string, playerId: string | null): Prom
       result: viewOf(playing.state, seatOf(playing, playerId)),
     }
   })
+}
+
+/**
+ * Every public room still worth joining.
+ *
+ * The seat counts are read from the rooms themselves rather than kept beside
+ * their ids. Storing "three of five" next to the id would be a second copy of
+ * the truth, and it drifts the first time a write path forgets to update it — a
+ * lobby advertising a seat that is not free is the bug that makes the whole
+ * feature feel broken. One read per listed room cannot drift.
+ *
+ * Rooms that have dealt or expired are dropped from the directory on the way
+ * past, so it tidies itself without anything sweeping it.
+ */
+export async function publicRooms(): Promise<RoomSummary[]> {
+  const ids = await storage.listed()
+
+  const rooms = await Promise.all(
+    ids.map(async (tableId) => {
+      const record = await storage.read(tableId)
+      const table = record?.table
+
+      // Gone, or no longer a room. Either way there is nothing left to join.
+      if (!table || table.stage !== 'waiting' || !table.isPublic) {
+        await storage.unlist(tableId)
+        return null
+      }
+
+      const taken = table.seats.filter((seat) => seat !== null).length
+      if (taken === 0) {
+        // Everyone who opened it has left. Better no listing than one that
+        // sends people to an empty room.
+        await storage.unlist(tableId)
+        return null
+      }
+
+      return {
+        tableId,
+        seatCount: table.seats.length,
+        taken,
+        botCount: table.settings.botCount,
+      }
+    }),
+  )
+
+  return rooms.filter((room): room is RoomSummary => room !== null)
 }
 
 /** How a table looks to this player, whichever stage it is at. */

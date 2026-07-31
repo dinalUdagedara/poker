@@ -14,11 +14,14 @@ Everything below assumes the plan's phase numbering.
 | 0 | Platform decision | **Decided** — Vercel + Redis, see plan |
 | 1 | Identity | **Done** — on the branch, not yet merged |
 | 2 | Waiting room, seating, join by link | **Done** — on the branch, not yet merged |
-| 3 | Concurrency (compare-and-set) | Not started |
-| 4 | Push (SSE) | Not started |
-| 5 | Absent players, turn clock | Not started |
-| 6 | Bots as seat fill | Not started |
-| 7 | Public rooms | Not started |
+| 3 | Concurrency (compare-and-set) | **Done** |
+| 4 | Push (SSE) | **Done** |
+| 5 | Absent players, turn clock | **Mostly** — see gaps |
+| 6 | Bots as seat fill | **Done** |
+| 7 | Public rooms | **Done** |
+
+Everything is on the `multiplayer` branch and none of it is merged. `main` still
+serves the single-player game.
 
 ## Where the branch is
 
@@ -158,7 +161,7 @@ table got `viewerId: null` and no cards.
 Run before every commit. All were green when this file was written.
 
 ```
-npm test          # unit, 205 passing / 1 skipped
+npm test          # unit, 218 passing / 1 skipped
 npm run lint
 npx tsc --noEmit
 npm run build
@@ -171,6 +174,66 @@ The e2e suite deliberately runs on the in-memory backend —
 To exercise Redis for real, `.env` holds the production `REDIS_URL`. Note that
 keys are namespaced by `VERCEL_ENV`, so anything run locally writes under
 `table:local:*` and cannot collide with production.
+
+## Phases 3 to 7
+
+**Phase 3 — compare-and-set.** Records carry a version; writes state the version
+they were read at and are refused if anything moved. Every mutation goes through
+one `mutate` helper that reads, decides, writes, and on refusal reads and
+*decides again* — re-running the change re-runs every rule, so a conflict comes
+back as "it is not your turn" rather than a forced stale write. Four rounds of
+losing is reported as a busy table. Redis compares inside a Lua script; the
+in-memory backend is atomic by being one thread but performs the same comparison
+so the two agree on what a conflict is. Verified against the real database: two
+simultaneous joins to a one-seat room produced one player and one spectator.
+
+**Phase 4 — push.** SSE at `/api/table/:id/stream`. Each connection builds its
+own view from its own cookie and only sends when *that* view changed. The
+waiting room dropped its poll; the table takes updates only while idle, since
+mid-replay they would cut off the moves being stepped through and mid-request
+they would be overwritten. Verified: a player sitting in a room received the deal
+unprompted, holding only their own cards.
+
+*Implementation note:* the stream polls storage once a second per connection
+rather than subscribing to Redis pub/sub. It is behind the `TableStorage`
+interface, so moving to pub/sub is a change to one module — worth doing when
+read volume matters, not before.
+
+**Phase 5 — the turn clock.** Dealt tables carry a deadline. Whoever next
+touches the table enforces it, reads included, and the write is only attempted
+once the clock has actually run out. No scheduler, which is what makes it fit
+serverless. It checks rather than folds when nothing is owed.
+
+**Phase 6 — bots as fill.** Arrived with phase 2: empty chairs become bots when
+a room starts early, and `playBots` already plays every seat no person holds.
+
+**Phase 7 — public rooms.** `isPublic` on the room, never inferred. The
+directory holds ids only — seat counts are read from the rooms themselves,
+because a second copy of "three of five" drifts the first time a write path
+forgets it, and a lobby advertising a seat that is not free is the bug that makes
+the feature feel broken. Rooms that dealt, expired or emptied are pruned on read,
+so the directory tidies itself. Verified end to end: a public room appeared in
+the lobby, its count tracked joins, and it vanished from the lobby the moment it
+dealt with three humans at it.
+
+## What is not done
+
+Honest gaps, all of them known rather than discovered:
+
+- **Rising blinds.** The busting-out decision in the plan calls for them, and
+  they are not implemented — blinds are still fixed at 25/50. Without them a
+  game has no bound, which is the whole reason that decision was made. This is
+  the largest remaining piece and `startNextHand` is where it goes.
+- **Presence in a waiting room.** A seat whose stream has gone is not released;
+  only the two-minute idle expiry covers it. The plan wanted the SSE connection
+  to double as the liveness signal.
+- **Play again.** A finished table dissolves, but nothing yet offers a fresh
+  room pre-seated with whoever is still there.
+- **Display names.** A second human shows as `seat1`.
+- **A spectator screen.** Watching works and leaks nothing, but it looks like a
+  table with the controls greyed out.
+- **Two-browser e2e.** Everything multiplayer is covered by unit tests and by
+  hand against a real build; Playwright still only drives one context.
 
 ## Open questions still unanswered
 

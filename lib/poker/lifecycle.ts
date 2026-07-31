@@ -81,8 +81,18 @@ export type RoomView = {
   seats: { taken: boolean; you: boolean }[]
   botCount: number
   isCreator: boolean
+  /** Whether strangers can find this room in the lobby. */
+  isPublic: boolean
   /** Whether the creator could deal now rather than wait for the empty seats. */
   canStartEarly: boolean
+}
+
+/** One row of the public lobby. */
+export type RoomSummary = {
+  tableId: string
+  seatCount: number
+  taken: number
+  botCount: number
 }
 
 /** What any request about a table can come back as. */

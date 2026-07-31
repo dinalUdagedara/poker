@@ -6,6 +6,7 @@ import {
   findTable,
   joinTable,
   leaveTable,
+  publicRooms,
   startEarly,
   startNextHand,
   submitAction,
@@ -168,6 +169,45 @@ describe('a room filling up', () => {
 
     // It dealt on the second join, so the third player can only watch.
     expect((await joinTable(tableId, THIRD)).stage).toBe('playing')
+  })
+})
+
+describe('the public lobby', () => {
+  it('lists a room that asked to be public', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, isPublic: true }, OWNER))
+
+    expect((await publicRooms()).map((room) => room.tableId)).toContain(tableId)
+  })
+
+  it('never lists a room that did not ask', async () => {
+    // Listing publishes the id, so a room shared with friends by link must
+    // never end up here by accident.
+    const { tableId } = asRoom(await createTable({ seatCount: 3 }, OWNER))
+
+    expect((await publicRooms()).map((room) => room.tableId)).not.toContain(tableId)
+  })
+
+  it('counts the seats from the room itself', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 4, isPublic: true }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    const room = (await publicRooms()).find((r) => r.tableId === tableId)
+
+    expect(room).toMatchObject({ seatCount: 4, taken: 2 })
+  })
+
+  it('drops a room from the list once it deals', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 2, isPublic: true }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    expect((await publicRooms()).map((room) => room.tableId)).not.toContain(tableId)
+  })
+
+  it('drops a room everybody left rather than advertising an empty one', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, isPublic: true }, OWNER))
+    await leaveTable(tableId, OWNER)
+
+    expect((await publicRooms()).map((room) => room.tableId)).not.toContain(tableId)
   })
 })
 
