@@ -32,11 +32,11 @@ describe('keeping tables in redis', () => {
   it('writes json under a namespaced key with a two hour expiry', async () => {
     const { calls, redis } = fakeRedis()
 
-    await redisStorage(redis).write('abc', table)
+    await redisStorage(redis).write('abc', table, TABLE_TTL_MS)
 
     expect(calls.set).toHaveBeenCalledWith(
       'table:preview:abc',
-      JSON.stringify(table),
+      JSON.stringify({ table, ttlMs: TABLE_TTL_MS }),
       'EX',
       TABLE_TTL_MS / 1000,
     )
@@ -44,7 +44,7 @@ describe('keeping tables in redis', () => {
 
   it('reads a table back as it went in, and pushes the expiry out', async () => {
     const { calls, redis } = fakeRedis()
-    calls.get.mockResolvedValue(JSON.stringify(table))
+    calls.get.mockResolvedValue(JSON.stringify({ table, ttlMs: TABLE_TTL_MS }))
 
     const found = await redisStorage(redis).read('abc')
 
@@ -62,10 +62,10 @@ describe('keeping tables in redis', () => {
   it('keeps environments out of each other, and never collides across them', async () => {
     // The whole point: the same table id in two environments is two keys.
     const { calls, redis } = fakeRedis()
-    await redisStorage(redis).write('abc', table)
+    await redisStorage(redis).write('abc', table, TABLE_TTL_MS)
 
     vi.stubEnv('VERCEL_ENV', 'production')
-    await redisStorage(redis).write('abc', table)
+    await redisStorage(redis).write('abc', table, TABLE_TTL_MS)
 
     const [preview, production] = calls.set.mock.calls.map((call) => call[0])
     expect(preview).toBe('table:preview:abc')

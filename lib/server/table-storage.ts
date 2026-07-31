@@ -21,9 +21,26 @@ import Redis from 'ioredis'
 import type { TableState } from '../poker/types'
 import type { TableSettings } from './table-store'
 
-export type StoredTable = {
-  state: TableState
+/**
+ * A room that has not dealt yet.
+ *
+ * Seats are positional: index is the seat number, and a null is an open chair.
+ * There is no `TableState` because there is no hand — the engine is not
+ * involved until the room fills, which is what keeps `lib/poker` free of a
+ * null-shaped case for a hand that has not started.
+ */
+export type WaitingTable = {
+  stage: 'waiting'
   settings: TableSettings
+  seats: (string | null)[]
+  createdBy: string
+}
+
+/** A room that has dealt. From here on the engine owns what happens. */
+export type PlayingTable = {
+  stage: 'playing'
+  settings: TableSettings
+  state: TableState
   /**
    * Which session holds which seat: engine seat id to player id.
    *
@@ -35,8 +52,10 @@ export type StoredTable = {
   owners: Record<string, string>
 }
 
+export type StoredTable = WaitingTable | PlayingTable
+
 /**
- * How long a table survives without being touched.
+ * How long a dealt table survives without being touched.
  *
  * A table is only ever created, never closed — a player who shuts the tab says
  * nothing to the server. Something has to decide when to stop believing in it,
@@ -44,12 +63,34 @@ export type StoredTable = {
  * abandoned ones do not accumulate.
  */
 export const TABLE_TTL_MS = 2 * 60 * 60 * 1000
-const TABLE_TTL_SECONDS = TABLE_TTL_MS / 1000
+
+/**
+ * How long a room may sit waiting to fill.
+ *
+ * Far shorter than a dealt table, because an empty room advertised to people
+ * who might join it goes stale fast. Idle time, not lifetime: every join resets
+ * it, so a room filling one player at a time is never collected out from under
+ * the people already sitting in it.
+ */
+export const WAITING_TTL_MS = 2 * 60 * 1000
 
 export interface TableStorage {
-  /** The table, if it still exists. Reading counts as using it. */
+  /** The record, if it still exists. Reading counts as using it. */
   read(tableId: string): Promise<StoredTable | null>
-  write(tableId: string, table: StoredTable): Promise<void>
+  /** `ttlMs` is how long this record may now sit untouched. */
+  write(tableId: string, table: StoredTable, ttlMs: number): Promise<void>
+}
+
+/**
+ * What is actually stored: the table plus how long it may idle.
+ *
+ * The lifetime travels with the record so that reading can renew it without the
+ * storage layer having to know the difference between a room and a game. That
+ * distinction belongs to table-store, and this module stays incurious about it.
+ */
+type Envelope = {
+  table: StoredTable
+  ttlMs: number
 }
 
 /**
@@ -84,19 +125,23 @@ export function redisStorage(redis: Redis): TableStorage {
       if (!stored) return null
 
       // A player sitting on the table page without acting is still a live
-      // session, so a read pushes the expiry out exactly as a move would.
-      await redis.expire(key, TABLE_TTL_SECONDS)
-      return JSON.parse(stored) as StoredTable
+      // session, so a read pushes the expiry out exactly as a move would — by
+      // the record's own lifetime, since a waiting room's is much shorter.
+      const envelope = JSON.parse(stored) as Envelope
+      await redis.expire(key, envelope.ttlMs / 1000)
+      return envelope.table
     },
 
-    async write(tableId, table) {
-      await redis.set(keyFor(tableId), JSON.stringify(table), 'EX', TABLE_TTL_SECONDS)
+    async write(tableId, table, ttlMs) {
+      const envelope: Envelope = { table, ttlMs }
+      await redis.set(keyFor(tableId), JSON.stringify(envelope), 'EX', ttlMs / 1000)
     },
   }
 }
 
 type Entry = {
   table: StoredTable
+  ttlMs: number
   expiresAt: number
 }
 
@@ -127,17 +172,17 @@ function memoryStorage(): TableStorage {
         return null
       }
 
-      entry.expiresAt = Date.now() + TABLE_TTL_MS
+      entry.expiresAt = Date.now() + entry.ttlMs
       return entry.table
     },
 
-    async write(tableId, table) {
+    async write(tableId, table, ttlMs) {
       const now = Date.now()
       for (const [id, entry] of map) {
         if (entry.expiresAt <= now) map.delete(id)
       }
 
-      map.set(tableId, { table, expiresAt: now + TABLE_TTL_MS })
+      map.set(tableId, { table, ttlMs, expiresAt: now + ttlMs })
     },
   }
 }

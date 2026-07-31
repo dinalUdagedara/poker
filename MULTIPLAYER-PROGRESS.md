@@ -13,7 +13,7 @@ Everything below assumes the plan's phase numbering.
 | --- | --- | --- |
 | 0 | Platform decision | **Decided** — Vercel + Redis, see plan |
 | 1 | Identity | **Done** — on the branch, not yet merged |
-| 2 | Waiting room, seating, join by link | Not started |
+| 2 | Waiting room, seating, join by link | **Done** — on the branch, not yet merged |
 | 3 | Concurrency (compare-and-set) | Not started |
 | 4 | Push (SSE) | Not started |
 | 5 | Absent players, turn clock | Not started |
@@ -98,16 +98,71 @@ stranger gets `viewerId: null`, no cards, no legal actions, and
   deliberate: phase 2 grows `owners` from one entry to several, and the engine's
   seat ids stay stable strings either way.
 
+## Phase 2 — waiting room, seating, join by link
+
+**Decisions taken**
+
+- *`StoredTable` is a discriminated union*, `waiting | playing`, rather than a
+  record with nullable `state` and `room` fields. Two mutually exclusive nullable
+  fields is exactly the null-shaped case the plan warns against, and the union
+  makes "you cannot act on a room that has not dealt" a type error rather than a
+  runtime check somebody forgets.
+- *A room for one deals immediately.* `seatCount` defaults to 1, so the existing
+  lobby — which sends only `botCount` — behaves exactly as it did and nobody ever
+  sees a waiting room for single-player. This is what let phase 2 land without
+  touching the deployed game's flow.
+- *Lifetime travels with the record.* `write` takes a `ttlMs` and the storage
+  layer stores it alongside the value, so a read can renew by the record's own
+  lifetime without the storage layer knowing a room from a game. Rooms get two
+  minutes, dealt tables two hours.
+- *Empty chairs become bots when starting early.* Costs nothing — the equity bot
+  already plays every seat no person holds — and it is the answer to the room
+  nobody joins. This is most of phase 6, arriving early because phase 2 needed
+  it.
+- *Seat zero keeps the id `you`.* Not sentiment: the deployed game's stored
+  tables and the e2e suite both refer to it. Later humans are `seat1`, `seat2`.
+  See the warning below.
+
+**Done**
+
+- `table-storage.ts` — `WaitingTable | PlayingTable`, `WAITING_TTL_MS`, and the
+  ttl envelope.
+- `table-store.ts` — `createTable` opens a room, `joinTable`, `leaveTable`,
+  `startEarly`, `deal`. Reads answer with either view; acting requires `playing`.
+- Routes: `join`, `leave`, `start`.
+- `WaitingRoom.tsx` and the table page, which renders the room or the game from
+  the same URL.
+- Tests: 205 passing, covering fill-and-deal, idempotent join, leave, the
+  latecomer becoming a spectator, start-early permissions, and the two TTLs.
+
+**Verified by hand**, two cookie jars on a production build: A opened a room for
+two, B saw it waiting, B took the last seat and it dealt. A is `you`, B is
+`seat1`, and each sees exactly one player's hole cards — their own. B acting out
+of turn was refused 409; in turn it worked. A third session joining the dealt
+table got `viewerId: null` and no cards.
+
+**Watch out for**
+
+- *No push yet.* `WaitingRoom.tsx` polls every three seconds. It is marked as
+  temporary in the file — phase 4's SSE stream replaces it, and the game itself
+  needs that stream anyway.
+- *Two humans can still race.* Nothing here is compare-and-set, so two people
+  taking the last seat at the same instant can both be served. That is phase 3,
+  and it is now reachable in a way it was not before.
+- *Other players are labelled by raw seat id.* `PokerTable` renders `Bot 1` for
+  bots and `You` for yourself, but a second human shows as `seat1`. Needs display
+  names, which nothing has yet.
+
 ## Verification
 
-Run before every commit. All three were green when this file was written.
+Run before every commit. All were green when this file was written.
 
 ```
-npm test          # unit, 191 passing / 1 skipped
+npm test          # unit, 205 passing / 1 skipped
 npm run lint
 npx tsc --noEmit
 npm run build
-npm run e2e       # 23 passing / 1 conditional skip, in-memory backend
+npm run e2e       # 24 passing, in-memory backend
 ```
 
 The e2e suite deliberately runs on the in-memory backend —
