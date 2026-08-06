@@ -58,6 +58,7 @@ export function PlayerSeat({
   compact = false,
   callout,
   calloutSide = 'below',
+  calloutAlign = 'center',
   chipSide = 'left',
   bigBlind,
   hero = false,
@@ -82,6 +83,12 @@ export function PlayerSeat({
   callout?: string | null
   /** Which way the callout hangs. The caller knows where the seat sits. */
   calloutSide?: 'right' | 'below'
+  /**
+   * Which end of the seat a hanging callout is anchored to. A bubble is wider
+   * than the seat it belongs to, so a seat at the edge of the arc anchors its
+   * own inboard end and lets the bubble run inward across the felt.
+   */
+  calloutAlign?: 'start' | 'center' | 'end'
   /** Which side the chips sit on — inward, so they stay on the felt. */
   chipSide?: 'left' | 'right'
   /** The viewer's own seat, drawn larger and with bigger cards. */
@@ -91,7 +98,7 @@ export function PlayerSeat({
   const tone = stackTone(player.stack, bigBlind)
 
   return (
-    <div className="relative flex flex-col items-center gap-1.5" data-testid={`seat-${player.id}`}>
+    <div className="relative flex flex-col items-center gap-1 sm:gap-1.5" data-testid={`seat-${player.id}`}>
       {isActing && (
         /*
          * Lit felt under the seat whose turn it is. First in the DOM so
@@ -115,7 +122,7 @@ export function PlayerSeat({
         bottom edge goes under: these cards carry rank and suit in the middle,
         so burying more would cover the very thing a revealed card is for.
       */}
-      <div className={cn('-mb-3.5 flex', isOut && 'opacity-40 saturate-50')}>
+      <div className={cn('-mb-5 flex sm:-mb-3.5', isOut && 'opacity-40 saturate-50')}>
         {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
           <PlayingCard
             key={i}
@@ -128,6 +135,10 @@ export function PlayerSeat({
               // rank in the middle rather than the corner, so a deep fan would
               // bury the very thing the card is for.
               i > 0 && (hero ? '-ml-2' : '-ml-1'),
+              // Your own cards are a size down on a phone. They are the largest
+              // thing on the screen and the felt above them needs the room more
+              // — you can already read your own hand at any size.
+              hero && 'h-18 w-13 text-lg sm:h-24 sm:w-17 sm:text-2xl',
               'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
             )}
           />
@@ -136,7 +147,7 @@ export function PlayerSeat({
 
       <Card
         className={cn(
-          'relative gap-0 rounded-xl border px-3 py-1.5 transition-all duration-200',
+          'relative gap-0 rounded-xl border px-2 py-1 transition-all duration-200 sm:px-3 sm:py-1.5',
           // Card clips by default, which quietly shaved the dealer button down
           // to a sliver. The button and the chips both sit proud of the plate.
           // Milled rather than a flat translucent fill: over lit felt a flat
@@ -183,11 +194,11 @@ export function PlayerSeat({
           already tuck under the plate's top edge, so a face up there would land
           underneath them.
         */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <PlayerAvatar
             seed={player.id}
             className={cn(
-              hero ? 'size-9' : compact ? 'size-6' : 'size-7',
+              hero ? 'size-8 sm:size-9' : compact ? 'size-5 sm:size-6' : 'size-6 sm:size-7',
               // Folding takes the colour out of the face too, rather than
               // leaving the one bright thing at a seat that is out of the hand.
               isOut && 'grayscale',
@@ -197,7 +208,7 @@ export function PlayerSeat({
             <div
               className={cn(
                 'font-mono font-semibold tabular-nums',
-                hero ? 'text-base' : 'text-sm',
+                hero ? 'text-sm sm:text-base' : 'text-xs sm:text-sm',
                 player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
               )}
               data-testid={`stack-${player.id}`}
@@ -207,7 +218,7 @@ export function PlayerSeat({
             <div
               className={cn(
                 'truncate font-medium',
-                hero ? 'text-xs' : 'text-[10px]',
+                hero ? 'text-[11px] sm:text-xs' : 'text-[9px] sm:text-[10px]',
                 isOut ? 'text-muted-foreground/60' : 'text-muted-foreground',
               )}
             >
@@ -218,8 +229,10 @@ export function PlayerSeat({
       </Card>
 
       {/* Height reserved whether or not anything is wagered: seats are centred
-          on their own box, so a growing row would nudge the seat as chips land. */}
-      <div className="flex h-8 items-center gap-1">
+          on their own box, so a growing row would nudge the seat as chips land.
+          Shorter on a phone — the reservation is dead space at every seat that
+          is not currently betting, and six of them is most of a felt. */}
+      <div className="flex h-5 items-center gap-1 sm:h-8">
         {player.status === 'folded' && (
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
             folded
@@ -270,7 +283,11 @@ export function PlayerSeat({
             'animate-callout pointer-events-none absolute z-20 whitespace-nowrap',
             calloutSide === 'right'
               ? 'top-1/2 left-full ml-2.5 -translate-y-1/2'
-              : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
+              : calloutAlign === 'start'
+                ? 'top-full left-0 mt-1.5'
+                : calloutAlign === 'end'
+                  ? 'top-full right-0 mt-1.5'
+                  : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
           )}
           data-testid={`callout-${player.id}`}
         >
@@ -281,7 +298,16 @@ export function PlayerSeat({
                 'absolute size-2 rotate-45 bg-[oklch(0.25_0.036_24)]',
                 calloutSide === 'right'
                   ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-border'
-                  : '-top-1 left-1/2 -translate-x-1/2 border-t border-l border-border',
+                  : cn(
+                      '-top-1 border-t border-l border-border',
+                      // The tail stays over the seat even when the bubble has
+                      // been pushed inboard, so it still points at its owner.
+                      calloutAlign === 'start'
+                        ? 'left-5'
+                        : calloutAlign === 'end'
+                          ? 'right-5'
+                          : 'left-1/2 -translate-x-1/2',
+                    ),
               )}
             />
           </span>

@@ -91,6 +91,22 @@ function calloutSide(left: number): 'right' | 'below' {
 }
 
 /**
+ * Which end of a seat its callout hangs from.
+ *
+ * Centred under the seat, normally. But a bubble saying "Small blind 25" is
+ * wider than the seat it belongs to, and a seat out at the left or right of the
+ * arc has no felt to spare on its outboard side — so centring one there threw
+ * half of it off the table and into the room. The seats nearest each edge hang
+ * their bubble from the inboard end instead, which is the only direction with
+ * anywhere to put it.
+ */
+function calloutAlign(left: number): 'start' | 'center' | 'end' {
+  if (left < 30) return 'start'
+  if (left > 70) return 'end'
+  return 'center'
+}
+
+/**
  * Which side of a seat its chips sit on.
  *
  * Always the one facing the middle of the table. A seat out on the left rail
@@ -450,20 +466,27 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
     <main className="table-room flex min-h-dvh flex-col">
       {/* Sits directly on the felt, so everything here carries its own contrast
           rather than relying on a dark page behind it. */}
-      <header className="flex items-center justify-between gap-4 px-5 py-3 text-white">
-        <div className="flex items-center gap-3">
+      {/* Nothing here may wrap. On a phone the header is competing with the
+          felt for vertical room, and a second line costs more than the blinds
+          badge is worth — so the chrome shrinks rather than stacking. */}
+      <header className="flex items-center justify-between gap-2 px-3 py-2 text-white sm:gap-4 sm:px-5 sm:py-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {/* The house mark, struck in brass. A spade rather than a logo: it
               says which game this is before the name is read. */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
             <span className="text-brass" aria-hidden>
               &spades;
             </span>
-            <span className="wordmark text-base font-bold tracking-tight">Showdown</span>
+            <span className="wordmark text-sm font-bold tracking-tight whitespace-nowrap sm:text-base">
+              Showdown
+            </span>
           </Link>
-          <Separator orientation="vertical" className="h-4 bg-border" />
-          <span className="text-sm text-white/75">Hand {table.handNumber}</span>
+          <Separator orientation="vertical" className="bg-border h-4" />
+          <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap sm:text-sm">
+            Hand {table.handNumber}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {/* Said at the top as well as at the bottom, because it is the one
               thing that explains everything else about the screen. */}
           {spectating && (
@@ -511,10 +534,19 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
         because the monitor did.
       */}
       <div className="table-scale flex flex-1 flex-col">
-        <div className="flex flex-1 items-center justify-center px-4 pb-1">
-          {/* Shallower than it is wide, like a real table seen from the near
-              edge. A taller ellipse leaves a large empty apron below the board. */}
-          <div className="table-rail relative aspect-2/1 w-full max-w-3xl rounded-[46%/54%] p-2.5 sm:p-3.5">
+        <div className="flex flex-1 items-center justify-center px-2 pb-1 sm:px-4">
+          {/*
+            Shallower than it is wide, like a real table seen from the near
+            edge. A taller ellipse leaves a large empty apron below the board.
+
+            Except on a phone, where 2:1 is what breaks the table. The felt is
+            only as tall as half its width, so at 390px it is 159px from rail to
+            rail — and six seats, each a stack of cards over a plate over a
+            wager row, cannot be spread across that without running into each
+            other. The ellipse gets deeper as the screen gets narrower, which is
+            the one dimension there is any room in.
+          */}
+          <div className="table-rail relative aspect-[1.05/1] w-full max-w-3xl rounded-[46%/54%] p-2 sm:aspect-2/1 sm:p-3.5">
             <div className="table-felt border-brass/15 relative size-full rounded-[46%/54%] border">
               {/* The house mark printed on the cloth. Barely there, and never
                   read aloud — it sits below the board, on the apron of felt
@@ -557,11 +589,17 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   {Array.from({ length: 5 }).map((_, i) => {
                     const card = table.communityCards[i]
                     return card ? (
-                      <PlayingCard key={i} card={card} size="md" dealDelay={i * 70} />
+                      <PlayingCard
+                        key={i}
+                        card={card}
+                        size="md"
+                        dealDelay={i * 70}
+                        className="h-14 w-10 text-base sm:h-18 sm:w-13 sm:text-lg"
+                      />
                     ) : (
                       <div
                         key={i}
-                        className="border-brass/20 h-18 w-13 rounded-lg border border-dashed"
+                        className="border-brass/20 h-14 w-10 rounded-lg border border-dashed sm:h-18 sm:w-13"
                       />
                     )
                   })}
@@ -645,6 +683,22 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               )}
 
               {/* Opponents around the top arc */}
+              {/*
+                The seats sit in a band inset from the rail, not across the full
+                width of the felt.
+
+                Seat positions are percentages of whatever box holds them, and
+                at the left and right extremes of the arc a seat is only a few
+                percent from the edge — which on a wide table is still tens of
+                pixels of felt, and on a phone is nine pixels short of the rail,
+                so the plate hung off the table. Narrowing the band pulls those
+                two seats inboard without touching the arc they are placed on.
+
+                Inset symmetrically, and only horizontally, so that 50%/50% is
+                still the middle of the felt: the chips in flight below are laid
+                out in this same band, and they finish their journey at the pot.
+              */}
+              <div className="absolute inset-x-[7%] inset-y-[10%] sm:inset-0">
               {opponents.map((player, i) => {
                 const { left, top } = seatPosition(i, opponents.length)
                 return (
@@ -664,12 +718,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                       compact={opponents.length >= 4}
                       callout={callouts.get(player.id)}
                       calloutSide={calloutSide(left)}
+                      calloutAlign={calloutAlign(left)}
                       chipSide={chipSide(left)}
                       bigBlind={table.bigBlind}
                     />
                   </div>
                 )
               })}
+              </div>
             </div>
           </div>
         </div>

@@ -25,7 +25,8 @@ export type SubmitAction = (action: { type: string; amount?: number }) => void
  * staying in is felt green; committing chips is the one thing that gleams.
  */
 const ACTION_BUTTON =
-  'h-14 min-w-0 flex-1 rounded-xl text-base font-bold tracking-wide text-white uppercase' +
+  'h-14 min-w-0 flex-1 rounded-xl text-sm font-bold tracking-normal text-white uppercase' +
+  ' sm:text-base sm:tracking-wide' +
   ' border border-transparent shadow-[0_6px_18px_-6px_oklch(0_0_0/0.6),var(--edge)]' +
   ' transition-colors active:translate-y-px'
 
@@ -324,12 +325,20 @@ export function BettingControls({
 
             {sizing && (
               <Button
-                className={cn(ACTION_BUTTON, COMMIT)}
+                /*
+                 * The verb and the amount are stacked on a phone and side by
+                 * side above it. "Raise to 2,000" is the longest label the bar
+                 * ever holds, and across a third of a 390px screen it was being
+                 * cut off mid-number — which is the one part of it that has to
+                 * be read before it is pressed.
+                 */
+                className={cn(ACTION_BUTTON, COMMIT, 'flex-col gap-0 sm:flex-row sm:gap-1.5')}
                 disabled={busy}
                 onClick={() => onAction({ type: legal.raise ? 'raise' : 'bet', amount })}
                 data-testid="action-bet"
               >
-                {legal.raise ? 'Raise to' : 'Bet'} {amount.toLocaleString()}
+                <span>{legal.raise ? 'Raise to' : 'Bet'}</span>
+                <span>{amount.toLocaleString()}</span>
               </Button>
             )}
           </>
