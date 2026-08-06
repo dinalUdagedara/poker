@@ -17,7 +17,12 @@ import { RankingsButton } from './RankingsButton'
 import { useTableStream } from '@/lib/use-table-stream'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
-import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecycle'
+import {
+  isGameOver,
+  type AnyTableView,
+  type TableUpdate,
+  type TableView,
+} from '@/lib/poker/lifecycle'
 
 /**
  * How long each replayed move is held on screen.
@@ -126,12 +131,64 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
   useEffect(() => clearReplay, [clearReplay])
 
   /**
+   * Set when a change arrived while we were in no position to show it.
+   *
+   * It cannot simply be kept and applied later, because it may by then be the
+   * older of the two things we know: the safety poll can read the table just
+   * before an action lands and deliver it just after, so replaying it over the
+   * answer to that action would walk the table backwards. The flag says only
+   * that we fell behind; the server is asked what is true once we are idle.
+   */
+  const missed = useRef(false)
+
+  /**
+   * Catch up on whatever we had to ignore.
+   *
+   * Necessary because a dropped update is dropped for good. The stream sends a
+   * view only when it differs from the last one it sent this subscriber, so
+   * once it has been sent it is never offered again — the safety poll underneath
+   * computes the same view and stays quiet. Nothing would arrive until the
+   * connection was rebuilt, which is why the table sat on a finished hand until
+   * it was reloaded.
+   */
+  const resync = useCallback(async () => {
+    if (!missed.current) return
+    missed.current = false
+    try {
+      const response = await fetch(`/api/table/${tableId}`)
+      if (!response.ok) return
+      const view = (await response.json()) as AnyTableView
+      if (view.stage === 'playing') setTable(view)
+    } catch {
+      // The stream is still up and its safety poll is still running, so a
+      // failed catch-up is not worth putting an error on screen for.
+    }
+  }, [tableId])
+
+  /**
+   * Done stepping, done waiting: take live updates again.
+   *
+   * Emptying the array is the point of this, not tidying up after it. The
+   * stream handler reads its length to decide whether it may touch the table,
+   * and spent handles were left in it once a replay ran out — so the gate stayed
+   * shut for the rest of the hand and every later change was discarded.
+   */
+  const goIdle = useCallback(() => {
+    timers.current = []
+    setBusy(false)
+    void resync()
+  }, [resync])
+
+  /**
    * Take what other people did at this table, when it is safe to look.
    *
    * Only while idle. An update that landed mid-replay would cut off the moves
    * being stepped through, and one that landed mid-request would be overwritten
    * by that request's own answer a moment later — in both cases the player
    * would watch the table jump for reasons they could not see.
+   *
+   * Ignoring one is recorded rather than simply skipped, so that what it was
+   * telling us is fetched once the moment has passed.
    *
    * There is no replay for these: the animation exists to show the consequences
    * of your own move, and someone else's turn arriving is not that.
@@ -140,7 +197,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
     tableId,
     (view) => {
       if (view.stage !== 'playing') return
-      if (busy || timers.current.length > 0) return
+      if (busy || timers.current.length > 0) {
+        missed.current = true
+        return
+      }
       setTable(view)
     },
     () => setGone(true),
@@ -165,7 +225,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
 
       if (!wantsMotion || replay.length === 0) {
         setTable(final)
-        setBusy(false)
+        goIdle()
         return
       }
 
@@ -175,11 +235,11 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
       timers.current.push(
         setTimeout(() => {
           setTable(final)
-          setBusy(false)
+          goIdle()
         }, replay.length * STEP_MS),
       )
     },
-    [clearReplay],
+    [clearReplay, goIdle],
   )
 
   /**
@@ -207,10 +267,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
         showUpdate(payload as TableUpdate)
       } catch (e) {
         setError((e as Error).message)
-        setBusy(false)
+        // Idle again, and worth a catch-up: a refused action usually means the
+        // table has moved on without us, which is precisely the state we are
+        // now holding a stale copy of.
+        missed.current = true
+        goIdle()
       }
     },
-    [showUpdate],
+    [goIdle, showUpdate],
   )
 
   /**
