@@ -279,6 +279,11 @@ test.describe('chip stacks', () => {
 test('sizes a bet with the slider and stakes what the label showed', async ({ page }) => {
   await dealIn(page)
 
+  // The sizing panel starts shut, so it has to be opened before there is a
+  // track to drag — without this the test would skip itself and pass silently.
+  const toggle = page.getByTestId('sizing-toggle')
+  if (await toggle.isVisible().catch(() => false)) await toggle.click()
+
   const slider = page.getByTestId('bet-slider')
   if (!(await slider.isVisible().catch(() => false))) test.skip()
 
