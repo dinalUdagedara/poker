@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { HandRankings } from '@/components/HandRankings'
-import { PlayingCard } from '@/components/PlayingCard'
-import { parseCards } from '@/lib/poker/cards'
+import { GuideNext } from '@/components/guide/GuideNext'
+import { GUIDE_PAGES } from '@/components/guide/pages'
+import { Hand } from '@/components/guide/Hand'
+import { Section } from '@/components/guide/Section'
 import { shareCard } from '@/lib/site'
 import { cn } from '@/lib/utils'
 
@@ -31,39 +30,8 @@ export const metadata: Metadata = shareCard({
 const STARTING_STACK = 2_000
 const SMALL_BLIND = 25
 const BIG_BLIND = 50
-
-/** A row of face-up cards, written the way the engine writes them: 'AsKs'. */
-function Hand({ cards, className }: { cards: string; className?: string }) {
-  return (
-    <div className={cn('flex gap-1', className)}>
-      {parseCards(cards).map((card, i) => (
-        <PlayingCard key={i} card={card} size="xs" />
-      ))}
-    </div>
-  )
-}
-
-function Section({
-  title,
-  lead,
-  children,
-}: {
-  title: string
-  lead?: string
-  children: React.ReactNode
-}) {
-  return (
-    <Card className="panel-milled border-border backdrop-blur">
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold tracking-tight text-white">{title}</h2>
-          {lead && <p className="text-sm text-white/55">{lead}</p>}
-        </div>
-        {children}
-      </CardContent>
-    </Card>
-  )
-}
+/** Hands per blind level, from `BLIND_LEVEL_HANDS`. */
+const BLIND_LEVEL_HANDS = 10
 
 /** How a hand runs, in the order the table actually plays it out. */
 const STREETS: Array<{ name: string; detail: string; board?: string }> = [
@@ -110,28 +78,28 @@ const STREETS: Array<{ name: string; detail: string; board?: string }> = [
 const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
   {
     name: 'Fold',
-    swatch: "bg-play-fold ring-1 ring-white/15",
+    swatch: 'bg-play-fold ring-1 ring-white/15',
     detail: 'Give up the hand. Anything you already put in stays in the pot.',
   },
   {
     name: 'Check',
-    swatch: "bg-play-pass",
+    swatch: 'bg-play-pass',
     detail: 'Stay in and pass the decision on, offered only when there is no bet in front of you.',
   },
   {
     name: 'Call',
-    swatch: "bg-play-pass",
+    swatch: 'bg-play-pass',
     detail:
       'Match the current bet. If matching it takes your whole stack, the button says so — that is an all-in call.',
   },
   {
     name: 'Bet',
-    swatch: "bg-brass",
+    swatch: 'bg-brass',
     detail: `Open the betting on a street nobody has bet yet. The minimum is the big blind, ${BIG_BLIND}.`,
   },
   {
     name: 'Raise',
-    swatch: "bg-brass",
+    swatch: 'bg-brass',
     detail:
       'Put in more than the current bet. The slider shows the legal range; the shortcuts size it against the pot.',
   },
@@ -139,160 +107,146 @@ const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
 
 export default function HowToPlay() {
   return (
-    <main className="table-room flex min-h-dvh flex-col">
-      {/* The same bar as the table, so leaving the guide is the same gesture as
-          leaving a hand. */}
-      <header className="flex items-center justify-between gap-4 px-5 py-3 text-white">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="text-sm font-semibold tracking-tight drop-shadow-sm hover:opacity-80"
-          >
-            Hold&rsquo;em
-          </Link>
-          <Separator orientation="vertical" className="bg-border h-4" />
-          <span className="text-sm text-white/75">How to play</span>
+    <>
+      <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <Hand cards="AsAd" className="mb-2" />
+        <h1 className="wordmark text-4xl font-bold tracking-tight drop-shadow-sm">How to play</h1>
+        <p className="max-w-md text-sm text-white/70 drop-shadow-sm">
+          No-limit Texas Hold&rsquo;em, start to finish. This page is everything you need to sit
+          down; the rest of the guide goes deeper on each part of it.
+        </p>
+      </div>
+
+      <Section title="The goal" lead="Make the best five-card hand — or make everyone else give up.">
+        <p className="text-sm leading-relaxed text-white/70">
+          You get two private cards. Five more are dealt face up in the middle for everybody to
+          share. Your hand is the best five cards you can make out of those seven, and you are free
+          to use both of your own, one, or neither.
+        </p>
+        <p className="text-sm leading-relaxed text-white/70">
+          Chips go in across four rounds of betting. Win by holding the best hand when the cards are
+          turned over, or by betting enough that everyone else folds — in which case nobody ever
+          finds out what you had.
+        </p>
+        <div className="panel-well border-border flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:gap-5">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-white/45">Your cards</span>
+            <Hand cards="AhKh" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-white/45">The board</span>
+            <Hand cards="Qh7h2dJcTs" />
+          </div>
+          <p className="text-sm text-white/70 sm:ml-auto sm:max-w-52">
+            Best five: A-K-Q-J-10, a straight. The two hearts on the board are a flush draw that
+            never came in.
+          </p>
         </div>
+      </Section>
+
+      <Section title="How a hand runs" lead="Four betting rounds, five shared cards.">
+        <ol className="flex flex-col gap-4">
+          {STREETS.map((street, i) => (
+            <li key={street.name} className="flex gap-3">
+              <span className="text-muted-foreground mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-white/10 font-mono text-xs font-semibold tabular-nums">
+                {i + 1}
+              </span>
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold text-white">{street.name}</h3>
+                <p className="text-sm leading-relaxed text-white/65">{street.detail}</p>
+                {street.board && <Hand cards={street.board} />}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Section>
+
+      <Section
+        title="Your options"
+        lead="The table only ever offers what the rules allow, so a greyed-out button is not a bug."
+      >
+        <dl className="flex flex-col gap-3">
+          {ACTIONS.map((action) => (
+            <div key={action.name} className="flex items-start gap-3">
+              <span
+                className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', action.swatch)}
+                aria-hidden
+              />
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-sm font-semibold text-white">{action.name}</dt>
+                <dd className="text-sm leading-relaxed text-white/65">{action.detail}</dd>
+              </div>
+            </div>
+          ))}
+        </dl>
+        <p className="text-sm leading-relaxed text-white/55">
+          No limit means there is no ceiling on a bet: any raise can be for everything in front of
+          you. Bet more than an opponent can cover and they can only call for what they have — the
+          rest is set aside in a side pot they are not playing for.{' '}
+          <Link href="/how-to-play/betting" className="text-brass underline underline-offset-4">
+            How the minimums and side pots work
+          </Link>
+          .
+        </p>
+      </Section>
+
+      <Section title="At this table" lead="The specifics you are actually playing.">
+        <dl className="grid gap-3 sm:grid-cols-3">
+          {[
+            ['Starting stack', STARTING_STACK.toLocaleString()],
+            ['Opening blinds', `${SMALL_BLIND} / ${BIG_BLIND}`],
+            ['Table', '1–5 bots, or 2–6 people'],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="panel-well border-border flex flex-col gap-1 rounded-lg border p-3"
+            >
+              <dt className="text-xs font-medium text-white/45">{label}</dt>
+              <dd className="font-mono text-lg font-semibold text-white tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-sm leading-relaxed text-white/65">
+          Stacks carry over from hand to hand, and{' '}
+          <strong className="font-semibold text-white">
+            the blinds double every {BLIND_LEVEL_HANDS} hands
+          </strong>
+          . That is what makes a table end: with the stakes fixed, a careful game can go round for
+          ever, and the first player knocked out would be waiting on all of it. Rising blinds turn a
+          comfortable forty big blinds into a handful, which forces the decisions that finish it.
+        </p>
+      </Section>
+
+      <Section title="The rest of the guide" lead="Each part of the game, in as much detail as it needs.">
+        <ul className="flex flex-col gap-2">
+          {GUIDE_PAGES.filter((page) => page.href !== '/how-to-play').map((page) => (
+            <li key={page.href}>
+              <Link
+                href={page.href}
+                className="panel-well ring-border flex flex-col gap-0.5 rounded-lg p-3 ring-1 ring-inset transition-colors hover:bg-white/8"
+              >
+                <span className="text-sm font-semibold text-white">{page.label}</span>
+                <span className="text-sm text-white/60">{page.blurb}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <GuideNext href="/how-to-play/hands" />
+
+      <div className="flex flex-col items-center gap-3 py-4">
         <Link
           href="/"
           className={cn(
-            buttonVariants({ size: 'sm' }),
-            "brass-button font-semibold",
+            buttonVariants(),
+            'brass-button h-14 w-full max-w-sm rounded-xl text-base font-bold tracking-wide uppercase',
           )}
+          data-testid="play-from-guide"
         >
-          Play
+          Deal me in
         </Link>
-      </header>
-
-      <div className="flex flex-1 justify-center px-4 pb-10">
-        <div className="flex w-full max-w-2xl flex-col gap-4">
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <Hand cards="AsAd" className="mb-2" />
-            <h1 className="wordmark text-4xl font-bold tracking-tight drop-shadow-sm">
-              How to play
-            </h1>
-            <p className="max-w-md text-sm text-white/70 drop-shadow-sm">
-              No-limit Texas Hold&rsquo;em in one page: what wins, how a hand runs, and what each
-              button at the table does.
-            </p>
-          </div>
-
-          <Section
-            title="The goal"
-            lead="Make the best five-card hand — or make everyone else give up."
-          >
-            <p className="text-sm leading-relaxed text-white/70">
-              You get two private cards. Five more are dealt face up in the middle for everybody to
-              share. Your hand is the best five cards you can make out of those seven, and you are
-              free to use both of your own, one, or neither.
-            </p>
-            <p className="text-sm leading-relaxed text-white/70">
-              Chips go in across four rounds of betting. Win by holding the best hand when the cards
-              are turned over, or by betting enough that everyone else folds — in which case nobody
-              ever finds out what you had.
-            </p>
-            <div className="panel-well border-border flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:gap-5">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/45">Your cards</span>
-                <Hand cards="AhKh" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/45">The board</span>
-                <Hand cards="Qh7h2dJcTs" />
-              </div>
-              <p className="text-sm text-white/70 sm:ml-auto sm:max-w-[13rem]">
-                Best five: A-K-Q-J-10, a straight. The two hearts on the board are a flush draw that
-                never came in.
-              </p>
-            </div>
-          </Section>
-
-          <Section title="How a hand runs" lead="Four betting rounds, five shared cards.">
-            <ol className="flex flex-col gap-4">
-              {STREETS.map((street, i) => (
-                <li key={street.name} className="flex gap-3">
-                  <span className="text-muted-foreground mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-white/10 font-mono text-xs font-semibold tabular-nums">
-                    {i + 1}
-                  </span>
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-sm font-semibold text-white">{street.name}</h3>
-                    <p className="text-sm leading-relaxed text-white/65">{street.detail}</p>
-                    {street.board && <Hand cards={street.board} />}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </Section>
-
-          <Section
-            title="Your options"
-            lead="The table only ever offers what the rules allow, so a greyed-out button is not a bug."
-          >
-            <dl className="flex flex-col gap-3">
-              {ACTIONS.map((action) => (
-                <div key={action.name} className="flex items-start gap-3">
-                  <span
-                    className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', action.swatch)}
-                    aria-hidden
-                  />
-                  <div className="flex flex-col gap-0.5">
-                    <dt className="text-sm font-semibold text-white">{action.name}</dt>
-                    <dd className="text-sm leading-relaxed text-white/65">{action.detail}</dd>
-                  </div>
-                </div>
-              ))}
-            </dl>
-            <p className="text-sm leading-relaxed text-white/55">
-              No limit means there is no ceiling on a bet: any raise can be for everything in front
-              of you. Bet more than an opponent can cover and they can only call for what they have
-              — the rest is set aside in a side pot they are not playing for.
-            </p>
-          </Section>
-
-          <Section title="What beats what" lead="Strongest first. Suits never break a tie.">
-            <HandRankings />
-            <p className="text-sm leading-relaxed text-white/55">
-              Two players with the same category are split by the cards themselves: the higher pair,
-              then the higher side cards. If all five cards match, the pot is halved. The same chart
-              is a tap away at the table, so there is nothing here to memorise.
-            </p>
-          </Section>
-
-          <Section title="At this table" lead="The specifics you are actually playing.">
-            <dl className="grid gap-3 sm:grid-cols-3">
-              {[
-                ['Starting stack', STARTING_STACK.toLocaleString()],
-                ['Blinds', `${SMALL_BLIND} / ${BIG_BLIND}`],
-                ['Opponents', '1 to 5 bots'],
-              ].map(([label, value]) => (
-                <div key={label} className="panel-well border-border flex flex-col gap-1 rounded-lg border p-3">
-                  <dt className="text-xs font-medium text-white/45">{label}</dt>
-                  <dd className="font-mono text-lg font-semibold text-white tabular-nums">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <p className="text-sm leading-relaxed text-white/65">
-              Blinds stay where they are — nothing escalates. Stacks carry over from hand to hand,
-              so the table runs until you have taken everyone else&rsquo;s chips or lost your own.
-            </p>
-          </Section>
-
-          <div className="flex flex-col items-center gap-3 py-4">
-            <Link
-              href="/"
-              className={cn(
-                buttonVariants(),
-                "brass-button h-14 w-full max-w-sm rounded-xl text-base font-bold tracking-wide uppercase",
-              )}
-              data-testid="play-from-guide"
-            >
-              Deal me in
-            </Link>
-          </div>
-        </div>
       </div>
-    </main>
+    </>
   )
 }

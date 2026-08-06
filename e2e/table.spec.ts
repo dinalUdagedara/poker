@@ -552,7 +552,7 @@ test.describe('what beats what', () => {
   test('says the same thing in the guide', async ({ page }) => {
     // One list, shown in two places. A guide that disagreed with the table
     // about what beats what would be worse than no guide.
-    await page.goto('/how-to-play')
+    await page.goto('/how-to-play/hands')
 
     await expect(page.getByText('Royal Flush', { exact: true })).toBeVisible()
     await expect(page.getByText('Straight Flush', { exact: true })).toBeVisible()
