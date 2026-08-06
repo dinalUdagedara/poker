@@ -333,12 +333,12 @@ test('says who won, how much, and what they won it with', async ({ page }) => {
   if (!(await showing(page, 'hand-result'))) test.skip()
 
   const result = page.getByTestId('hand-result')
-  // The winner is named and placed — "Ada (seat 2) wins", "You (seat 1) win" —
-  // so the verb is matched on its own rather than glued to a name.
+  // The winner is named — "Ada wins", "You win" — so the verb is matched on its
+  // own rather than glued to a name.
   await expect(result).toContainText(/\b(win|wins|split)\b/)
-  // Whoever won is identified by seat, which is what tells two players who
-  // chose the same name apart.
-  await expect(result).toContainText(/\(seat \d+\)|You/)
+  // Somebody is named as having won it. The seat number this used to look for
+  // was dropped: where the pot goes already says which seat took it.
+  await expect(result).toContainText(/\b(You|Bot \d+|[A-Z][a-z]+ [A-Z][a-z]+)\b/)
   // The amount, always — a result that names a winner but not the pot leaves
   // the one number that matters to be worked out from the stacks.
   await expect(result).toContainText(/[\d,]+/)

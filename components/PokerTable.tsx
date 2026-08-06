@@ -253,19 +253,16 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
     !gone && (table.outcome.kind === 'winner' || table.outcome.kind === 'eliminated')
 
   /**
-   * A winner, named and placed.
+   * A winner, named.
    *
-   * The seat number matters more here than anywhere else on the table: nothing
-   * stops two people choosing the same name, since a name identifies nobody, so
-   * the seat is what says which of them just took the pot.
+   * The seat number used to be appended to disambiguate two players who chose
+   * the same name. It was reading as clutter on every hand to guard against a
+   * collision that is rare and, when it does happen, is already answered by the
+   * seat the pot visibly travels to.
    */
-  const winnerLabel = (id: string) => {
-    const name = seatName(id, table.names, table.viewerId)
-    const seat = table.players.find((p) => p.id === id)?.seat
-    return seat === undefined ? name : `${name} (seat ${seat + 1})`
-  }
-
-  const winnerNames = [...winners].map(winnerLabel).join(' and ')
+  const winnerNames = [...winners]
+    .map((id) => seatName(id, table.names, table.viewerId))
+    .join(' and ')
   /** Whose turn it is, for a screen that is only reporting on it. */
   const actingName =
     table.actingPlayerId && seatName(table.actingPlayerId, table.names, table.viewerId)
