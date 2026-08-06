@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ChipStack } from './ChipStack'
+import { PlayerAvatar } from './PlayerAvatar'
 import { PlayingCard } from './PlayingCard'
 import { stackTone, type StackTone } from '@/lib/poker/chips'
 import type { RedactedPlayer } from '@/lib/poker/redact'
@@ -175,26 +176,41 @@ export function PlayerSeat({
           The stack leads and the name is the caption under it. Whose seat this
           is gets read once; what they have left is read on every decision, and
           it was the smaller of the two.
+
+          The avatar sits inside the plate rather than above it: the hole cards
+          already tuck under the plate's top edge, so a face up there would land
+          underneath them.
         */}
-        <div className="text-center leading-tight">
-          <div
+        <div className="flex items-center gap-2">
+          <PlayerAvatar
+            seed={player.id}
             className={cn(
-              'font-mono font-semibold tabular-nums',
-              hero ? 'text-base' : 'text-sm',
-              player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
+              hero ? 'size-9' : compact ? 'size-6' : 'size-7',
+              // Folding takes the colour out of the face too, rather than
+              // leaving the one bright thing at a seat that is out of the hand.
+              isOut && 'grayscale',
             )}
-            data-testid={`stack-${player.id}`}
-          >
-            {player.stack.toLocaleString()}
-          </div>
-          <div
-            className={cn(
-              'truncate font-medium',
-              hero ? 'text-xs' : 'text-[10px]',
-              isOut ? 'text-neutral-500' : 'text-white/55',
-            )}
-          >
-            {displayName(player, viewerId, names)}
+          />
+          <div className="text-center leading-tight">
+            <div
+              className={cn(
+                'font-mono font-semibold tabular-nums',
+                hero ? 'text-base' : 'text-sm',
+                player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
+              )}
+              data-testid={`stack-${player.id}`}
+            >
+              {player.stack.toLocaleString()}
+            </div>
+            <div
+              className={cn(
+                'truncate font-medium',
+                hero ? 'text-xs' : 'text-[10px]',
+                isOut ? 'text-neutral-500' : 'text-white/55',
+              )}
+            >
+              {displayName(player, viewerId, names)}
+            </div>
           </div>
         </div>
       </Card>

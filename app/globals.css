@@ -163,6 +163,64 @@
     );
 }
 
+/*
+ * The table takes the room it is given.
+ *
+ * Every size on the felt is tuned against every other one — seats are placed as
+ * percentages of the table, cards overlap by a fixed amount, chips are drawn
+ * from pixel constants in `ChipStack`. Growing any of those on its own pulls
+ * the composition apart, so the whole column is scaled by one factor instead
+ * and the proportions are carried along untouched.
+ *
+ * `zoom` rather than a transform, because a transform paints at a new size
+ * without occupying it: the table would grow over the action bar rather than
+ * pushing it down. Zoom is laid out at the scaled size, so everything below
+ * still lands where it should.
+ *
+ * Gated on height as well as width. Width alone would scale the table up on a
+ * wide, short window — a laptop with the browser at half height — and the felt
+ * would run off the bottom of the screen, which is worse than a small table.
+ */
+.table-scale {
+  zoom: 1;
+}
+
+/*
+ * Height is what caps these, not width — and by a long way. The felt is a 2:1
+ * ellipse, so every pixel of width the table takes costs half of one in height,
+ * and underneath it sit the viewer's cards and the action bar. Scaled past
+ * these points the buttons you act with go under the bottom of the window,
+ * which is a worse table than a small one.
+ *
+ * The figures are measured rather than guessed: each step is the largest that
+ * keeps the fold button on screen at a full six-handed table, which is the
+ * tallest the layout ever gets. The hand history below it is still allowed to
+ * fall past the fold, as it always has.
+ */
+@media (min-width: 1440px) and (min-height: 900px) {
+  .table-scale {
+    zoom: 1.05;
+  }
+}
+
+@media (min-width: 1600px) and (min-height: 1020px) {
+  .table-scale {
+    zoom: 1.15;
+  }
+}
+
+@media (min-width: 1900px) and (min-height: 1080px) {
+  .table-scale {
+    zoom: 1.25;
+  }
+}
+
+@media (min-width: 2400px) and (min-height: 1400px) {
+  .table-scale {
+    zoom: 1.45;
+  }
+}
+
 /* The table proper: brighter than its surround, so it still reads as a table. */
 .table-felt {
   background:
@@ -178,6 +236,26 @@
   box-shadow:
     0 18px 45px -14px oklch(0.15 0.04 160 / 0.6),
     inset 0 1px 0 oklch(1 0 0 / 0.15);
+}
+
+/*
+ * The bet-sizing panel folding away.
+ *
+ * Animated on height rather than swapped in and out, because this sits in the
+ * middle of the console: appearing instantly would shift the action buttons
+ * under the pointer at the moment somebody is reaching for them. Base UI
+ * measures the panel and hands the height over in a variable, which is the
+ * only way to transition to `auto`.
+ */
+.sizing-panel {
+  overflow: hidden;
+  height: var(--collapsible-panel-height);
+  transition: height 180ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.sizing-panel[data-starting-style],
+.sizing-panel[data-ending-style] {
+  height: 0;
 }
 
 /* Face-down cards get a woven back rather than a flat fill. */
@@ -393,6 +471,11 @@
   .animate-wager,
   .animate-spotlight {
     animation: none;
+  }
+
+  /* Still folds, just arrives there at once. */
+  .sizing-panel {
+    transition: none;
   }
 
   /*
