@@ -4,8 +4,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* The table reads as a dark room in either OS theme, so the felt and the cards
-   keep their contrast rather than flipping with the system setting. */
+/*
+ * Showdown — oxblood and brass.
+ *
+ * The whole app is one dark red room lit from over the table, in either OS
+ * theme: the felt, the chips and the white card faces all depend on the
+ * surround staying dark, so nothing here flips with the system setting.
+ *
+ * Every value below comes from the Showdown design system. Take colours from
+ * the tokens rather than reaching for a Tailwind palette class — the palettes
+ * are neutral-grey and cool-toned, and a single `neutral-950` panel is enough
+ * to read as a hole punched in a warm room.
+ */
 
 @theme inline {
   --color-background: var(--background);
@@ -15,7 +25,47 @@
      back to the browser's default serif. */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  /*
+   * The house lettering. A didone is what casino signage, chip inlays and the
+   * back of a deck are set in, and it is the cheapest way for a screen to say
+   * "room" rather than "web app". Names, titles and card ranks only — never
+   * body copy, which stays in the sans.
+   */
+  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-heading: var(--font-display);
+
+  /* The table, and the metal on it. */
+  --color-felt: var(--felt);
+  --color-felt-lit: var(--felt-lit);
+  --color-felt-deep: var(--felt-deep);
+  --color-rail: var(--rail);
+  --color-brass: var(--brass);
+  --color-brass-lit: var(--brass-lit);
+  --color-brass-deep: var(--brass-deep);
+
+  /*
+   * The three plays. They differ in material as well as hue, because a red
+   * fold button on a red table is one object: folding is unlit stone, staying
+   * in is felt, and committing chips is the only metal on the screen.
+   */
+  --color-play-fold: var(--play-fold);
+  --color-play-fold-lit: var(--play-fold-lit);
+  --color-play-pass: var(--play-pass);
+  --color-play-pass-lit: var(--play-pass-lit);
+
+  /*
+   * The red suits. A signal red rather than the room's own red: a heart drawn
+   * in felt-colour on a card lying on the felt is the one place this palette
+   * could eat its own legibility.
+   */
+  --color-suit-red: var(--suit-red);
+
+  /* Money, read off a stack at a glance. Green here only ever means money. */
+  --color-win: var(--state-win);
+  --color-stack-healthy: var(--state-healthy);
+  --color-stack-medium: var(--state-medium);
+  --color-stack-short: var(--state-short);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -54,73 +104,87 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * The shadcn roles, in the house palette.
+ *
+ * Warm and red-tinted rather than neutral, so every primitive that reads these
+ * — Card, Badge, Button, Slider, Select — arrives already belonging to the
+ * room instead of having to be overridden at each call site. `--primary` is
+ * brass, because the primary action is always the one that costs something.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --background: oklch(0.155 0.042 22);
+  --foreground: oklch(0.97 0.012 70);
+  --card: oklch(0.205 0.045 22);
+  --card-foreground: oklch(0.97 0.012 70);
+  --popover: oklch(0.19 0.045 22);
+  --popover-foreground: oklch(0.97 0.012 70);
+  --primary: oklch(0.8 0.135 82);
+  --primary-foreground: oklch(0.2 0.05 40);
+  --secondary: oklch(0.29 0.05 22);
+  --secondary-foreground: oklch(0.97 0.012 70);
+  --muted: oklch(0.28 0.045 22);
+  --muted-foreground: oklch(0.74 0.028 45);
+  --accent: oklch(0.33 0.06 24);
+  --accent-foreground: oklch(0.97 0.012 70);
+  --destructive: oklch(0.67 0.175 25);
+  --border: oklch(0.95 0.03 70 / 12%);
+  --input: oklch(0.95 0.03 70 / 16%);
+  --ring: oklch(0.8 0.13 82);
+  /* The chip denominations, so a chart on this table is the same room. */
+  --chart-1: oklch(0.88 0.15 92);
+  --chart-2: oklch(0.62 0.19 300);
+  --chart-3: oklch(0.66 0.15 240);
+  --chart-4: oklch(0.6 0.2 25);
+  --chart-5: oklch(0.34 0.01 30);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.205 0.045 22);
+  --sidebar-foreground: oklch(0.97 0.012 70);
+  --sidebar-primary: oklch(0.8 0.135 82);
+  --sidebar-primary-foreground: oklch(0.2 0.05 40);
+  --sidebar-accent: oklch(0.29 0.05 22);
+  --sidebar-accent-foreground: oklch(0.97 0.012 70);
+  --sidebar-border: oklch(0.95 0.03 70 / 12%);
+  --sidebar-ring: oklch(0.8 0.13 82);
 }
 
+/*
+ * There is one theme. `layout.tsx` puts `.dark` on the document so every
+ * `dark:` variant in the shadcn primitives fires, but the values are the same
+ * ones above — the room does not have a light mode.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(0.155 0.042 22);
+  --foreground: oklch(0.97 0.012 70);
+  --card: oklch(0.205 0.045 22);
+  --card-foreground: oklch(0.97 0.012 70);
+  --popover: oklch(0.19 0.045 22);
+  --popover-foreground: oklch(0.97 0.012 70);
+  --primary: oklch(0.8 0.135 82);
+  --primary-foreground: oklch(0.2 0.05 40);
+  --secondary: oklch(0.29 0.05 22);
+  --secondary-foreground: oklch(0.97 0.012 70);
+  --muted: oklch(0.28 0.045 22);
+  --muted-foreground: oklch(0.74 0.028 45);
+  --accent: oklch(0.33 0.06 24);
+  --accent-foreground: oklch(0.97 0.012 70);
+  --destructive: oklch(0.67 0.175 25);
+  --border: oklch(0.95 0.03 70 / 12%);
+  --input: oklch(0.95 0.03 70 / 16%);
+  --ring: oklch(0.8 0.13 82);
+  --chart-1: oklch(0.88 0.15 92);
+  --chart-2: oklch(0.62 0.19 300);
+  --chart-3: oklch(0.66 0.15 240);
+  --chart-4: oklch(0.6 0.2 25);
+  --chart-5: oklch(0.34 0.01 30);
+  --sidebar: oklch(0.205 0.045 22);
+  --sidebar-foreground: oklch(0.97 0.012 70);
+  --sidebar-primary: oklch(0.8 0.135 82);
+  --sidebar-primary-foreground: oklch(0.2 0.05 40);
+  --sidebar-accent: oklch(0.29 0.05 22);
+  --sidebar-accent-foreground: oklch(0.97 0.012 70);
+  --sidebar-border: oklch(0.95 0.03 70 / 12%);
+  --sidebar-ring: oklch(0.8 0.13 82);
 }
 
 @layer base {
@@ -134,32 +198,59 @@
     @apply font-sans;
   }
 }
+
 /* ---------------------------------------------------------------------------
    Table surface
    --------------------------------------------------------------------------- */
 
 :root {
-  --felt: oklch(0.58 0.135 156);
-  --felt-deep: oklch(0.45 0.115 158);
-  --rail: oklch(0.36 0.05 42);
-  --chip-gold: oklch(0.82 0.14 85);
+  --felt-lit: oklch(0.44 0.145 24);
+  --felt: oklch(0.375 0.13 22);
+  --felt-deep: oklch(0.3 0.105 20);
+  --rail-lit: oklch(0.36 0.07 45);
+  --rail: oklch(0.245 0.055 38);
+  --rail-deep: oklch(0.145 0.035 32);
+  --brass: oklch(0.8 0.135 82);
+  --brass-lit: oklch(0.91 0.085 88);
+  --brass-deep: oklch(0.45 0.09 72);
+
+  --play-fold: oklch(0.34 0.014 40);
+  --play-fold-lit: oklch(0.41 0.016 40);
+  --play-pass: oklch(0.52 0.12 158);
+  --play-pass-lit: oklch(0.6 0.135 158);
+
+  --suit-red: oklch(0.58 0.19 25);
+
+  --state-win: oklch(0.78 0.16 155);
+  --state-healthy: oklch(0.76 0.15 156);
+  --state-medium: oklch(0.83 0.13 84);
+  --state-short: oklch(0.7 0.185 22);
+
+  /*
+   * Elevation, twice over. On a dark ground a shadow alone is invisible, so
+   * every raised object also gets a lit hairline along its top edge — and the
+   * hairline is brass, because every lit edge in this room is. That is what
+   * makes a panel look milled rather than pasted on.
+   */
+  --edge: inset 0 1px 0 oklch(0.9 0.09 88 / 0.16);
+  --edge-strong: inset 0 1px 0 oklch(0.9 0.09 88 / 0.32);
 }
 
 /*
  * There is no room. The felt is the page.
  *
  * The table used to be a small lit oval adrift in a near-black page, which read
- * as murky and left most of the screen doing nothing. Now the green runs to
+ * as murky and left most of the screen doing nothing. Now the house runs to
  * every edge and the light falls off towards the corners, so the whole viewport
  * is one surface lit from above the table.
  */
 .table-room {
   background:
     radial-gradient(
-      75% 60% at 50% 34%,
-      oklch(0.63 0.135 155) 0%,
-      var(--felt) 45%,
-      oklch(0.4 0.1 159) 100%
+      78% 62% at 50% 32%,
+      oklch(0.29 0.095 22) 0%,
+      oklch(0.225 0.075 21) 45%,
+      var(--background) 100%
     );
 }
 
@@ -221,21 +312,108 @@
   }
 }
 
-/* The table proper: brighter than its surround, so it still reads as a table. */
-.table-felt {
-  background:
-    radial-gradient(85% 72% at 50% 32%, oklch(0.61 0.14 155) 0%, var(--felt-deep) 82%);
+/* Polished mahogany, with a brass hairline where the light lands on it. */
+.table-rail {
+  background: linear-gradient(
+    180deg,
+    var(--rail-lit) 0%,
+    var(--rail) 52%,
+    var(--rail-deep) 100%
+  );
   box-shadow:
-    inset 0 0 70px oklch(0.18 0.05 160 / 0.4),
-    inset 0 2px 0 oklch(1 0 0 / 0.12),
-    0 26px 60px -22px oklch(0.15 0.04 160 / 0.7);
+    0 24px 60px -20px oklch(0 0 0 / 0.75),
+    var(--edge-strong);
 }
 
-.table-rail {
-  background: linear-gradient(180deg, oklch(0.48 0.06 46) 0%, var(--rail) 55%, oklch(0.27 0.04 40) 100%);
+/*
+ * The table proper: brighter than its surround, so it still reads as a table.
+ *
+ * The weave is two crossed hatches at a whisper of opacity. Without them the
+ * felt is a flat fill and the cards look pasted onto a colour rather than
+ * lying on cloth — it costs nothing and it is most of what sells the surface.
+ */
+.table-felt {
+  background-image:
+    repeating-linear-gradient(45deg, oklch(1 0 0 / 0.014) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.022) 0 2px, transparent 2px 4px),
+    radial-gradient(86% 72% at 50% 30%, var(--felt-lit) 0%, var(--felt) 52%, var(--felt-deep) 100%);
   box-shadow:
-    0 18px 45px -14px oklch(0.15 0.04 160 / 0.6),
-    inset 0 1px 0 oklch(1 0 0 / 0.15);
+    inset 0 0 80px oklch(0.1 0.04 20 / 0.55),
+    var(--edge);
+}
+
+/*
+ * The betting line every real table has printed on its cloth.
+ *
+ * A ::before rather than a ::after: pseudo-elements sit in tree order with the
+ * real children, so ::after would paint the line across the seats and the pot.
+ * ::before comes first and stays under them, which is where a printed line is.
+ */
+.table-felt::before {
+  content: "";
+  position: absolute;
+  inset: 7% 5%;
+  border-radius: 46% / 54%;
+  border: 1px solid oklch(0.9 0.09 88 / 0.14);
+  pointer-events: none;
+}
+
+/* The house mark printed on the cloth. Barely there, and never read aloud. */
+.felt-mark {
+  font-family: var(--font-display);
+  letter-spacing: 0.55em;
+  color: oklch(0.9 0.09 88 / 0.13);
+}
+
+/*
+ * A slab of the house resting on the felt.
+ *
+ * Milled rather than flat: warm, dark, and lit along the top edge. A flat
+ * translucent rectangle over a lit table reads as a smudge rather than as an
+ * object, which is what every panel in this app used to be.
+ *
+ * Unlayered on purpose, so it beats the `bg-card` that shadcn's Card carries
+ * in Tailwind's utilities layer without needing `!important` at each call site.
+ * For the same reason it sets no border colour: a seat plate has to be able to
+ * turn brass when it is that player's turn, and an unlayered `border-color`
+ * here would win against the utility class saying so.
+ */
+.panel-milled {
+  background: linear-gradient(180deg, var(--card) 0%, var(--background) 100%);
+  box-shadow:
+    0 6px 18px -6px oklch(0 0 0 / 0.6),
+    var(--edge);
+}
+
+/* The opposite gesture: something set into a panel rather than onto it. */
+.panel-well {
+  background: oklch(0 0 0 / 0.28);
+  box-shadow: inset 0 1px 3px oklch(0 0 0 / 0.4);
+}
+
+/*
+ * The one struck-brass object on a screen. It gleams because it is always the
+ * action that costs you something; everything else is painted.
+ */
+.brass-button {
+  background: linear-gradient(180deg, oklch(0.86 0.115 86) 0%, oklch(0.72 0.13 79) 100%);
+  color: oklch(0.2 0.05 40);
+  box-shadow:
+    0 6px 18px -6px oklch(0 0 0 / 0.6),
+    inset 0 1px 0 oklch(1 0 0 / 0.45);
+}
+
+.brass-button:hover {
+  background: linear-gradient(180deg, oklch(0.91 0.085 88) 0%, oklch(0.83 0.128 84) 100%);
+}
+
+/* The wordmark, struck rather than printed: brass clipped to the letterforms. */
+.wordmark {
+  font-family: var(--font-display);
+  background: linear-gradient(180deg, oklch(0.91 0.085 88), oklch(0.6 0.115 76));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /*
@@ -258,11 +436,19 @@
   height: 0;
 }
 
-/* Face-down cards get a woven back rather than a flat fill. */
+/*
+ * Face-down cards get house stock: near-black woven cloth inside a brass rule.
+ *
+ * Not red. A red back on a red table is one object, and counting an opponent's
+ * cards from across the felt is the entire job of a face-down card.
+ */
 .card-back {
   background-image:
-    repeating-linear-gradient(45deg, oklch(0.42 0.09 265) 0 3px, oklch(0.3 0.08 265) 3px 6px);
-  border-color: oklch(0.55 0.1 265 / 0.7);
+    repeating-linear-gradient(45deg, oklch(0.3 0.05 30) 0 3px, oklch(0.185 0.038 26) 3px 6px);
+  border-color: oklch(0.8 0.135 82 / 0.45);
+  box-shadow:
+    0 2px 8px -2px oklch(0 0 0 / 0.7),
+    inset 0 0 0 1px oklch(0.8 0.135 82 / 0.18);
 }
 
 @keyframes deal-in {
@@ -413,14 +599,15 @@
 }
 
 /* The winning seat breathes rather than just sitting in a static ring, so the
-   eye is pulled to who took it down before the result panel is read. */
+   eye is pulled to who took it down before the result panel is read. Green:
+   in this room green is only ever money. */
 @keyframes winner-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 3px oklch(0.75 0.16 155 / 0.4);
+    box-shadow: 0 0 0 3px oklch(0.78 0.16 155 / 0.42);
   }
   50% {
-    box-shadow: 0 0 0 8px oklch(0.75 0.16 155 / 0.1);
+    box-shadow: 0 0 0 8px oklch(0.78 0.16 155 / 0.1);
   }
 }
 

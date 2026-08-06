@@ -22,32 +22,32 @@ export function RankingsButton() {
       <Dialog.Trigger
         aria-label="What beats what"
         title="What beats what"
-        className="grid size-7 place-items-center rounded-full border border-white/15 bg-black/35 text-white/80 transition-colors hover:bg-black/55 hover:text-white"
+        className="border-border grid size-7 place-items-center rounded-full border bg-black/35 text-white/80 transition-colors hover:bg-black/55 hover:text-white"
         data-testid="rankings"
       >
         <Layers className="size-4" aria-hidden />
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-[oklch(0.1_0.03_20/0.72)] backdrop-blur-sm" />
         <Dialog.Popup
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-2xl border border-white/10 bg-neutral-950/95 shadow-2xl outline-none sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-2xl"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-2xl panel-milled border-border border outline-none sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-2xl"
           data-testid="rankings-panel"
         >
           {/* Pinned, because the list below it scrolls and a heading that
               scrolled away would take the way out with it. */}
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3">
+          <div className="flex items-center justify-between gap-4 border-border border-b px-4 py-3">
             <div className="flex flex-col">
               <Dialog.Title className="text-sm font-semibold text-white">
                 What beats what
               </Dialog.Title>
-              <Dialog.Description className="text-xs text-white/45">
+              <Dialog.Description className="text-muted-foreground text-xs">
                 Strongest first. Suits never break a tie.
               </Dialog.Description>
             </div>
             <Dialog.Close
               aria-label="Close"
-              className="grid size-7 shrink-0 place-items-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              className="text-muted-foreground grid size-7 shrink-0 place-items-center rounded-full transition-colors hover:bg-white/10 hover:text-white"
             >
               <X className="size-4" aria-hidden />
             </Dialog.Close>
