@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PlayingCard } from '@/components/PlayingCard'
@@ -32,18 +33,114 @@ const ROOM_SIZES = [2, 3, 4, 5, 6] as const
 
 const OPPONENTS = [1, 2, 3, 4, 5]
 
-export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' }) {
+/**
+ * Which of the three views the panel is showing.
+ *
+ * A path rather than a state: picking a way to play leaves the choice behind
+ * rather than keeping it on screen to be re-made. See the note on `screen`.
+ */
+type Screen = 'start' | 'practice' | 'people'
+
+/** The seat colours again, so a mode is previewed in the faces it deals. */
+const FACE_ONE = 'conic-gradient(from 200deg, #facc15, #dc2626, #8b5cf6, #facc15)'
+const FACE_TWO = 'conic-gradient(from 40deg, #0ea5e9, #e5e5e5, #8b5cf6, #0ea5e9)'
+
+/**
+ * One way to play, offered as a whole row rather than as half a switch.
+ *
+ * The dots are the seats the mode deals — one face for a table of bots, two
+ * overlapping for a table of people. It is the same trick the room list uses
+ * with its pips: a thing to glance at rather than a sentence to read.
+ */
+function ModeTile({
+  name,
+  detail,
+  faces,
+  testId,
+  disabled,
+  onClick,
+}: {
+  name: string
+  detail: string
+  /** How many faces to draw beside it: one for bots, two for people. */
+  faces: 1 | 2
+  testId: string
+  disabled: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      data-testid={testId}
+      className={cn(
+        'group bg-secondary border-border flex w-full items-center gap-4 rounded-lg border p-4 text-left',
+        'transition-colors hover:border-brass/30 hover:bg-white/6 disabled:opacity-50',
+        'focus-visible:ring-brass/50 focus-visible:ring-2 focus-visible:outline-none',
+      )}
+    >
+      <span className="flex shrink-0" aria-hidden>
+        <span
+          className="size-4 rounded-full ring-1 ring-black/40"
+          style={{ background: FACE_ONE }}
+        />
+        {faces === 2 && (
+          <span
+            className="-ml-1.5 size-4 rounded-full ring-1 ring-black/40"
+            style={{ background: FACE_TWO }}
+          />
+        )}
+      </span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm font-semibold text-white">{name}</span>
+        <span className="text-muted-foreground text-xs">{detail}</span>
+      </span>
+      <ChevronRight
+        className="text-muted-foreground group-hover:text-brass ml-auto size-4 shrink-0 transition-colors"
+        aria-hidden
+      />
+    </button>
+  )
+}
+
+/** The way back to the picker, from either of the two modes. */
+function BackLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid="choose-mode"
+      className="text-muted-foreground -mb-1 flex items-center gap-1 self-start text-[13px] transition-colors hover:text-white"
+    >
+      <ChevronLeft className="size-3.5" aria-hidden />
+      Choose mode
+    </button>
+  )
+}
+
+export function HomePanel({ initialScreen }: { initialScreen: Screen }) {
   const router = useRouter()
   const [botCount, setBotCount] = useState('3')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   /*
-   * Which tab opens is decided on the server and handed down, rather than read
+   * Which view opens is decided on the server and handed down, rather than read
    * from the query here. Reading it here would put this whole panel behind a
    * Suspense boundary that cannot prerender, so the page would arrive blank and
    * fill in after hydration.
+   *
+   * A screen and not a tab. The two ways to play were a segmented control, and
+   * a segmented control is the wrong shape for this: it is for switching
+   * between views of the same thing, while these are two different games with
+   * nothing in common below the name field. Worse, it kept the road not taken
+   * on screen through the whole of the choice that followed — the opponent
+   * count sat under a live "With people" button that would throw it away.
+   *
+   * So picking a mode leaves the picker behind, and the way back is a link
+   * rather than the other half of a control you might hit by accident.
    */
-  const [tab, setTab] = useState(initialTab)
+  const [screen, setScreen] = useState<Screen>(initialScreen)
   const [seatCount, setSeatCount] = useState(4)
   const [isPublic, setIsPublic] = useState(true)
   /*
@@ -96,6 +193,16 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
     }
   }
 
+  /** Shared by both pickers: five choices, shown whole rather than in a menu. */
+  const choiceClass = (selected: boolean) =>
+    cn(
+      'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
+      'ring-1 ring-inset disabled:opacity-50',
+      selected
+        ? 'brass-button ring-brass'
+        : 'panel-well text-muted-foreground ring-border hover:bg-white/8',
+    )
+
   return (
     <main className="table-room flex flex-1 items-center justify-center p-6">
       <div className="flex w-full max-w-sm flex-col items-center">
@@ -123,9 +230,11 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
               <p className="text-muted-foreground text-sm">No-limit Hold&rsquo;em</p>
             </div>
 
-            {/* First, because it is the one thing that applies to everything
-                below it — and blank is a real answer: the server hands out a
-                name rather than refusing to start. */}
+            {/* Above the fork rather than inside either arm of it: a name is
+                the one thing both ways to play need, and asking for it twice —
+                or asking again after going back — would be asking twice. Blank
+                is a real answer; the server hands out a name rather than
+                refusing to start. */}
             <div className="flex flex-col gap-2">
               <label htmlFor="player-name" className="text-muted-foreground text-sm font-medium">
                 Your name
@@ -142,168 +251,159 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
               />
             </div>
 
-            {/*
-              Two ways to play, not two sets of settings for one. A tab strip
-              keeps whichever you are not using out of the way — stacked, the
-              panel asked you to read past a whole game to reach the other.
-            */}
-            <div
-              role="tablist"
-              aria-label="How to play"
-              className="panel-well ring-border grid grid-cols-2 gap-1 rounded-lg p-1 ring-1 ring-inset"
-            >
-              {(
-                [
-                  ['practice', 'Practice'],
-                  ['people', 'With people'],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === value}
+            {screen === 'start' && (
+              <div className="flex flex-col gap-3">
+                <ModeTile
+                  name="Single player"
+                  detail="Practice against bots, right away"
+                  faces={1}
+                  testId="tab-practice"
                   disabled={busy}
-                  onClick={() => setTab(value)}
-                  data-testid={`tab-${value}`}
-                  className={cn(
-                    'h-9 rounded-md text-sm font-medium transition-colors disabled:opacity-50',
-                    tab === value
-                      ? 'bg-white/12 text-white shadow-sm'
-                      : 'text-muted-foreground hover:text-white/80',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className={cn('flex-col gap-2', tab === 'practice' ? 'flex' : 'hidden')}>
-              <div className="flex items-baseline justify-between">
-                <span className="text-muted-foreground text-sm font-medium">Opponents</span>
-                <span className="text-muted-foreground/70 text-xs">
-                  {botCount === '1' ? 'heads up' : `${Number(botCount) + 1} handed`}
-                </span>
-              </div>
-
-              {/*
-                One tap instead of open-a-menu-then-choose. Five options is few
-                enough to show them all, and seeing the range is part of the
-                choice — a closed dropdown hides how big a table can get.
-              */}
-              <div role="radiogroup" aria-label="Opponents" className="grid grid-cols-5 gap-1.5">
-                {OPPONENTS.map((n) => {
-                  const selected = botCount === String(n)
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      aria-label={String(n)}
-                      disabled={busy}
-                      onClick={() => setBotCount(String(n))}
-                      data-testid={`opponents-${n}`}
-                      className={cn(
-                        'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
-                        'ring-1 ring-inset disabled:opacity-50',
-                        selected
-                          ? 'brass-button ring-brass'
-                          : 'panel-well text-muted-foreground ring-border hover:bg-white/8',
-                      )}
-                    >
-                      {n}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <Button
-                className="brass-button mt-2 h-14 w-full rounded-xl text-base font-bold tracking-wide uppercase"
-                disabled={busy}
-                onClick={() => void deal()}
-                data-testid="deal"
-              >
-                {busy ? 'Dealing…' : 'Deal me in'}
-              </Button>
-            </div>
-
-            <div className={cn('flex-col gap-3', tab === 'people' ? 'flex' : 'hidden')}>
-              <div className="flex items-baseline justify-between">
-                <span className="text-muted-foreground text-sm font-medium">Seats at the table</span>
-                <span className="text-muted-foreground/70 text-xs">
-                  {seatCount === 2 ? 'heads up' : `${seatCount} seats`}
-                </span>
-              </div>
-
-              <div role="radiogroup" aria-label="Seats" className="grid grid-cols-5 gap-1.5">
-                {ROOM_SIZES.map((n) => {
-                  const selected = seatCount === n
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      aria-label={`${n} seats`}
-                      disabled={busy}
-                      onClick={() => setSeatCount(n)}
-                      data-testid={`seats-${n}`}
-                      className={cn(
-                        'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
-                        'ring-1 ring-inset disabled:opacity-50',
-                        selected
-                          ? 'brass-button ring-brass'
-                          : 'panel-well text-muted-foreground ring-border hover:bg-white/8',
-                      )}
-                    >
-                      {n}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/*
-                Listing publishes the room's address, so it is a deliberate
-                choice rather than a default. Off means the link is the invite,
-                which is what someone playing with friends wants.
-              */}
-              <label className="panel-well ring-border flex cursor-pointer items-start gap-3 rounded-lg p-3 ring-1 ring-inset hover:bg-white/8">
-                <input
-                  type="checkbox"
-                  checked={isPublic}
-                  onChange={(e) => setIsPublic(e.target.checked)}
-                  data-testid="list-publicly"
-                  className="accent-brass mt-0.5 size-4"
+                  onClick={() => setScreen('practice')}
                 />
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-sm text-white/85">List it publicly</span>
-                  <span className="text-muted-foreground/70 text-xs">
-                    {isPublic
-                      ? 'Anyone can find this room and sit down.'
-                      : 'Private — only people you send the link to can join.'}
-                  </span>
-                </span>
-              </label>
-
-              <div className="flex gap-2">
-                <Button
-                  className="ring-border h-11 flex-1 bg-white/10 text-sm font-semibold text-white ring-1 ring-inset hover:bg-white/15"
+                <ModeTile
+                  name="With people"
+                  detail="Open or join a real table"
+                  faces={2}
+                  testId="tab-people"
                   disabled={busy}
-                  onClick={() => void deal(seatCount, isPublic)}
-                  data-testid="open-public-room"
-                >
-                  Open a room
-                </Button>
-                <Link
-                  href="/rooms"
-                  className="panel-well ring-border flex h-11 flex-1 items-center justify-center rounded-md text-sm font-medium text-white/80 ring-1 ring-inset transition-colors hover:bg-white/8 hover:text-white"
-                  data-testid="browse-rooms"
-                >
-                  Browse rooms
-                </Link>
+                  onClick={() => setScreen('people')}
+                />
               </div>
-            </div>
+            )}
+
+            {screen === 'practice' && (
+              <div className="flex flex-col gap-4">
+                <BackLink onClick={() => setScreen('start')} />
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-muted-foreground text-sm font-medium">Opponents</span>
+                    <span className="text-muted-foreground/70 text-xs">
+                      {botCount === '1' ? 'heads up' : `${Number(botCount) + 1} handed`}
+                    </span>
+                  </div>
+
+                  {/*
+                    One tap instead of open-a-menu-then-choose. Five options is
+                    few enough to show them all, and seeing the range is part of
+                    the choice — a closed dropdown hides how big a table can get.
+                  */}
+                  <div role="radiogroup" aria-label="Opponents" className="grid grid-cols-5 gap-1.5">
+                    {OPPONENTS.map((n) => {
+                      const selected = botCount === String(n)
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          aria-label={String(n)}
+                          disabled={busy}
+                          onClick={() => setBotCount(String(n))}
+                          data-testid={`opponents-${n}`}
+                          className={choiceClass(selected)}
+                        >
+                          {n}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <Button
+                  className="brass-button h-14 w-full rounded-xl text-base font-bold tracking-wide uppercase"
+                  disabled={busy}
+                  onClick={() => void deal()}
+                  data-testid="deal"
+                >
+                  {busy ? 'Dealing…' : 'Deal me in'}
+                </Button>
+              </div>
+            )}
+
+            {screen === 'people' && (
+              <div className="flex flex-col gap-4">
+                <BackLink onClick={() => setScreen('start')} />
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Seats at the table
+                    </span>
+                    <span className="text-muted-foreground/70 text-xs">
+                      {seatCount === 2 ? 'heads up' : `${seatCount} seats`}
+                    </span>
+                  </div>
+
+                  <div role="radiogroup" aria-label="Seats" className="grid grid-cols-5 gap-1.5">
+                    {ROOM_SIZES.map((n) => {
+                      const selected = seatCount === n
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          aria-label={`${n} seats`}
+                          disabled={busy}
+                          onClick={() => setSeatCount(n)}
+                          data-testid={`seats-${n}`}
+                          className={choiceClass(selected)}
+                        >
+                          {n}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/*
+                  Listing publishes the room's address, so it is a deliberate
+                  choice rather than a default. Off means the link is the invite,
+                  which is what someone playing with friends wants.
+                */}
+                <label className="panel-well ring-border flex cursor-pointer items-start gap-3 rounded-lg p-3 ring-1 ring-inset hover:bg-white/8">
+                  <input
+                    type="checkbox"
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                    data-testid="list-publicly"
+                    className="accent-brass mt-0.5 size-4"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm text-white/85">List it publicly</span>
+                    <span className="text-muted-foreground/70 text-xs">
+                      {isPublic
+                        ? 'Anyone can find this room and sit down.'
+                        : 'Private — only people you send the link to can join.'}
+                    </span>
+                  </span>
+                </label>
+
+                {/* Ruled off, because these two leave: one opens a room, the
+                    other goes to the list of them. Everything above is settings
+                    for the first of those, and without a line the pair read as
+                    one more row of them. */}
+                <div className="border-border flex gap-3 border-t pt-4">
+                  <Button
+                    className="brass-button h-12 flex-1 rounded-xl text-sm font-bold tracking-wide uppercase"
+                    disabled={busy}
+                    onClick={() => void deal(seatCount, isPublic)}
+                    data-testid="open-public-room"
+                  >
+                    {busy ? 'Opening…' : 'Open a room'}
+                  </Button>
+                  <Link
+                    href="/rooms"
+                    className="panel-well ring-border text-muted-foreground flex h-12 flex-1 items-center justify-center rounded-xl text-sm font-bold tracking-wide uppercase ring-1 ring-inset transition-colors hover:bg-white/8 hover:text-white"
+                    data-testid="browse-rooms"
+                  >
+                    Browse rooms
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {error && (
               <p className="text-destructive text-center text-sm" role="alert" data-testid="error">
@@ -311,8 +411,8 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
               </p>
             )}
 
-            {/* Under the deal button rather than above it: someone who already
-                knows the game should never have to read past this to start. */}
+            {/* Under the fork rather than above it: someone who already knows
+                the game should never have to read past this to start. */}
             <Link
               href="/how-to-play"
               className="text-muted-foreground -mt-2 text-center text-sm underline-offset-4 hover:text-white hover:underline"

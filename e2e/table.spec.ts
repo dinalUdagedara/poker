@@ -13,7 +13,11 @@ async function dealIn(page: Page, opponents = '3') {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Showdown/ })).toBeVisible()
 
-  // One tap on the segmented picker rather than opening a menu and choosing.
+  // The lobby opens on the fork between the two ways to play, so the single
+  // player path is chosen before there is an opponent count to set.
+  await page.getByTestId('tab-practice').click()
+
+  // One tap on the picker rather than opening a menu and choosing.
   if (opponents !== '3') await page.getByTestId(`opponents-${opponents}`).click()
 
   await page.getByTestId('deal').click()

@@ -124,6 +124,8 @@ test('tells somebody who followed a link to a full table that they are watching'
 
   try {
     await owner.goto('/')
+    // The lobby opens on the fork between the two ways to play.
+    await owner.getByTestId('tab-practice').click()
     await owner.getByTestId('deal').click()
     await owner.waitForURL(/\/table\/[0-9a-f-]+/)
     await expect(owner.getByTestId('pot')).toBeVisible()

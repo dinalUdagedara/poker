@@ -16,6 +16,63 @@
         justify-content: center;
         padding: var(--space-8) var(--space-6);
       }
+      .tile {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        width: 100%;
+        padding: var(--space-4);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-divider);
+        background: var(--color-surface-2);
+        cursor: pointer;
+        text-align: left;
+        transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+      }
+      .tile:hover {
+        border-color: oklch(0.9 0.09 88 / 0.3);
+        background: oklch(1 0 0 / 0.04);
+      }
+      .tile-icon {
+        display: flex;
+        flex-shrink: 0;
+      }
+      .tile-icon span {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: conic-gradient(from 200deg, #facc15, #dc2626, #8b5cf6, #facc15);
+        box-shadow: 0 0 0 1px oklch(0 0 0 / 0.4);
+      }
+      .tile-icon.pair span:last-child {
+        margin-left: -6px;
+        background: conic-gradient(from 40deg, #0ea5e9, #e5e5e5, #8b5cf6, #0ea5e9);
+      }
+      .tile-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .tile-arrow {
+        margin-left: auto;
+        color: var(--color-muted);
+        font-family: var(--font-mono);
+      }
+      .back-link {
+        align-self: flex-start;
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--color-muted);
+        font-size: 13px;
+        cursor: pointer;
+        margin-bottom: -4px;
+      }
+      .back-link:hover {
+        color: var(--color-text);
+      }
+      #screen-start[hidden], #screen-practice[hidden], #screen-people[hidden] {
+        display: none;
+      }
       .stack-col {
         width: 100%;
         max-width: 400px;
@@ -62,6 +119,20 @@
         background: linear-gradient(180deg, var(--color-accent-300), var(--color-accent-600));
         box-shadow: var(--shadow-sm), inset 0 1px 0 oklch(1 0 0 / 0.4);
       }
+      .choice:hover {
+        color: var(--color-text);
+        background: oklch(1 0 0 / 0.06);
+      }
+      .step {
+        overflow: hidden;
+        transition: height 220ms var(--ease);
+      }
+      .pane {
+        transition: opacity 160ms var(--ease);
+      }
+      .pane[hidden] {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -86,28 +157,75 @@
             <input class="input" id="pn" placeholder="Leave blank and we will name you" />
           </div>
 
-          <div class="seg" role="tablist" style="grid-template-columns: 1fr 1fr">
-            <button class="seg-opt" role="tab" aria-selected="true">Practice</button>
-            <button class="seg-opt" role="tab" aria-selected="false">With people</button>
+          <div class="col" id="screen-start" style="gap: var(--space-3)">
+            <button class="tile" id="tile-practice">
+              <span class="tile-icon"><span></span></span>
+              <span class="col" style="gap: 2px; align-items: flex-start">
+                <span class="tile-name">Single player</span>
+                <span class="muted" style="font-size: 12px">Practice against bots, right away</span>
+              </span>
+              <span class="tile-arrow">&rsaquo;</span>
+            </button>
+            <button class="tile" id="tile-people">
+              <span class="tile-icon pair"><span></span><span></span></span>
+              <span class="col" style="gap: 2px; align-items: flex-start">
+                <span class="tile-name">With people</span>
+                <span class="muted" style="font-size: 12px">Open or join a real table</span>
+              </span>
+              <span class="tile-arrow">&rsaquo;</span>
+            </button>
           </div>
 
-          <div class="col" style="gap: var(--space-2)">
-            <div class="row between" style="align-items: baseline">
-              <span style="font-size: 13px; font-weight: 500; color: var(--color-muted)">Opponents</span>
-              <span class="muted" style="font-size: 11px">4 handed</span>
+          <div class="col" id="screen-practice" style="gap: var(--space-6)" hidden>
+            <button class="back-link" data-back>&lsaquo; Choose mode</button>
+            <div class="col" style="gap: var(--space-2)">
+              <div class="row between" style="align-items: baseline">
+                <span style="font-size: 13px; font-weight: 500; color: var(--color-muted)">Opponents</span>
+                <span class="muted" style="font-size: 11px" id="opponents-count">3 handed</span>
+              </div>
+              <div class="choices" role="radiogroup" aria-label="Opponents" data-group="opponents">
+                <button class="choice" role="radio" aria-checked="false">1</button>
+                <button class="choice" role="radio" aria-checked="false">2</button>
+                <button class="choice" role="radio" aria-checked="true">3</button>
+                <button class="choice" role="radio" aria-checked="false">4</button>
+                <button class="choice" role="radio" aria-checked="false">5</button>
+              </div>
             </div>
-            <div class="choices" role="radiogroup" aria-label="Opponents">
-              <button class="choice" role="radio" aria-checked="false">1</button>
-              <button class="choice" role="radio" aria-checked="false">2</button>
-              <button class="choice" role="radio" aria-checked="true">3</button>
-              <button class="choice" role="radio" aria-checked="false">4</button>
-              <button class="choice" role="radio" aria-checked="false">5</button>
-            </div>
+
+            <button class="btn btn-primary btn-block" style="height: 56px; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase">
+              Deal me in
+            </button>
           </div>
 
-          <button class="btn btn-primary btn-block" style="height: 56px; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase">
-            Deal me in
-          </button>
+          <div class="col" id="screen-people" style="gap: var(--space-6)" hidden>
+            <button class="back-link" data-back>&lsaquo; Choose mode</button>
+            <div class="col" style="gap: var(--space-2)">
+              <div class="row between" style="align-items: baseline">
+                <span style="font-size: 13px; font-weight: 500; color: var(--color-muted)">Seats at the table</span>
+                <span class="muted" style="font-size: 11px" id="seats-count">4 seats</span>
+              </div>
+              <div class="choices" role="radiogroup" aria-label="Seats" data-group="seats">
+                <button class="choice" role="radio" aria-checked="false">2</button>
+                <button class="choice" role="radio" aria-checked="false">3</button>
+                <button class="choice" role="radio" aria-checked="true">4</button>
+                <button class="choice" role="radio" aria-checked="false">5</button>
+                <button class="choice" role="radio" aria-checked="false">6</button>
+              </div>
+            </div>
+
+            <label class="check well">
+              <input type="checkbox" checked />
+              <span class="col" style="gap: 2px">
+                <span style="font-size: 13px">List it publicly</span>
+                <span class="muted" style="font-size: 11px">Anyone can find this room and sit down.</span>
+              </span>
+            </label>
+
+            <div class="row" style="gap: var(--space-3); border-top: 1px solid var(--color-divider); padding-top: var(--space-5)">
+              <button class="btn btn-primary" style="flex: 1; height: 52px; letter-spacing: 0.06em; text-transform: uppercase">Open a room</button>
+              <button class="btn btn-ghost" style="flex: 1; height: 52px; letter-spacing: 0.06em; text-transform: uppercase">Browse rooms</button>
+            </div>
+          </div>
 
           <a
             href="#"
@@ -118,5 +236,31 @@
         </div>
       </div>
     </div>
+    <script>
+      const screenStart = document.getElementById('screen-start');
+      const screenPractice = document.getElementById('screen-practice');
+      const screenPeople = document.getElementById('screen-people');
+      function showScreen(id) {
+        screenStart.hidden = id !== 'start';
+        screenPractice.hidden = id !== 'practice';
+        screenPeople.hidden = id !== 'people';
+      }
+      document.getElementById('tile-practice').addEventListener('click', () => showScreen('practice'));
+      document.getElementById('tile-people').addEventListener('click', () => showScreen('people'));
+      document.querySelectorAll('[data-back]').forEach((btn) => btn.addEventListener('click', () => showScreen('start')));
+
+      document.querySelectorAll('.choices').forEach((group) => {
+        const label = group.dataset.group === 'opponents' ? 'opponents-count' : 'seats-count';
+        const suffix = group.dataset.group === 'opponents' ? ' handed' : ' seats';
+        const out = document.getElementById(label);
+        group.querySelectorAll('.choice').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            group.querySelectorAll('.choice').forEach((b) => b.setAttribute('aria-checked', 'false'));
+            btn.setAttribute('aria-checked', 'true');
+            out.textContent = btn.textContent + suffix;
+          });
+        });
+      });
+    </script>
   </body>
 </html>
