@@ -336,9 +336,12 @@ test('says who won, how much, and what they won it with', async ({ page }) => {
   // The winner is named — "Ada wins", "You win" — so the verb is matched on its
   // own rather than glued to a name.
   await expect(result).toContainText(/\b(win|wins|split)\b/)
-  // Somebody is named as having won it. The seat number this used to look for
-  // was dropped: where the pot goes already says which seat took it.
-  await expect(result).toContainText(/\b(You|Bot \d+|[A-Z][a-z]+ [A-Z][a-z]+)\b/)
+  // Somebody is named as having won it. Matched as "whoever is in front of the
+  // verb" rather than as a list of shapes a name can take: the previous version
+  // spelled out "You", "Bot 2" or a two-word nickname, and started failing the
+  // day the bots were given ordinary one-word names — but only on the hands a
+  // bot happened to win, which is the worst way for a test to be wrong.
+  await expect(result).toContainText(/^(You|[A-Z][\w' -]*?) (win|wins|split)\b/)
   // The amount, always — a result that names a winner but not the pot leaves
   // the one number that matters to be worked out from the stacks.
   await expect(result).toContainText(/[\d,]+/)
@@ -388,6 +391,48 @@ test.describe('while the bots are deciding', () => {
     // And the result panel does not shrink it either.
     await playUntil(page, handSettled(page))
     expect(await height()).toBe(onOurTurn)
+  })
+
+  /**
+   * The table used to go deaf once it had replayed anything.
+   *
+   * Updates are ignored while the replay steps, which is deliberate — one
+   * landing mid-step would cut the moves short. What was not deliberate is that
+   * the check for "still stepping" was the length of the timer array, and the
+   * array was only emptied at the *start* of the next replay. Spent handles
+   * were left in it, so from the first replayed action onwards every change was
+   * discarded, and the stream never offers one twice: it sends a view only when
+   * it differs from the last it sent, so what was dropped was dropped for good.
+   *
+   * A hand finished by the turn clock or by somebody else therefore never
+   * arrived. The screen sat on a hand that was already over, offering buttons
+   * for it, and the server refused them with "That hand is already over" until
+   * the page was reloaded.
+   *
+   * The move here is made outside the component's own request path, because
+   * that is the whole point: anything it posts itself comes back in the reply.
+   * Only a change it did not make has to travel by the stream.
+   */
+  test('still takes changes it did not make after a replay has run', async ({ page }) => {
+    await dealIn(page)
+    const tableId = new URL(page.url()).pathname.split('/').pop() as string
+
+    // Act once, so the bots answer and a replay steps through.
+    await actPassively(page)
+    await expect(page.getByTestId('action-fold')).toBeEnabled({ timeout: 30_000 })
+
+    const status = await page.evaluate(async (id) => {
+      const response = await fetch(`/api/table/${id}/action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'fold' }),
+      })
+      return response.status
+    }, tableId)
+    expect(status).toBe(200)
+
+    // No reload anywhere in this test. The screen has to catch up by itself.
+    await expect(page.getByTestId('hand-result')).toBeVisible({ timeout: 20_000 })
   })
 })
 

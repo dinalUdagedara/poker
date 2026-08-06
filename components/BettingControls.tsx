@@ -17,17 +17,24 @@ export type SubmitAction = (action: { type: string; amount?: number }) => void
 /**
  * The three actions are fully saturated, not tinted panels. Giving up, staying
  * in, and putting chips in are different decisions and should not look alike at
- * a glance — and over a bright felt anything washed out simply disappears.
+ * a glance — and over a lit felt anything washed out simply disappears.
+ *
+ * On this table they are separated by *material* rather than by hue alone,
+ * because the room itself is red: a red fold button on a red felt is one
+ * object. Folding is unlit stone, the only cold surface anywhere in the app;
+ * staying in is felt green; committing chips is the one thing that gleams.
  */
 const ACTION_BUTTON =
   'h-14 min-w-0 flex-1 rounded-xl text-base font-bold tracking-wide text-white uppercase' +
-  ' shadow-lg transition-colors active:translate-y-px'
+  ' border border-transparent shadow-[0_6px_18px_-6px_oklch(0_0_0/0.6),var(--edge)]' +
+  ' transition-colors active:translate-y-px'
 
-const FOLD = 'bg-red-600 hover:bg-red-500'
-/** Staying in the hand without committing anything new. */
-const PASSIVE = 'bg-emerald-600 hover:bg-emerald-500'
-/** The only one that commits chips. */
-const COMMIT = 'bg-amber-400 text-neutral-950 hover:bg-amber-300'
+/** Unlit stone. The cold option, and the only cold thing in the room. */
+const FOLD = 'bg-play-fold hover:bg-play-fold-lit border-white/8'
+/** Felt green: staying in the hand without committing anything new. */
+const PASSIVE = 'bg-play-pass hover:bg-play-pass-lit'
+/** Struck brass: the only one that moves chips, and the only one that gleams. */
+const COMMIT = 'brass-button'
 
 /**
  * The action bar.
@@ -105,7 +112,7 @@ export function BettingControls({
           className="pointer-events-none absolute inset-0 z-10 grid place-items-center"
           data-testid="action-status"
         >
-          <span className="rounded-full bg-black/65 px-3.5 py-1.5 text-sm font-medium text-white/85 shadow-lg backdrop-blur-sm">
+          <span className="rounded-full bg-black/65 px-3.5 py-1.5 text-sm font-medium text-foreground/85 shadow-lg backdrop-blur-sm">
             {status}
           </span>
         </div>
@@ -125,7 +132,7 @@ export function BettingControls({
             recognises as a control is a panel that never gets opened again once
             it has been shut.
 
-            Called "Bet size" and not "Raise to": the amber button already says
+            Called "Bet size" and not "Raise to": the brass button already says
             "Raise to 100" a few pixels below, and two controls carrying the
             same words invite the reader to work out which of them raises.
 
@@ -136,10 +143,10 @@ export function BettingControls({
           */}
           <CollapsibleTrigger
             className={cn(
-              'inline-flex h-7 items-center gap-1.5 rounded-md border border-white/15 px-2.5',
-              'text-xs font-normal text-white/70',
-              'transition-colors hover:border-white/25 hover:bg-white/5 hover:text-white',
-              'focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:outline-none',
+              'inline-flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5',
+              'text-xs font-normal text-muted-foreground',
+              'transition-colors hover:border-brass/40 hover:bg-white/5 hover:text-foreground',
+              'focus-visible:ring-2 focus-visible:ring-brass/50 focus-visible:outline-none',
               idle && 'invisible',
             )}
             data-testid="sizing-toggle"
@@ -167,8 +174,8 @@ export function BettingControls({
                 size="sm"
                 variant="outline"
                 className={cn(
-                  'h-7 border-white/15 px-2.5 text-xs font-normal',
-                  amount === value && 'border-amber-400/60 bg-amber-400/10 text-amber-300',
+                  'h-7 border-border px-2.5 text-xs font-normal',
+                  amount === value && 'border-brass/60 bg-brass/12 text-brass-lit',
                 )}
                 disabled={busy}
                 onClick={() => setChosen(value)}
@@ -201,7 +208,7 @@ export function BettingControls({
           <div className="relative pt-6.5">
             {sizing && (
               <span
-                className="absolute top-0 -translate-x-1/2 rounded-md border border-amber-400/40 bg-neutral-900 px-1.5 py-0.5 font-mono text-xs font-medium tabular-nums text-amber-300 shadow-md"
+                className="absolute top-0 -translate-x-1/2 rounded-md border border-brass/40 bg-background px-1.5 py-0.5 font-mono text-xs font-medium tabular-nums text-brass-lit shadow-md"
                 style={{
                   // Clamped as well as offset: at the ends of the track a long
                   // number would otherwise reach past the card, which clips.
@@ -228,10 +235,14 @@ export function BettingControls({
             // card, with a thumb too small to find. Chips are what is being
             // staked; make the control worth the stake.
             className={cn(
-              '**:data-[slot=slider-track]:h-2.5 **:data-[slot=slider-track]:bg-white/12',
-              '**:data-[slot=slider-range]:bg-amber-400',
+              // A recess, not a line: the track is set into the console the way
+              // every other input in this system is.
+              '**:data-[slot=slider-track]:h-2.5 **:data-[slot=slider-track]:bg-black/40',
+              '**:data-[slot=slider-track]:shadow-[inset_0_1px_3px_oklch(0_0_0/0.5)]',
+              '**:data-[slot=slider-range]:bg-linear-to-r',
+              '**:data-[slot=slider-range]:from-brass-deep **:data-[slot=slider-range]:to-brass',
               '**:data-[slot=slider-thumb]:size-5 **:data-[slot=slider-thumb]:border-2',
-              '**:data-[slot=slider-thumb]:border-amber-300 **:data-[slot=slider-thumb]:bg-neutral-950',
+              '**:data-[slot=slider-thumb]:border-brass **:data-[slot=slider-thumb]:bg-background',
               '**:data-[slot=slider-thumb]:shadow-md',
             )}
             aria-label="bet amount"

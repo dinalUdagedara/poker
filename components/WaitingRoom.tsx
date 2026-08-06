@@ -66,7 +66,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
   return (
     <main className="table-room flex flex-1 items-center justify-center p-6">
       <div className="flex w-full max-w-sm flex-col items-center">
-        <Card className="w-full border-white/10 bg-neutral-950/80 shadow-2xl backdrop-blur">
+        <Card className="panel-milled border-border w-full backdrop-blur">
           <CardContent className="flex flex-col gap-6">
             <div className="flex flex-col items-center gap-2 text-center">
               {/*
@@ -74,13 +74,13 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                 waiting on people, and a spinner would read as a stuck page.
               */}
               <span className="relative flex size-10 items-center justify-center">
-                <span className="absolute inline-flex size-10 animate-ping rounded-full bg-amber-400/20" />
-                <Users className="relative size-5 text-amber-300" />
+                <span className="absolute inline-flex size-10 animate-ping rounded-full bg-brass/20" />
+                <Users className="text-brass relative size-5" />
               </span>
-              <h1 className="text-2xl font-bold tracking-tight text-white">
+              <h1 className="wordmark text-3xl font-bold tracking-tight">
                 {remaining === 0 ? 'Dealing…' : 'Waiting for players'}
               </h1>
-              <p className="text-sm text-white/50">
+              <p className="text-muted-foreground text-sm">
                 {remaining === 0
                   ? 'Everyone is seated.'
                   : `${remaining} more ${remaining === 1 ? 'player' : 'players'} and the cards come out.`}
@@ -95,16 +95,16 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ring-1 ring-inset transition-colors',
                     seat.taken
-                      ? 'bg-white/10 text-white ring-white/15'
-                      : 'bg-white/2 text-white/35 ring-white/5',
+                      ? "bg-white/10 text-white ring-border"
+                      : "panel-well text-muted-foreground/60 ring-white/5",
                   )}
                 >
-                  <span className="w-5 shrink-0 text-center font-mono text-xs tabular-nums text-white/30">
+                  <span className="text-muted-foreground/60 w-5 shrink-0 text-center font-mono text-xs tabular-nums">
                     {index + 1}
                   </span>
                   <span className="flex-1 truncate">{seat.name ?? 'Empty seat'}</span>
                   {seat.you && (
-                    <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+                    <span className="bg-brass/15 text-brass-lit rounded-full px-2 py-0.5 text-[11px] font-medium">
                       You
                     </span>
                   )}
@@ -115,13 +115,13 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
             {/* Bots take whatever is left, so a room is never held hostage by
                 people who did not turn up. */}
             {room.botCount > 0 && (
-              <p className="-mt-3 text-center text-xs text-white/35">
+              <p className="text-muted-foreground/70 -mt-3 text-center text-xs">
                 Plus {room.botCount} bot{room.botCount === 1 ? '' : 's'}
               </p>
             )}
 
             {error && (
-              <p className="text-center text-sm text-rose-300" role="alert">
+              <p className="text-destructive text-center text-sm" role="alert">
                 {error}
               </p>
             )}
@@ -129,7 +129,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
             <div className="flex flex-col gap-2">
               {!seated && (
                 <Button
-                  className="h-12 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
+                  className="brass-button h-12 w-full rounded-xl text-base font-bold tracking-wide uppercase"
                   disabled={busy}
                   data-testid="take-seat"
                   onClick={() => void send(`/api/table/${room.tableId}/join`)}
@@ -139,13 +139,13 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
               )}
 
               <Button
-                className="h-11 w-full bg-white/5 text-sm font-medium text-white/80 ring-1 ring-white/10 ring-inset hover:bg-white/10 hover:text-white"
+                className="panel-well ring-border h-11 w-full text-sm font-medium text-white/80 ring-1 ring-inset hover:bg-white/8 hover:text-white"
                 onClick={() => void copyLink()}
                 data-testid="copy-link"
               >
                 {copied ? (
                   <>
-                    <Check className="size-4 text-emerald-400" /> Link copied
+                    <Check className="text-win size-4" /> Link copied
                   </>
                 ) : (
                   <>
@@ -156,7 +156,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
 
               {seated && room.isCreator && room.canStartEarly && (
                 <Button
-                  className="h-11 w-full bg-white/5 text-sm font-medium text-white/80 ring-1 ring-white/10 ring-inset hover:bg-white/10 hover:text-white"
+                  className="panel-well ring-border h-11 w-full text-sm font-medium text-white/80 ring-1 ring-inset hover:bg-white/8 hover:text-white"
                   disabled={busy}
                   data-testid="start-early"
                   onClick={() => void send(`/api/table/${room.tableId}/start`)}
@@ -173,14 +173,14 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                   disabled={busy}
                   data-testid="leave-room"
                   onClick={() => void send(`/api/table/${room.tableId}/leave`)}
-                  className="text-white/45 underline-offset-4 hover:text-white/70 hover:underline disabled:opacity-50"
+                  className="text-muted-foreground underline-offset-4 hover:text-white hover:underline disabled:opacity-50"
                 >
                   Leave
                 </button>
               )}
               <Link
                 href="/"
-                className="text-white/45 underline-offset-4 hover:text-white/70 hover:underline"
+                className="text-muted-foreground underline-offset-4 hover:text-white hover:underline"
               >
                 Back to the lobby
               </Link>
@@ -188,7 +188,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
           </CardContent>
         </Card>
 
-        <p className="mt-4 max-w-xs text-center text-xs text-white/30">
+        <p className="text-muted-foreground/60 mt-4 max-w-xs text-center text-xs">
           {room.isPublic
             ? 'Listed publicly — anyone can find this room and sit down.'
             : 'Private — only people you send the link to can join.'}

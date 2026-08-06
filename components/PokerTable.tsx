@@ -17,7 +17,12 @@ import { RankingsButton } from './RankingsButton'
 import { useTableStream } from '@/lib/use-table-stream'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
-import { isGameOver, type TableUpdate, type TableView } from '@/lib/poker/lifecycle'
+import {
+  isGameOver,
+  type AnyTableView,
+  type TableUpdate,
+  type TableView,
+} from '@/lib/poker/lifecycle'
 
 /**
  * How long each replayed move is held on screen.
@@ -126,12 +131,64 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
   useEffect(() => clearReplay, [clearReplay])
 
   /**
+   * Set when a change arrived while we were in no position to show it.
+   *
+   * It cannot simply be kept and applied later, because it may by then be the
+   * older of the two things we know: the safety poll can read the table just
+   * before an action lands and deliver it just after, so replaying it over the
+   * answer to that action would walk the table backwards. The flag says only
+   * that we fell behind; the server is asked what is true once we are idle.
+   */
+  const missed = useRef(false)
+
+  /**
+   * Catch up on whatever we had to ignore.
+   *
+   * Necessary because a dropped update is dropped for good. The stream sends a
+   * view only when it differs from the last one it sent this subscriber, so
+   * once it has been sent it is never offered again — the safety poll underneath
+   * computes the same view and stays quiet. Nothing would arrive until the
+   * connection was rebuilt, which is why the table sat on a finished hand until
+   * it was reloaded.
+   */
+  const resync = useCallback(async () => {
+    if (!missed.current) return
+    missed.current = false
+    try {
+      const response = await fetch(`/api/table/${tableId}`)
+      if (!response.ok) return
+      const view = (await response.json()) as AnyTableView
+      if (view.stage === 'playing') setTable(view)
+    } catch {
+      // The stream is still up and its safety poll is still running, so a
+      // failed catch-up is not worth putting an error on screen for.
+    }
+  }, [tableId])
+
+  /**
+   * Done stepping, done waiting: take live updates again.
+   *
+   * Emptying the array is the point of this, not tidying up after it. The
+   * stream handler reads its length to decide whether it may touch the table,
+   * and spent handles were left in it once a replay ran out — so the gate stayed
+   * shut for the rest of the hand and every later change was discarded.
+   */
+  const goIdle = useCallback(() => {
+    timers.current = []
+    setBusy(false)
+    void resync()
+  }, [resync])
+
+  /**
    * Take what other people did at this table, when it is safe to look.
    *
    * Only while idle. An update that landed mid-replay would cut off the moves
    * being stepped through, and one that landed mid-request would be overwritten
    * by that request's own answer a moment later — in both cases the player
    * would watch the table jump for reasons they could not see.
+   *
+   * Ignoring one is recorded rather than simply skipped, so that what it was
+   * telling us is fetched once the moment has passed.
    *
    * There is no replay for these: the animation exists to show the consequences
    * of your own move, and someone else's turn arriving is not that.
@@ -140,7 +197,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
     tableId,
     (view) => {
       if (view.stage !== 'playing') return
-      if (busy || timers.current.length > 0) return
+      if (busy || timers.current.length > 0) {
+        missed.current = true
+        return
+      }
       setTable(view)
     },
     () => setGone(true),
@@ -165,7 +225,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
 
       if (!wantsMotion || replay.length === 0) {
         setTable(final)
-        setBusy(false)
+        goIdle()
         return
       }
 
@@ -175,11 +235,11 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
       timers.current.push(
         setTimeout(() => {
           setTable(final)
-          setBusy(false)
+          goIdle()
         }, replay.length * STEP_MS),
       )
     },
-    [clearReplay],
+    [clearReplay, goIdle],
   )
 
   /**
@@ -207,10 +267,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
         showUpdate(payload as TableUpdate)
       } catch (e) {
         setError((e as Error).message)
-        setBusy(false)
+        // Idle again, and worth a catch-up: a refused action usually means the
+        // table has moved on without us, which is precisely the state we are
+        // now holding a stale copy of.
+        missed.current = true
+        goIdle()
       }
     },
-    [showUpdate],
+    [goIdle, showUpdate],
   )
 
   /**
@@ -295,7 +359,8 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
       <p
         className={cn(
           'text-center text-xl font-semibold sm:text-2xl',
-          youWon > 0 ? 'text-emerald-400' : 'text-white',
+          // Green, and only here: in this room green is money and nothing else.
+          youWon > 0 ? 'text-win' : 'text-white',
         )}
       >
         {/*
@@ -309,7 +374,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
       </p>
       {/* How, not just who. A score is all the result keeps, so the category
           is read back out of it to name the hand. */}
-      <p className="text-sm text-white/55">{winningHand ?? 'everyone else folded'}</p>
+      <p className="text-muted-foreground text-sm">{winningHand ?? 'everyone else folded'}</p>
     </div>
   )
 
@@ -387,13 +452,15 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
           rather than relying on a dark page behind it. */}
       <header className="flex items-center justify-between gap-4 px-5 py-3 text-white">
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="text-sm font-semibold tracking-tight drop-shadow-sm hover:opacity-80"
-          >
-            Hold&rsquo;em
+          {/* The house mark, struck in brass. A spade rather than a logo: it
+              says which game this is before the name is read. */}
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80">
+            <span className="text-brass" aria-hidden>
+              &spades;
+            </span>
+            <span className="wordmark text-base font-bold tracking-tight">Showdown</span>
           </Link>
-          <Separator orientation="vertical" className="h-4 bg-white/25" />
+          <Separator orientation="vertical" className="h-4 bg-border" />
           <span className="text-sm text-white/75">Hand {table.handNumber}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -401,16 +468,16 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               thing that explains everything else about the screen. */}
           {spectating && (
             <Badge
-              className="border-white/15 bg-black/35 text-[11px] text-white/80"
+              className="border-border bg-black/35 text-[11px] text-white/80"
               data-testid="watching"
             >
               <Eye className="size-3" aria-hidden /> Watching
             </Badge>
           )}
-          <Badge className="border-white/15 bg-black/35 font-mono text-[11px] text-white">
+          <Badge className="border-border bg-black/35 font-mono text-[11px] text-white">
             {table.smallBlind}/{table.bigBlind}
           </Badge>
-          <Badge className="border-white/15 bg-black/35 text-[11px] text-white capitalize">
+          <Badge className="border-border bg-black/35 text-[11px] text-white capitalize">
             {table.street}
           </Badge>
           {/* The chart itself, right here — the question it answers is one you
@@ -428,7 +495,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             rel="noopener"
             aria-label="How to play"
             title="How to play"
-            className="grid size-7 place-items-center rounded-full border border-white/15 bg-black/35 text-white/80 transition-colors hover:bg-black/55 hover:text-white"
+            className="border-border grid size-7 place-items-center rounded-full border bg-black/35 text-white/80 transition-colors hover:bg-black/55 hover:text-white"
             data-testid="how-to-play"
           >
             <CircleQuestionMark className="size-4" aria-hidden />
@@ -448,7 +515,17 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
           {/* Shallower than it is wide, like a real table seen from the near
               edge. A taller ellipse leaves a large empty apron below the board. */}
           <div className="table-rail relative aspect-2/1 w-full max-w-3xl rounded-[46%/54%] p-2.5 sm:p-3.5">
-            <div className="table-felt relative size-full rounded-[46%/54%] border border-black/30">
+            <div className="table-felt border-brass/15 relative size-full rounded-[46%/54%] border">
+              {/* The house mark printed on the cloth. Barely there, and never
+                  read aloud — it sits below the board, on the apron of felt
+                  between the last community card and the near rail. */}
+              <span
+                className="felt-mark pointer-events-none absolute top-[79%] left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase select-none"
+                aria-hidden
+              >
+                Showdown
+              </span>
+
               {/* Pot and board */}
               <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-3">
                 <div className="flex flex-col items-center gap-1">
@@ -465,7 +542,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   <div className="flex h-8 items-end">
                     {!table.result && <ChipStack stack={table.pot} testId="pot-chips" />}
                   </div>
-                  <span className="text-[10px] font-medium tracking-[0.2em] text-white/60 uppercase">
+                  <span className="text-[10px] font-semibold tracking-[0.22em] text-white/65 uppercase">
                     pot
                   </span>
                   <span
@@ -484,7 +561,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     ) : (
                       <div
                         key={i}
-                        className="h-18 w-13 rounded-lg border border-dashed border-white/20"
+                        className="border-brass/20 h-18 w-13 rounded-lg border border-dashed"
                       />
                     )
                   })}
@@ -505,19 +582,21 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     // The felt dims flat rather than through a gradient. A soft
                     // one left the middle barely darker than the table, and the
                     // pot read straight through the word sitting on top of it.
-                    'rounded-[46%/54%] bg-[oklch(0.14_0.03_160/0.78)] backdrop-blur-[2px]',
+                    'rounded-[46%/54%] bg-[oklch(0.13_0.04_20/0.82)] backdrop-blur-[2px]',
                   )}
                   data-testid="win-banner"
                 >
                   <div className="flex flex-col items-center gap-1">
-                    <span className="text-4xl font-bold tracking-tight text-amber-300 drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-5xl">
+                    {/* The one moment the house lettering is allowed to be the
+                        loudest thing on the table. */}
+                    <span className="wordmark text-4xl font-bold tracking-tight drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-5xl">
                       You win
                     </span>
                     <span className="font-mono text-3xl font-bold tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)]">
                       {youWon.toLocaleString()}
                     </span>
                     {winningHand && (
-                      <span className="text-base font-medium text-amber-100/75">{winningHand}</span>
+                      <span className="text-brass-lit/80 text-base font-medium">{winningHand}</span>
                     )}
                   </div>
                 </div>
@@ -559,7 +638,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   data-testid="pot-award"
                 >
                   <ChipStack stack={award.amount} />
-                  <span className="rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-bold tabular-nums text-amber-300 shadow-lg">
+                  <span className="text-brass-lit rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-bold tabular-nums shadow-lg">
                     +{award.amount.toLocaleString()}
                   </span>
                 </div>
@@ -633,7 +712,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 is the same height as the others. */}
             <Card
               className={cn(
-                'w-full min-w-0 justify-center gap-0 border-black/40 bg-neutral-950/80 p-4 shadow-xl backdrop-blur',
+                'panel-milled border-border w-full min-w-0 justify-center gap-0 p-4 backdrop-blur',
                 sizingOpen ? 'min-h-52' : 'min-h-36',
               )}
             >
@@ -680,7 +759,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     */}
                     {canRematch && (
                       <Button
-                        className="h-12 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
+                        className="h-12 w-full brass-button rounded-xl text-base font-bold tracking-wide uppercase"
                         disabled={busy}
                         onClick={() => void playAgain()}
                         data-testid="play-again"
@@ -709,7 +788,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                  */
                 <div className="flex flex-col items-center gap-3" data-testid="spectating">
                   {resultSummary}
-                  <p className="text-center text-sm text-white/55">
+                  <p className="text-muted-foreground text-center text-sm">
                     {table.result
                       ? 'Watching. The next hand is theirs to deal.'
                       : actingName
@@ -728,7 +807,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 <div className="flex flex-col items-center gap-4" data-testid="hand-result">
                   {resultSummary}
                   <Button
-                    className="h-12 w-full max-w-xs rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
+                    className="h-12 w-full max-w-xs brass-button rounded-xl text-base font-bold tracking-wide uppercase"
                     disabled={busy}
                     onClick={() => void send(`/api/table/${tableId}/next-hand`, {})}
                     data-testid="next-hand"
@@ -762,7 +841,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               Hand history
             </summary>
             <ol
-              className="mt-2 max-h-36 overflow-y-auto rounded-lg border border-white/10 bg-neutral-950/60 p-3 font-mono text-[11px] leading-relaxed text-neutral-400"
+              className="panel-well border-border text-muted-foreground mt-2 max-h-36 overflow-y-auto rounded-lg border p-3 font-mono text-[11px] leading-relaxed"
               data-testid="history"
             >
               {annotateHistory(table.handHistory).map((entry, i) => (

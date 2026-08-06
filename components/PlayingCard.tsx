@@ -39,6 +39,14 @@ export function PlayingCard({
     dealDelay !== undefined && 'animate-deal',
     className,
   )
+  /*
+   * The rank and the pip are set in the house didone.
+   *
+   * That printed look is most of what makes a rectangle read as a card rather
+   * than as a rounded div with a letter in it — and on this table the card is
+   * the only light surface there is, so it has to carry the illusion alone.
+   */
+  const printed = 'font-(family-name:--font-display) leading-none'
   const style = dealDelay !== undefined ? { animationDelay: `${dealDelay}ms` } : undefined
 
   if (!card) {
@@ -52,16 +60,17 @@ export function PlayingCard({
     <div
       className={cn(
         base,
-        'border-black/15 bg-linear-to-b from-white to-neutral-200 text-neutral-900',
+        // Warm paper rather than a cool white. Against an oxblood room a grey
+        // card reads as a hole in the felt; a cream one reads as card stock.
+        'border-black/20 bg-linear-to-b from-[oklch(0.995_0.003_90)] to-[oklch(0.93_0.008_80)]',
+        'text-[oklch(0.2_0.02_30)]',
       )}
       style={style}
       data-testid="card-face"
       aria-label={`${rank} of ${{ h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' }[card.suit]}`}
     >
-      <span className={cn('leading-none tracking-tight', isRed ? 'text-rose-600' : 'text-neutral-900')}>
-        {rank}
-      </span>
-      <span className={cn('leading-none', isRed ? 'text-rose-600' : 'text-neutral-900')}>
+      <span className={cn(printed, 'tracking-tight', isRed && 'text-suit-red')}>{rank}</span>
+      <span className={cn(printed, 'text-[0.9em]', isRed && 'text-suit-red')}>
         {SUIT_SYMBOLS[card.suit]}
       </span>
     </div>

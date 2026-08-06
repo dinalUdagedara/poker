@@ -13,9 +13,9 @@ import type { RedactedPlayer } from '@/lib/poker/redact'
  * colours are denominations, so they say what a stack is, not how long it has.
  */
 const STACK_TEXT: Record<StackTone, string> = {
-  healthy: 'text-emerald-400',
-  medium: 'text-amber-400',
-  short: 'text-rose-400',
+  healthy: 'text-stack-healthy',
+  medium: 'text-stack-medium',
+  short: 'text-stack-short',
 }
 
 /**
@@ -99,7 +99,7 @@ export function PlayerSeat({
          * click meant for the cards or the plate above it.
          */
         <span
-          className="animate-spotlight pointer-events-none absolute -inset-x-7 -inset-y-4 rounded-[50%] border border-dashed border-amber-200/35 bg-[radial-gradient(closest-side,oklch(0.86_0.15_85/0.3),transparent)]"
+          className="animate-spotlight pointer-events-none absolute -inset-x-7 -inset-y-4 rounded-[50%] border border-dashed border-brass/35 bg-[radial-gradient(closest-side,oklch(0.86_0.15_85/0.3),transparent)]"
           data-testid={`turn-${player.id}`}
         />
       )}
@@ -139,10 +139,12 @@ export function PlayerSeat({
           'relative gap-0 rounded-xl border px-3 py-1.5 transition-all duration-200',
           // Card clips by default, which quietly shaved the dealer button down
           // to a sliver. The button and the chips both sit proud of the plate.
-          'overflow-visible bg-neutral-900/85 backdrop-blur-sm',
-          isActing && 'border-amber-400/80 shadow-[0_0_0_3px_oklch(0.82_0.14_85/0.25)]',
-          isWinner && 'animate-winner border-emerald-400',
-          !isActing && !isWinner && 'border-white/10',
+          // Milled rather than a flat translucent fill: over lit felt a flat
+          // panel reads as a smudge instead of as an object on the table.
+          'panel-milled overflow-visible backdrop-blur-sm',
+          isActing && 'border-brass/80 shadow-[0_0_0_3px_oklch(0.8_0.135_82/0.22)]',
+          isWinner && 'animate-winner border-win',
+          !isActing && !isWinner && 'border-border',
           isOut && 'opacity-50',
         )}
       >
@@ -153,7 +155,7 @@ export function PlayerSeat({
            * full size, ringed, and sitting proud of the plate.
            */
           <span
-            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-white text-[11px] font-bold text-neutral-900 ring-2 ring-neutral-900/70 shadow-md"
+            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-linear-to-b from-white to-[oklch(0.88_0.01_80)] font-(family-name:--font-display) text-[11px] font-bold text-[oklch(0.2_0.02_30)] ring-2 ring-[oklch(0.145_0.035_32)]/80 shadow-md"
             title="dealer button"
             data-testid="dealer-button"
           >
@@ -206,7 +208,7 @@ export function PlayerSeat({
               className={cn(
                 'truncate font-medium',
                 hero ? 'text-xs' : 'text-[10px]',
-                isOut ? 'text-neutral-500' : 'text-white/55',
+                isOut ? 'text-muted-foreground/60' : 'text-muted-foreground',
               )}
             >
               {displayName(player, viewerId, names)}
@@ -249,7 +251,7 @@ export function PlayerSeat({
             data-testid={`bet-${player.id}`}
           >
             <ChipStack stack={player.currentBet} />
-            <span className="font-mono text-[11px] font-semibold tabular-nums text-amber-300">
+            <span className="font-mono text-[11px] font-semibold tabular-nums text-brass-lit">
               {player.currentBet.toLocaleString()}
             </span>
           </span>
@@ -272,14 +274,14 @@ export function PlayerSeat({
           )}
           data-testid={`callout-${player.id}`}
         >
-          <span className="relative block rounded-md border border-white/15 bg-neutral-800 px-2 py-0.5 text-[11px] font-medium text-neutral-100 shadow-lg">
+          <span className="relative block rounded-md border border-border bg-[oklch(0.25_0.036_24)] px-2 py-0.5 text-[11px] font-medium text-foreground shadow-lg">
             {callout}
             <span
               className={cn(
-                'absolute size-2 rotate-45 bg-neutral-800',
+                'absolute size-2 rotate-45 bg-[oklch(0.25_0.036_24)]',
                 calloutSide === 'right'
-                  ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-white/15'
-                  : '-top-1 left-1/2 -translate-x-1/2 border-t border-l border-white/15',
+                  ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-border'
+                  : '-top-1 left-1/2 -translate-x-1/2 border-t border-l border-border',
               )}
             />
           </span>

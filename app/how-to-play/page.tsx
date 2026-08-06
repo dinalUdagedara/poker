@@ -44,7 +44,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <Card className="border-white/10 bg-neutral-950/80 shadow-2xl backdrop-blur">
+    <Card className="panel-milled border-border backdrop-blur">
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold tracking-tight text-white">{title}</h2>
@@ -92,35 +92,37 @@ const STREETS: Array<{ name: string; detail: string; board?: string }> = [
 
 /**
  * The colours here are the ones on the real buttons in BettingControls: fold is
- * red, the two ways of staying in without new chips are green, and the only
- * action that commits money is amber. Explaining a control in a different
- * colour from the control itself would be worse than not colouring it at all.
+ * unlit stone, the two ways of staying in without new chips are felt green, and
+ * the only action that commits money is brass. Explaining a control in a
+ * different colour from the control itself would be worse than not colouring it
+ * at all — which is also why fold is a swatch of stone and not of red: on this
+ * table red is the room, and the fold button is the one thing that is not.
  */
 const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
   {
     name: 'Fold',
-    swatch: 'bg-red-600',
+    swatch: "bg-play-fold ring-1 ring-white/15",
     detail: 'Give up the hand. Anything you already put in stays in the pot.',
   },
   {
     name: 'Check',
-    swatch: 'bg-emerald-600',
+    swatch: "bg-play-pass",
     detail: 'Stay in and pass the decision on, offered only when there is no bet in front of you.',
   },
   {
     name: 'Call',
-    swatch: 'bg-emerald-600',
+    swatch: "bg-play-pass",
     detail:
       'Match the current bet. If matching it takes your whole stack, the button says so — that is an all-in call.',
   },
   {
     name: 'Bet',
-    swatch: 'bg-amber-400',
+    swatch: "bg-brass",
     detail: `Open the betting on a street nobody has bet yet. The minimum is the big blind, ${BIG_BLIND}.`,
   },
   {
     name: 'Raise',
-    swatch: 'bg-amber-400',
+    swatch: "bg-brass",
     detail:
       'Put in more than the current bet. The slider shows the legal range; the shortcuts size it against the pot.',
   },
@@ -139,14 +141,14 @@ export default function HowToPlay() {
           >
             Hold&rsquo;em
           </Link>
-          <Separator orientation="vertical" className="h-4 bg-white/25" />
+          <Separator orientation="vertical" className="bg-border h-4" />
           <span className="text-sm text-white/75">How to play</span>
         </div>
         <Link
           href="/"
           className={cn(
             buttonVariants({ size: 'sm' }),
-            'bg-amber-400 font-semibold text-neutral-950 hover:bg-amber-300',
+            "brass-button font-semibold",
           )}
         >
           Play
@@ -157,7 +159,7 @@ export default function HowToPlay() {
         <div className="flex w-full max-w-2xl flex-col gap-4">
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <Hand cards="AsAd" className="mb-2" />
-            <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-sm">
+            <h1 className="wordmark text-4xl font-bold tracking-tight drop-shadow-sm">
               How to play
             </h1>
             <p className="max-w-md text-sm text-white/70 drop-shadow-sm">
@@ -180,7 +182,7 @@ export default function HowToPlay() {
               are turned over, or by betting enough that everyone else folds — in which case nobody
               ever finds out what you had.
             </p>
-            <div className="flex flex-col gap-3 rounded-lg bg-white/5 p-3 sm:flex-row sm:items-center sm:gap-5">
+            <div className="panel-well border-border flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:gap-5">
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-white/45">Your cards</span>
                 <Hand cards="AhKh" />
@@ -200,7 +202,7 @@ export default function HowToPlay() {
             <ol className="flex flex-col gap-4">
               {STREETS.map((street, i) => (
                 <li key={street.name} className="flex gap-3">
-                  <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-white/10 font-mono text-xs font-semibold text-white/70 tabular-nums">
+                  <span className="text-muted-foreground mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-white/10 font-mono text-xs font-semibold tabular-nums">
                     {i + 1}
                   </span>
                   <div className="flex flex-col gap-2">
@@ -254,7 +256,7 @@ export default function HowToPlay() {
                 ['Blinds', `${SMALL_BLIND} / ${BIG_BLIND}`],
                 ['Opponents', '1 to 5 bots'],
               ].map(([label, value]) => (
-                <div key={label} className="flex flex-col gap-1 rounded-lg bg-white/5 p-3">
+                <div key={label} className="panel-well border-border flex flex-col gap-1 rounded-lg border p-3">
                   <dt className="text-xs font-medium text-white/45">{label}</dt>
                   <dd className="font-mono text-lg font-semibold text-white tabular-nums">
                     {value}
@@ -273,7 +275,7 @@ export default function HowToPlay() {
               href="/"
               className={cn(
                 buttonVariants(),
-                'h-14 w-full max-w-sm rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300',
+                "brass-button h-14 w-full max-w-sm rounded-xl text-base font-bold tracking-wide uppercase",
               )}
               data-testid="play-from-guide"
             >

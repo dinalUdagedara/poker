@@ -114,20 +114,20 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
           ))}
         </div>
 
-        <Card className="w-full border-white/10 bg-neutral-950/80 pt-10 shadow-2xl backdrop-blur">
+        <Card className="panel-milled border-border w-full pt-10 backdrop-blur">
           <CardContent className="flex flex-col gap-6">
             <div className="flex flex-col items-center gap-1 text-center">
-              <h1 className="text-3xl font-bold tracking-tight text-white">
-                Showdown
-              </h1>
-              <p className="text-sm text-white/50">No-limit Hold&rsquo;em</p>
+              {/* Struck in brass rather than printed flat: the name is the one
+                  object on this screen that belongs to the room. */}
+              <h1 className="wordmark text-4xl font-bold tracking-tight">Showdown</h1>
+              <p className="text-muted-foreground text-sm">No-limit Hold&rsquo;em</p>
             </div>
 
             {/* First, because it is the one thing that applies to everything
                 below it — and blank is a real answer: the server hands out a
                 name rather than refusing to start. */}
             <div className="flex flex-col gap-2">
-              <label htmlFor="player-name" className="text-sm font-medium text-white/70">
+              <label htmlFor="player-name" className="text-muted-foreground text-sm font-medium">
                 Your name
               </label>
               <input
@@ -138,7 +138,7 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
                 onChange={(e) => rememberName(e.target.value)}
                 placeholder="Leave blank and we will name you"
                 data-testid="player-name"
-                className="h-11 w-full rounded-lg bg-white/5 px-3 text-sm text-white ring-1 ring-white/10 ring-inset transition-colors outline-none placeholder:text-white/30 hover:bg-white/10 focus:bg-white/10 focus:ring-amber-300/50"
+                className="panel-well ring-border placeholder:text-muted-foreground/50 focus:ring-brass h-11 w-full rounded-lg px-3 text-sm text-white ring-1 ring-inset transition-colors outline-none"
               />
             </div>
 
@@ -147,7 +147,11 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
               keeps whichever you are not using out of the way — stacked, the
               panel asked you to read past a whole game to reach the other.
             */}
-            <div role="tablist" aria-label="How to play" className="grid grid-cols-2 gap-1 rounded-lg bg-white/5 p-1 ring-1 ring-white/10 ring-inset">
+            <div
+              role="tablist"
+              aria-label="How to play"
+              className="panel-well ring-border grid grid-cols-2 gap-1 rounded-lg p-1 ring-1 ring-inset"
+            >
               {(
                 [
                   ['practice', 'Practice'],
@@ -166,7 +170,7 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
                     'h-9 rounded-md text-sm font-medium transition-colors disabled:opacity-50',
                     tab === value
                       ? 'bg-white/12 text-white shadow-sm'
-                      : 'text-white/50 hover:text-white/80',
+                      : 'text-muted-foreground hover:text-white/80',
                   )}
                 >
                   {label}
@@ -176,8 +180,8 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
 
             <div className={cn('flex-col gap-2', tab === 'practice' ? 'flex' : 'hidden')}>
               <div className="flex items-baseline justify-between">
-                <span className="text-sm font-medium text-white/70">Opponents</span>
-                <span className="text-xs text-white/35">
+                <span className="text-muted-foreground text-sm font-medium">Opponents</span>
+                <span className="text-muted-foreground/70 text-xs">
                   {botCount === '1' ? 'heads up' : `${Number(botCount) + 1} handed`}
                 </span>
               </div>
@@ -204,8 +208,8 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
                         'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
                         'ring-1 ring-inset disabled:opacity-50',
                         selected
-                          ? 'bg-amber-400 text-neutral-950 ring-amber-300'
-                          : 'bg-white/5 text-white/70 ring-white/10 hover:bg-white/10',
+                          ? 'brass-button ring-brass'
+                          : 'panel-well text-muted-foreground ring-border hover:bg-white/8',
                       )}
                     >
                       {n}
@@ -215,7 +219,7 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
               </div>
 
               <Button
-                className="mt-2 h-14 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
+                className="brass-button mt-2 h-14 w-full rounded-xl text-base font-bold tracking-wide uppercase"
                 disabled={busy}
                 onClick={() => void deal()}
                 data-testid="deal"
@@ -226,8 +230,8 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
 
             <div className={cn('flex-col gap-3', tab === 'people' ? 'flex' : 'hidden')}>
               <div className="flex items-baseline justify-between">
-                <span className="text-sm font-medium text-white/70">Seats at the table</span>
-                <span className="text-xs text-white/35">
+                <span className="text-muted-foreground text-sm font-medium">Seats at the table</span>
+                <span className="text-muted-foreground/70 text-xs">
                   {seatCount === 2 ? 'heads up' : `${seatCount} seats`}
                 </span>
               </div>
@@ -249,8 +253,8 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
                         'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
                         'ring-1 ring-inset disabled:opacity-50',
                         selected
-                          ? 'bg-amber-400 text-neutral-950 ring-amber-300'
-                          : 'bg-white/5 text-white/70 ring-white/10 hover:bg-white/10',
+                          ? 'brass-button ring-brass'
+                          : 'panel-well text-muted-foreground ring-border hover:bg-white/8',
                       )}
                     >
                       {n}
@@ -264,17 +268,17 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
                 choice rather than a default. Off means the link is the invite,
                 which is what someone playing with friends wants.
               */}
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg bg-white/5 p-3 ring-1 ring-white/10 ring-inset hover:bg-white/10">
+              <label className="panel-well ring-border flex cursor-pointer items-start gap-3 rounded-lg p-3 ring-1 ring-inset hover:bg-white/8">
                 <input
                   type="checkbox"
                   checked={isPublic}
                   onChange={(e) => setIsPublic(e.target.checked)}
                   data-testid="list-publicly"
-                  className="mt-0.5 size-4 accent-amber-400"
+                  className="accent-brass mt-0.5 size-4"
                 />
                 <span className="flex flex-col gap-0.5">
-                  <span className="text-sm text-white/80">List it publicly</span>
-                  <span className="text-xs text-white/40">
+                  <span className="text-sm text-white/85">List it publicly</span>
+                  <span className="text-muted-foreground/70 text-xs">
                     {isPublic
                       ? 'Anyone can find this room and sit down.'
                       : 'Private — only people you send the link to can join.'}
@@ -284,7 +288,7 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
 
               <div className="flex gap-2">
                 <Button
-                  className="h-11 flex-1 bg-white/10 text-sm font-semibold text-white ring-1 ring-white/15 ring-inset hover:bg-white/15"
+                  className="ring-border h-11 flex-1 bg-white/10 text-sm font-semibold text-white ring-1 ring-inset hover:bg-white/15"
                   disabled={busy}
                   onClick={() => void deal(seatCount, isPublic)}
                   data-testid="open-public-room"
@@ -293,7 +297,7 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
                 </Button>
                 <Link
                   href="/rooms"
-                  className="flex h-11 flex-1 items-center justify-center rounded-md bg-white/5 text-sm font-medium text-white/80 ring-1 ring-white/10 ring-inset transition-colors hover:bg-white/10 hover:text-white"
+                  className="panel-well ring-border flex h-11 flex-1 items-center justify-center rounded-md text-sm font-medium text-white/80 ring-1 ring-inset transition-colors hover:bg-white/8 hover:text-white"
                   data-testid="browse-rooms"
                 >
                   Browse rooms
@@ -302,7 +306,7 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
             </div>
 
             {error && (
-              <p className="text-center text-sm text-rose-300" role="alert" data-testid="error">
+              <p className="text-destructive text-center text-sm" role="alert" data-testid="error">
                 {error}
               </p>
             )}
@@ -311,7 +315,7 @@ export function HomePanel({ initialTab }: { initialTab: 'practice' | 'people' })
                 knows the game should never have to read past this to start. */}
             <Link
               href="/how-to-play"
-              className="-mt-2 text-center text-sm text-white/45 underline-offset-4 hover:text-white/70 hover:underline"
+              className="text-muted-foreground -mt-2 text-center text-sm underline-offset-4 hover:text-white hover:underline"
               data-testid="how-to-play"
             >
               New to Hold&rsquo;em? Read the guide
