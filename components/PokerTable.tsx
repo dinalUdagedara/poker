@@ -134,8 +134,12 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
    * Kept here rather than in the action bar because that bar is unmounted every
    * time a hand settles — the result panel takes its place — so a preference
    * held inside it would be forgotten and spring back open on the next hand.
+   *
+   * Shut to begin with: most hands are folded, checked or called, and the pot
+   * shortcuts stay out on the row either way, so the slider only earns its
+   * two hundred pixels once you have actually decided to size something.
    */
-  const [sizingOpen, setSizingOpen] = useState(true)
+  const [sizingOpen, setSizingOpen] = useState(false)
   const router = useRouter()
 
   /** Pending replay steps, cancelled if another update lands or we unmount. */
