@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The lobby — Showdown</title>
+    <link rel="stylesheet" href="../../styles.css" />
+    <style>
+      body {
+        min-height: 100vh;
+      }
+      .room {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8) var(--space-6);
+      }
+      .stack-col {
+        width: 100%;
+        max-width: 400px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      /* A hand fanned above the panel, overlapping it. The one thing that says
+         poker before a word is read. Only the bottom edge tucks behind — any
+         further and the cards read as letters rather than as cards. */
+      .fan {
+        display: flex;
+        justify-content: center;
+        margin-bottom: -22px;
+        z-index: 1;
+      }
+      .fan span {
+        margin-left: -22px;
+        filter: drop-shadow(0 10px 18px oklch(0 0 0 / 0.55));
+      }
+      .fan span:first-child {
+        margin-left: 0;
+      }
+      .choices {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+      }
+      .choice {
+        height: 44px;
+        border-radius: var(--radius-md);
+        border: 1px solid oklch(0.9 0.09 88 / 0.1);
+        background: oklch(0 0 0 / 0.28);
+        color: var(--color-muted);
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .choice[aria-checked='true'] {
+        color: oklch(0.2 0.05 40);
+        border-color: var(--color-accent-300);
+        background: linear-gradient(180deg, var(--color-accent-300), var(--color-accent-600));
+        box-shadow: var(--shadow-sm), inset 0 1px 0 oklch(1 0 0 / 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="room">
+      <div class="stack-col">
+        <div class="fan" aria-hidden="true">
+          <span style="transform: rotate(-14deg) translateY(8px)"><span class="card-face card-lg">A<span class="suit">&#9824;</span></span></span>
+          <span style="transform: rotate(-7deg) translateY(2px)"><span class="card-face card-lg">K<span class="suit">&#9824;</span></span></span>
+          <span><span class="card-face card-lg">Q<span class="suit">&#9824;</span></span></span>
+          <span style="transform: rotate(7deg) translateY(2px)"><span class="card-face card-lg">J<span class="suit">&#9824;</span></span></span>
+          <span style="transform: rotate(14deg) translateY(8px)"><span class="card-face card-lg">10<span class="suit">&#9824;</span></span></span>
+        </div>
+
+        <div class="panel panel-lg col" style="width: 100%; gap: var(--space-6); padding-top: var(--space-8)">
+          <div class="col" style="align-items: center; gap: 2px; text-align: center">
+            <h1 class="wordmark" style="font-size: 40px">Showdown</h1>
+            <p class="muted" style="font-size: 13px">No-limit Hold&rsquo;em</p>
+          </div>
+
+          <div class="field">
+            <label for="pn">Your name</label>
+            <input class="input" id="pn" placeholder="Leave blank and we will name you" />
+          </div>
+
+          <div class="seg" role="tablist" style="grid-template-columns: 1fr 1fr">
+            <button class="seg-opt" role="tab" aria-selected="true">Practice</button>
+            <button class="seg-opt" role="tab" aria-selected="false">With people</button>
+          </div>
+
+          <div class="col" style="gap: var(--space-2)">
+            <div class="row between" style="align-items: baseline">
+              <span style="font-size: 13px; font-weight: 500; color: var(--color-muted)">Opponents</span>
+              <span class="muted" style="font-size: 11px">4 handed</span>
+            </div>
+            <div class="choices" role="radiogroup" aria-label="Opponents">
+              <button class="choice" role="radio" aria-checked="false">1</button>
+              <button class="choice" role="radio" aria-checked="false">2</button>
+              <button class="choice" role="radio" aria-checked="true">3</button>
+              <button class="choice" role="radio" aria-checked="false">4</button>
+              <button class="choice" role="radio" aria-checked="false">5</button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block" style="height: 56px; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase">
+            Deal me in
+          </button>
+
+          <a
+            href="#"
+            class="muted"
+            style="text-align: center; font-size: 13px; text-decoration: none; margin-top: -8px"
+            >New to Hold&rsquo;em? Read the guide</a
+          >
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

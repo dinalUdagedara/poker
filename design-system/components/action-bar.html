@@ -1,0 +1,127 @@
+<!-- @dsCard group="Components" name="Action bar" subtitle="The console: sizing above, three plays below, and a floor so it never changes height" viewport="640x600" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Action bar — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .console {
+        min-height: 208px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--space-4);
+      }
+      .status {
+        display: inline-block;
+        padding: 6px var(--space-3);
+        border-radius: var(--radius-full);
+        background: oklch(0 0 0 / 0.65);
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: var(--shadow-md);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Action bar</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          A dark console resting on the felt &mdash; the controls need their own ground to read
+          against on a lit table. It is floored at the height of its tallest state, so the panel
+          does not shrink the moment a hand settles and the buttons do not move under a pointer
+          already reaching for them.
+        </p>
+      </div>
+
+      <div class="panel console">
+        <div class="row between" style="gap: var(--space-4)">
+          <button class="btn btn-secondary" style="height: 28px; font-size: 12px; font-weight: 400">
+            &#9662;&nbsp; Bet size
+          </button>
+          <div class="row wrap" style="gap: 6px">
+            <button class="btn btn-ghost" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; border-color: var(--color-divider)">&frac12; pot</button>
+            <button class="btn btn-ghost" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; border-color: var(--color-divider)">&frac34; pot</button>
+            <button class="btn" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; background: oklch(0.8 0.135 82 / 0.14); border-color: oklch(0.8 0.135 82 / 0.5); color: var(--color-accent-200)">Pot</button>
+            <button class="btn btn-ghost" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; border-color: var(--color-divider)">All in</button>
+          </div>
+        </div>
+
+        <div class="col" style="gap: 6px">
+          <div style="position: relative; height: 22px">
+            <span class="slider-bubble" style="position: absolute; left: 52%; transform: translateX(-50%)">620</span>
+          </div>
+          <div class="slider">
+            <span class="slider-range" style="width: 52%"></span>
+            <span class="slider-thumb" style="left: 52%"></span>
+          </div>
+          <div class="row between money" style="font-size: 10px; color: var(--color-muted); font-weight: 400">
+            <span>100</span>
+            <span>2,480</span>
+          </div>
+        </div>
+
+        <div class="row" style="gap: var(--space-2)">
+          <button class="play play-fold">Fold</button>
+          <button class="play play-pass">Call 250</button>
+          <button class="play play-commit">Raise to 620</button>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Someone else&rsquo;s turn</span>
+        <div class="panel console" style="position: relative">
+          <div
+            style="
+              position: absolute;
+              inset: 0;
+              display: grid;
+              place-items: center;
+              z-index: 1;
+              pointer-events: none;
+            "
+          >
+            <span class="status">Waiting for the other players&hellip;</span>
+          </div>
+          <div class="row between" style="gap: var(--space-4); visibility: hidden">
+            <button class="btn btn-secondary" style="height: 28px">Bet size</button>
+          </div>
+          <div class="col" style="gap: 6px; opacity: 0.35">
+            <div style="height: 22px"></div>
+            <div class="slider"><span class="slider-range" style="width: 0"></span><span class="slider-thumb" style="left: 0"></span></div>
+            <div style="height: 14px"></div>
+          </div>
+          <div class="row" style="gap: var(--space-2); opacity: 0.4">
+            <span class="play play-fold">Fold</span>
+            <span class="play play-pass">Call</span>
+            <span class="play play-commit">Raise</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Hand settled</span>
+        <div class="panel console" style="align-items: center; text-align: center">
+          <div class="col" style="gap: 2px; align-items: center">
+            <p style="font-size: 21px; font-weight: 600; color: var(--state-win)">
+              You win <span class="money" style="font-size: 21px">1,240</span>
+            </p>
+            <p class="muted" style="font-size: 13px">Two pair</p>
+          </div>
+          <button class="btn btn-primary btn-block" style="height: 48px; max-width: 280px; letter-spacing: 0.06em; text-transform: uppercase">
+            Next hand
+          </button>
+        </div>
+      </div>
+
+      <p class="muted" style="font-size: 12px">
+        The amount rides the thumb rather than sitting off to one side, because while you are
+        sizing a bet that is where you are looking. The shortcuts stay out of the collapsible:
+        folded away, they are the whole of the sizing control, and hiding them too would leave
+        nothing to bet with but the minimum.
+      </p>
+    </div>
+  </body>
+</html>

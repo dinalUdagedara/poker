@@ -1,0 +1,964 @@
+/*
+ * Showdown — the one stylesheet.
+ *
+ * Everything below is derived from the tokens in the first block. Change a
+ * token and the whole system moves with it; never hard-code a colour, a font
+ * or a raw pixel value that a token already carries.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---------------------------------------------------------------------
+     Ground — the room. A dark red house, lit from over the table.
+     --------------------------------------------------------------------- */
+  --color-bg: oklch(0.155 0.042 22);
+  --color-surface: oklch(0.205 0.045 22);
+  --color-surface-2: oklch(0.255 0.048 22);
+  --color-text: oklch(0.97 0.012 70);
+  --color-muted: oklch(0.74 0.028 45);
+  --color-divider: oklch(0.95 0.03 70 / 0.12);
+
+  /* The brass accent, and the signal red that is not the room. */
+  --color-accent: oklch(0.8 0.135 82);
+  --color-accent-2: oklch(0.58 0.19 25);
+
+  /* ---------------------------------------------------------------------
+     Ramps. Same perceptual step on every ramp, so 300 on one weighs what
+     300 does on another. Light steps tint, 500 is the base, dark steps
+     carry text on tinted fills and pressed states.
+     --------------------------------------------------------------------- */
+  --color-neutral-100: oklch(0.97 0.012 40);
+  --color-neutral-200: oklch(0.88 0.016 36);
+  --color-neutral-300: oklch(0.77 0.02 34);
+  --color-neutral-400: oklch(0.64 0.024 32);
+  --color-neutral-500: oklch(0.52 0.028 30);
+  --color-neutral-600: oklch(0.42 0.03 28);
+  --color-neutral-700: oklch(0.33 0.032 26);
+  --color-neutral-800: oklch(0.25 0.036 24);
+  --color-neutral-900: oklch(0.18 0.04 22);
+
+  --color-accent-100: oklch(0.96 0.045 90);
+  --color-accent-200: oklch(0.91 0.085 88);
+  --color-accent-300: oklch(0.86 0.115 86);
+  --color-accent-400: oklch(0.83 0.128 84);
+  --color-accent-500: oklch(0.8 0.135 82);
+  --color-accent-600: oklch(0.72 0.13 79);
+  --color-accent-700: oklch(0.6 0.115 76);
+  --color-accent-800: oklch(0.45 0.09 72);
+  --color-accent-900: oklch(0.31 0.065 68);
+
+  --color-accent-2-100: oklch(0.94 0.035 25);
+  --color-accent-2-200: oklch(0.86 0.07 25);
+  --color-accent-2-300: oklch(0.76 0.13 25);
+  --color-accent-2-400: oklch(0.67 0.175 25);
+  --color-accent-2-500: oklch(0.58 0.19 25);
+  --color-accent-2-600: oklch(0.5 0.175 24);
+  --color-accent-2-700: oklch(0.41 0.15 23);
+  --color-accent-2-800: oklch(0.32 0.115 22);
+  --color-accent-2-900: oklch(0.23 0.08 21);
+
+  /* ---------------------------------------------------------------------
+     The table. The one thing in this system that is a place, not a control.
+     --------------------------------------------------------------------- */
+  --felt-lit: oklch(0.44 0.145 24);
+  --felt: oklch(0.375 0.13 22);
+  --felt-deep: oklch(0.3 0.105 20);
+  --rail-lit: oklch(0.36 0.07 45);
+  --rail: oklch(0.245 0.055 38);
+  --rail-deep: oklch(0.145 0.035 32);
+  --brass: var(--color-accent-500);
+  --brass-lit: var(--color-accent-200);
+  --brass-deep: var(--color-accent-800);
+
+  /* ---------------------------------------------------------------------
+     Play semantics. Three decisions that must never be confused for one
+     another, so they differ in material as well as hue: folding is unlit
+     stone, staying is felt, and committing chips is the only metal.
+     --------------------------------------------------------------------- */
+  --play-fold: oklch(0.34 0.014 40);
+  --play-fold-lit: oklch(0.41 0.016 40);
+  --play-pass: oklch(0.52 0.12 158);
+  --play-pass-lit: oklch(0.6 0.135 158);
+  --play-commit: var(--brass);
+  --play-commit-lit: var(--color-accent-300);
+
+  /* Money states, read off a stack at a glance. */
+  --state-win: oklch(0.78 0.16 155);
+  --state-healthy: oklch(0.76 0.15 156);
+  --state-medium: oklch(0.83 0.13 84);
+  --state-short: oklch(0.7 0.185 22);
+
+  /* ---------------------------------------------------------------------
+     Type. A didone for the house lettering, a grotesque for everything
+     that has to be read quickly, and mono for every number that is money.
+     --------------------------------------------------------------------- */
+  --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-heading-weight: 600;
+  --font-body: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Density 1.0 on a 4px base. A table is not a dashboard; it can breathe. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /*
+   * Elevation on a dark ground is two things at once: a shadow beneath and a
+   * lit edge on top. The edge is what makes a panel look milled rather than
+   * pasted on, and it is brass, because every lit edge in this room is.
+   */
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.5);
+  --shadow-md: 0 6px 18px -6px oklch(0 0 0 / 0.6);
+  --shadow-lg: 0 24px 60px -20px oklch(0 0 0 / 0.75);
+  --edge: inset 0 1px 0 oklch(0.9 0.09 88 / 0.16);
+  --edge-strong: inset 0 1px 0 oklch(0.9 0.09 88 / 0.32);
+
+  /* Motion. Dealing is quick, chips are weighty, the pot takes its time. */
+  --ease: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --dur-deal: 260ms;
+  --dur-wager: 420ms;
+  --dur-award: 1500ms;
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 44px;
+}
+h2 {
+  font-size: 28px;
+}
+h3 {
+  font-size: 19px;
+}
+
+p {
+  margin: 0;
+}
+
+::selection {
+  background: var(--color-accent-800);
+  color: var(--color-accent-100);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+[disabled],
+.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* The house lettering: a wordmark that is struck in brass, not printed. */
+.wordmark {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(180deg, var(--color-accent-200), var(--color-accent-700));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Every number that is money. Tabular, always, so figures do not dance. */
+.money {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Table surface — the room, the rail and the felt
+   --------------------------------------------------------------------------- */
+
+/*
+ * The room is the page. Light falls from over the table and dies towards the
+ * corners, so the whole viewport is one lit space rather than a lit oval
+ * floating on a flat background.
+ */
+.room {
+  background:
+    radial-gradient(
+      78% 62% at 50% 32%,
+      oklch(0.29 0.095 22) 0%,
+      oklch(0.225 0.075 21) 45%,
+      var(--color-bg) 100%
+    );
+}
+
+/* The rail: polished mahogany, with a brass hairline where the light lands. */
+.rail {
+  padding: var(--space-3);
+  border-radius: 46% / 54%;
+  background: linear-gradient(
+    180deg,
+    var(--rail-lit) 0%,
+    var(--rail) 52%,
+    var(--rail-deep) 100%
+  );
+  box-shadow:
+    var(--shadow-lg),
+    var(--edge-strong);
+}
+
+/*
+ * The felt, brighter than the room so it still reads as a table. The weave is
+ * two crossed hatches at a whisper of opacity — enough that the surface has a
+ * nap under the cards instead of being a flat fill.
+ */
+.felt {
+  position: relative;
+  height: 100%;
+  border-radius: 46% / 54%;
+  border: 1px solid oklch(0.9 0.09 88 / 0.14);
+  background-image:
+    repeating-linear-gradient(45deg, oklch(1 0 0 / 0.014) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.022) 0 2px, transparent 2px 4px),
+    radial-gradient(86% 72% at 50% 30%, var(--felt-lit) 0%, var(--felt) 52%, var(--felt-deep) 100%);
+  box-shadow:
+    inset 0 0 80px oklch(0.1 0.04 20 / 0.55),
+    var(--edge);
+}
+
+/*
+ * The betting line every real table has printed on it. A ::before, so it
+ * paints under the seats and chips rather than across them.
+ */
+.felt::before {
+  content: '';
+  position: absolute;
+  inset: 7% 5%;
+  border-radius: 46% / 54%;
+  border: 1px solid oklch(0.9 0.09 88 / 0.14);
+  pointer-events: none;
+}
+
+/* The house mark printed on the cloth. Barely there, and never read aloud. */
+.felt-mark {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.55em;
+  text-transform: uppercase;
+  color: oklch(0.9 0.09 88 / 0.13);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Panels
+   --------------------------------------------------------------------------- */
+
+/*
+ * A panel is a slab of the house resting on the felt: dark, warm, milled at
+ * the top edge. It is never a flat translucent rectangle — over a lit table
+ * that reads as a smudge rather than as an object.
+ */
+.panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
+  box-shadow: var(--shadow-md), var(--edge);
+  padding: var(--space-4);
+}
+
+.panel-lg {
+  padding: var(--space-6);
+  box-shadow: var(--shadow-lg), var(--edge);
+}
+
+/* A panel that is a row you can act on. */
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+}
+
+.panel-row:hover {
+  border-color: oklch(0.9 0.09 88 / 0.28);
+  background: linear-gradient(180deg, var(--color-surface-2) 0%, var(--color-surface) 100%);
+}
+
+/* The recessed well: inputs, lists, anything set into a panel rather than on it. */
+.well {
+  border-radius: var(--radius-md);
+  background: oklch(0 0 0 / 0.28);
+  box-shadow: inset 0 1px 3px oklch(0 0 0 / 0.4);
+  border: 1px solid oklch(0.9 0.09 88 / 0.08);
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons
+   --------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  cursor: pointer;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease),
+    transform 60ms var(--ease);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/*
+ * The primary is the only struck-brass object in the system. It gleams because
+ * it is the one that costs you something — everything else is painted.
+ */
+.btn-primary {
+  color: oklch(0.2 0.05 40);
+  background: linear-gradient(180deg, var(--color-accent-300) 0%, var(--color-accent-600) 100%);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 oklch(1 0 0 / 0.4);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(180deg, var(--color-accent-200) 0%, var(--color-accent-500) 100%);
+}
+
+.btn-secondary {
+  background: var(--color-surface-2);
+  border-color: var(--color-divider);
+}
+
+.btn-secondary:hover {
+  background: var(--color-neutral-700);
+  border-color: oklch(0.9 0.09 88 / 0.3);
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-ghost:hover {
+  background: oklch(1 0 0 / 0.06);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  border-color: var(--color-divider);
+  background: oklch(0 0 0 / 0.35);
+  color: var(--color-muted);
+}
+
+.btn-icon:hover {
+  color: var(--color-text);
+  background: oklch(0 0 0 / 0.55);
+}
+
+/*
+ * The three plays. Full height, equal width, and never tinted panels — over a
+ * lit table anything washed out simply disappears, and giving up, staying in
+ * and committing chips must not look alike at a glance.
+ */
+.play {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-md), var(--edge);
+  transition: background-color 140ms var(--ease), transform 60ms var(--ease);
+}
+
+.play:active {
+  transform: translateY(1px);
+}
+
+/* Unlit stone. The cold option, and the only cold thing in the room. */
+.play-fold {
+  background: var(--play-fold);
+  border-color: oklch(1 0 0 / 0.07);
+  color: var(--color-neutral-200);
+}
+
+.play-fold:hover {
+  background: var(--play-fold-lit);
+}
+
+/* Felt green: staying in the hand without paying for it. */
+.play-pass {
+  background: var(--play-pass);
+}
+
+.play-pass:hover {
+  background: var(--play-pass-lit);
+}
+
+/* Brass: the only one that moves chips, and the only one that gleams. */
+.play-commit {
+  color: oklch(0.2 0.05 40);
+  background: linear-gradient(180deg, var(--play-commit-lit) 0%, var(--play-commit) 100%);
+  box-shadow: var(--shadow-md), inset 0 1px 0 oklch(1 0 0 / 0.45);
+}
+
+.play-commit:hover {
+  background: linear-gradient(180deg, var(--color-accent-200) 0%, var(--color-accent-400) 100%);
+}
+
+.play-note {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.75;
+}
+
+/* ---------------------------------------------------------------------------
+   Tags
+   --------------------------------------------------------------------------- */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-full);
+  background: oklch(0 0 0 / 0.35);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.tag-accent {
+  border-color: oklch(0.8 0.135 82 / 0.4);
+  background: oklch(0.8 0.135 82 / 0.14);
+  color: var(--color-accent-200);
+}
+
+.tag-danger {
+  border-color: oklch(0.67 0.175 25 / 0.5);
+  background: oklch(0.67 0.175 25 / 0.16);
+  color: var(--color-accent-2-200);
+}
+
+.tag-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   Playing cards
+   --------------------------------------------------------------------------- */
+
+/*
+ * A card is paper. It is the brightest thing in the room and the only object
+ * with a light surface, which is why the whole scheme can be this dark.
+ */
+.card-face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 52px;
+  height: 72px;
+  border: 1px solid oklch(0 0 0 / 0.2);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, oklch(0.995 0.003 90) 0%, oklch(0.93 0.008 80) 100%);
+  color: oklch(0.2 0.02 30);
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+  box-shadow: 0 2px 8px -2px oklch(0 0 0 / 0.7);
+}
+
+.card-face .suit {
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.card-red {
+  color: var(--color-accent-2-500);
+}
+
+/*
+ * The back is house stock: near-black woven cloth inside a brass rule. Not
+ * red — a red back on a red table is one object, and the whole point of a
+ * face-down card is that you can count it from across the felt.
+ */
+.card-back {
+  border-color: oklch(0.8 0.135 82 / 0.45);
+  background-image: repeating-linear-gradient(
+    45deg,
+    oklch(0.3 0.05 30) 0 3px,
+    oklch(0.185 0.038 26) 3px 6px
+  );
+  box-shadow: 0 2px 8px -2px oklch(0 0 0 / 0.7), inset 0 0 0 1px oklch(0.8 0.135 82 / 0.18);
+}
+
+.card-xs {
+  width: 32px;
+  height: 44px;
+  font-size: 11px;
+  border-radius: 4px;
+}
+.card-xs .suit {
+  font-size: 10px;
+}
+
+.card-sm {
+  width: 40px;
+  height: 56px;
+  font-size: 14px;
+}
+.card-sm .suit {
+  font-size: 13px;
+}
+
+.card-lg {
+  width: 68px;
+  height: 96px;
+  font-size: 26px;
+  border-radius: var(--radius-md);
+}
+.card-lg .suit {
+  font-size: 23px;
+}
+
+/* An empty place on the board, waiting for a card. */
+.card-slot {
+  width: 52px;
+  height: 72px;
+  border: 1px dashed oklch(0.9 0.09 88 / 0.2);
+  border-radius: var(--radius-sm);
+}
+
+/* Out of the hand: the whole hand dims once, never card by card. */
+.hand-folded {
+  opacity: 0.4;
+  filter: saturate(0.5);
+}
+
+/* ---------------------------------------------------------------------------
+   Chips
+   --------------------------------------------------------------------------- */
+
+/*
+ * Chip colours are the casino convention players already read: white ones,
+ * red fives, blue twenty-fives, black hundreds, violet five hundreds, yellow
+ * thousands. They are denominations, not decoration — never re-tint them to
+ * match a screen.
+ */
+.chip {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  border: 1px solid oklch(0 0 0 / 0.55);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: var(--radius-full);
+  border: 1px dashed oklch(1 0 0 / 0.5);
+}
+
+.chip-1 {
+  background: linear-gradient(180deg, oklch(1 0 0), oklch(0.86 0 0));
+}
+.chip-5 {
+  background: linear-gradient(180deg, oklch(0.6 0.2 25), oklch(0.46 0.17 25));
+}
+.chip-25 {
+  background: linear-gradient(180deg, oklch(0.66 0.15 240), oklch(0.5 0.14 245));
+}
+.chip-100 {
+  background: linear-gradient(180deg, oklch(0.34 0.01 30), oklch(0.19 0.008 30));
+}
+.chip-500 {
+  background: linear-gradient(180deg, oklch(0.62 0.19 300), oklch(0.46 0.17 300));
+}
+.chip-1000 {
+  background: linear-gradient(180deg, oklch(0.88 0.15 92), oklch(0.72 0.15 88));
+}
+
+/* ---------------------------------------------------------------------------
+   Seat
+   --------------------------------------------------------------------------- */
+
+/*
+ * A seat is one object, not three stacked pieces: the cards tuck under the
+ * top edge of the plate, and the plate carries the stack, the face and the
+ * name together.
+ */
+.seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.seat-cards {
+  display: flex;
+  margin-bottom: -14px;
+}
+
+.seat-plate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-divider);
+  background: linear-gradient(180deg, var(--color-surface) 0%, oklch(0.14 0.035 22) 100%);
+  box-shadow: var(--shadow-md), var(--edge);
+  transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+
+/* Whose turn it is: the plate takes a brass rim to match the lit felt below. */
+.seat-acting {
+  border-color: oklch(0.8 0.135 82 / 0.8);
+  box-shadow: var(--shadow-md), 0 0 0 3px oklch(0.8 0.135 82 / 0.22);
+}
+
+/* Won it: green, the one colour in the room that is not the house. */
+.seat-winner {
+  border-color: var(--state-win);
+  box-shadow: var(--shadow-md), 0 0 0 3px oklch(0.78 0.16 155 / 0.28);
+}
+
+.seat-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.18);
+  flex-shrink: 0;
+}
+
+.seat-stack {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.seat-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-muted);
+  line-height: 1.3;
+}
+
+.stack-healthy {
+  color: var(--state-healthy);
+}
+.stack-medium {
+  color: var(--state-medium);
+}
+.stack-short {
+  color: var(--state-short);
+}
+
+/* The dealer button, sitting proud of the plate as a real one sits on cloth. */
+.dealer-button {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, oklch(1 0 0), oklch(0.88 0.01 80));
+  color: oklch(0.2 0.02 30);
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px oklch(0.145 0.035 32 / 0.8), var(--shadow-sm);
+}
+
+/* What a player just did, said at their seat and then gone. */
+.callout {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  background: var(--color-neutral-800);
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   Forms
+   --------------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.input {
+  height: 44px;
+  width: 100%;
+  padding: 0 var(--space-3);
+  border: 1px solid oklch(0.9 0.09 88 / 0.1);
+  border-radius: var(--radius-md);
+  background: oklch(0 0 0 / 0.28);
+  box-shadow: inset 0 1px 3px oklch(0 0 0 / 0.4);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.input::placeholder {
+  color: oklch(0.74 0.028 45 / 0.5);
+}
+
+.input:hover {
+  border-color: oklch(0.9 0.09 88 / 0.22);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: inset 0 1px 3px oklch(0 0 0 / 0.4), 0 0 0 3px oklch(0.8 0.135 82 / 0.2);
+}
+
+/* The segmented control: one tap, and the whole range visible while choosing. */
+.seg {
+  display: grid;
+  grid-auto-flow: column;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  background: oklch(0 0 0 / 0.28);
+  border: 1px solid oklch(0.9 0.09 88 / 0.08);
+}
+
+.seg-opt {
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 140ms var(--ease), color 140ms var(--ease);
+}
+
+.seg-opt:hover {
+  color: var(--color-text);
+  background: oklch(1 0 0 / 0.05);
+}
+
+.seg-opt[aria-selected='true'] {
+  color: oklch(0.2 0.05 40);
+  background: linear-gradient(180deg, var(--color-accent-300), var(--color-accent-600));
+  box-shadow: var(--shadow-sm), inset 0 1px 0 oklch(1 0 0 / 0.4);
+}
+
+/* The stake slider. Chips are what is staked; make the control worth it. */
+.slider {
+  position: relative;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: oklch(0 0 0 / 0.4);
+  box-shadow: inset 0 1px 3px oklch(0 0 0 / 0.5);
+}
+
+.slider-range {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  transform: translateY(-50%);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-accent-300);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.slider-bubble {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid oklch(0.8 0.135 82 / 0.4);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-accent-200);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   Dialog
+   --------------------------------------------------------------------------- */
+
+.dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(0.1 0.03 20 / 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.dialog {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
+  box-shadow: var(--shadow-lg), var(--edge-strong);
+  overflow: hidden;
+}
+
+.dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.dialog-body {
+  padding: var(--space-2) var(--space-4);
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities used by the preview pages
+   --------------------------------------------------------------------------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.wrap {
+  flex-wrap: wrap;
+}
+.center {
+  align-items: center;
+  justify-content: center;
+}
+.between {
+  justify-content: space-between;
+}
+.pad {
+  padding: var(--space-6);
+}
+.grow {
+  flex: 1;
+}

@@ -1,0 +1,154 @@
+<!-- @dsCard group="Components" name="Chips" subtitle="Denominations, not decoration — casino convention, stacked so a pile can be weighed by eye" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chips — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .on-felt {
+        padding: var(--space-6);
+        border-radius: var(--radius-lg);
+        background-image: radial-gradient(80% 90% at 50% 20%, var(--felt-lit), var(--felt-deep));
+        box-shadow: inset 0 0 60px oklch(0.1 0.04 20 / 0.5), var(--edge);
+      }
+      /*
+       * Stacked by hand rather than by margins, because paint order is the whole
+       * illusion: each chip sits a rim higher than the one below and comes later
+       * in the DOM, so it covers all but that rim. What is left is a run of rims
+       * under one full face — which is what a stack of chips looks like.
+       */
+      .stack {
+        position: relative;
+        display: block;
+        width: 22px;
+      }
+      .stack .chip {
+        position: absolute;
+        left: 0;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .stack .chip::after {
+        inset: 2px 4px;
+      }
+      .piles {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+      }
+      .denoms {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: var(--space-3);
+        text-align: center;
+      }
+      .denoms .money {
+        display: block;
+        font-size: 11px;
+        margin-top: 6px;
+        color: var(--color-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Chips</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          The colours are the casino convention players already read, and they are
+          <em>denominations</em> &mdash; never re-tinted to match a screen, never used decoratively.
+          Because they are fixed, a pile in the middle can be weighed against the pile behind a
+          seat without either number being read. That is the whole reason to draw chips at all.
+        </p>
+      </div>
+
+      <div class="on-felt col" style="gap: var(--space-6)">
+        <div class="denoms">
+          <div><span class="chip chip-1"></span><span class="money">1</span></div>
+          <div><span class="chip chip-5"></span><span class="money">5</span></div>
+          <div><span class="chip chip-25"></span><span class="money">25</span></div>
+          <div><span class="chip chip-100"></span><span class="money">100</span></div>
+          <div><span class="chip chip-500"></span><span class="money">500</span></div>
+          <div><span class="chip chip-1000"></span><span class="money">1,000</span></div>
+        </div>
+
+        <div class="row" style="gap: var(--space-8); align-items: flex-end">
+          <div class="col" style="gap: var(--space-2)">
+            <span class="eyebrow">A stack &mdash; 2,480</span>
+            <div class="piles">
+              <span class="stack" style="height: 27px">
+                <span class="chip chip-1000" style="bottom: 0"></span>
+                <span class="chip chip-1000" style="bottom: 4px"></span>
+              </span>
+              <span class="stack" style="height: 31px">
+                <span class="chip chip-100" style="bottom: 0"></span>
+                <span class="chip chip-100" style="bottom: 4px"></span>
+                <span class="chip chip-100" style="bottom: 8px"></span>
+                <span class="chip chip-100" style="bottom: 12px"></span>
+              </span>
+              <span class="stack" style="height: 23px">
+                <span class="chip chip-25" style="bottom: 0"></span>
+                <span class="chip chip-25" style="bottom: 4px"></span>
+                <span class="chip chip-25" style="bottom: 8px"></span>
+              </span>
+              <span class="stack" style="height: 15px">
+                <span class="chip chip-5" style="bottom: 0"></span>
+              </span>
+            </div>
+          </div>
+
+          <div class="col" style="gap: var(--space-2)">
+            <span class="eyebrow">Wagered</span>
+            <span
+              class="row"
+              style="
+                gap: var(--space-2);
+                padding: 2px var(--space-2) 2px 6px;
+                border-radius: var(--radius-full);
+                border: 1px solid oklch(0 0 0 / 0.35);
+                background: oklch(0 0 0 / 0.45);
+              "
+            >
+              <span class="piles">
+                <span class="stack" style="height: 23px">
+                  <span class="chip chip-100" style="bottom: 0"></span>
+                  <span class="chip chip-100" style="bottom: 4px"></span>
+                  <span class="chip chip-100" style="bottom: 8px"></span>
+                </span>
+              </span>
+              <span class="money" style="font-size: 11px; color: var(--color-accent-200)">300</span>
+            </span>
+          </div>
+
+          <div class="col" style="gap: var(--space-2)">
+            <span class="eyebrow">The pot</span>
+            <div class="col" style="gap: 2px; align-items: center">
+              <div class="piles">
+                <span class="stack" style="height: 31px">
+                  <span class="chip chip-1000" style="bottom: 0"></span>
+                  <span class="chip chip-1000" style="bottom: 4px"></span>
+                  <span class="chip chip-1000" style="bottom: 8px"></span>
+                  <span class="chip chip-1000" style="bottom: 12px"></span>
+                </span>
+                <span class="stack" style="height: 23px">
+                  <span class="chip chip-100" style="bottom: 0"></span>
+                  <span class="chip chip-100" style="bottom: 4px"></span>
+                  <span class="chip chip-100" style="bottom: 8px"></span>
+                </span>
+              </div>
+              <span class="money" style="font-size: 22px; margin-top: 4px">1,240</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="muted" style="font-size: 12px">
+        Chips are decorative to a screen reader &mdash; the exact figure always sits beside them in
+        <code>.money</code> &mdash; so the discs carry <code>aria-hidden</code> and the reader is
+        spared them. Columns sit on a shared baseline, so a short pile reads as less rather than as
+        a stack floating off the felt.
+      </p>
+    </div>
+  </body>
+</html>

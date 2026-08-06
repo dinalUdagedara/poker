@@ -1,0 +1,187 @@
+<!-- @dsCard group="Foundations" name="Color" subtitle="Oxblood room, brass accent, and the play semantics that must never blur" viewport="640x720" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Color — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: var(--space-3);
+      }
+      .sw {
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-divider);
+        overflow: hidden;
+      }
+      .sw .chip-area {
+        height: 52px;
+      }
+      .sw .label {
+        padding: 6px var(--space-2);
+        font-size: 11px;
+        line-height: 1.35;
+        background: oklch(0 0 0 / 0.3);
+      }
+      .sw .label b {
+        display: block;
+        font-weight: 600;
+      }
+      .sw .label span {
+        color: var(--color-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
+      .ramp {
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        border: 1px solid var(--color-divider);
+      }
+      .ramp div {
+        height: 44px;
+        display: grid;
+        place-items: end center;
+        padding-bottom: 3px;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        color: oklch(0 0 0 / 0.55);
+      }
+      .ramp div.on-dark {
+        color: oklch(1 0 0 / 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Color</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          A dark red house. The ground is oxblood, the one accent is brass, and the only light
+          surfaces in the entire system are the faces of playing cards — which is what lets the
+          scheme sit this dark without going murky.
+        </p>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Roles</span>
+        <div class="swatches">
+          <div class="sw">
+            <div class="chip-area" style="background: var(--color-bg)"></div>
+            <div class="label"><b>Ground</b><span>--color-bg</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--color-surface)"></div>
+            <div class="label"><b>Surface</b><span>--color-surface</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--color-surface-2)"></div>
+            <div class="label"><b>Raised</b><span>--color-surface-2</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--color-accent)"></div>
+            <div class="label"><b>Brass</b><span>--color-accent</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--color-accent-2)"></div>
+            <div class="label"><b>Signal red</b><span>--color-accent-2</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--color-text)"></div>
+            <div class="label"><b>Text</b><span>--color-text</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">The table</span>
+        <div class="swatches">
+          <div class="sw">
+            <div class="chip-area" style="background: var(--felt-lit)"></div>
+            <div class="label"><b>Felt, lit</b><span>--felt-lit</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--felt)"></div>
+            <div class="label"><b>Felt</b><span>--felt</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--felt-deep)"></div>
+            <div class="label"><b>Felt, deep</b><span>--felt-deep</span></div>
+          </div>
+          <div class="sw">
+            <div class="chip-area" style="background: var(--rail)"></div>
+            <div class="label"><b>Rail</b><span>--rail</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Neutral ramp</span>
+        <div class="ramp">
+          <div style="background: var(--color-neutral-100)">100</div>
+          <div style="background: var(--color-neutral-200)">200</div>
+          <div style="background: var(--color-neutral-300)">300</div>
+          <div style="background: var(--color-neutral-400)">400</div>
+          <div class="on-dark" style="background: var(--color-neutral-500)">500</div>
+          <div class="on-dark" style="background: var(--color-neutral-600)">600</div>
+          <div class="on-dark" style="background: var(--color-neutral-700)">700</div>
+          <div class="on-dark" style="background: var(--color-neutral-800)">800</div>
+          <div class="on-dark" style="background: var(--color-neutral-900)">900</div>
+        </div>
+
+        <span class="eyebrow" style="margin-top: var(--space-2)">Brass ramp</span>
+        <div class="ramp">
+          <div style="background: var(--color-accent-100)">100</div>
+          <div style="background: var(--color-accent-200)">200</div>
+          <div style="background: var(--color-accent-300)">300</div>
+          <div style="background: var(--color-accent-400)">400</div>
+          <div style="background: var(--color-accent-500)">500</div>
+          <div style="background: var(--color-accent-600)">600</div>
+          <div class="on-dark" style="background: var(--color-accent-700)">700</div>
+          <div class="on-dark" style="background: var(--color-accent-800)">800</div>
+          <div class="on-dark" style="background: var(--color-accent-900)">900</div>
+        </div>
+
+        <span class="eyebrow" style="margin-top: var(--space-2)">Signal red ramp</span>
+        <div class="ramp">
+          <div style="background: var(--color-accent-2-100)">100</div>
+          <div style="background: var(--color-accent-2-200)">200</div>
+          <div style="background: var(--color-accent-2-300)">300</div>
+          <div class="on-dark" style="background: var(--color-accent-2-400)">400</div>
+          <div class="on-dark" style="background: var(--color-accent-2-500)">500</div>
+          <div class="on-dark" style="background: var(--color-accent-2-600)">600</div>
+          <div class="on-dark" style="background: var(--color-accent-2-700)">700</div>
+          <div class="on-dark" style="background: var(--color-accent-2-800)">800</div>
+          <div class="on-dark" style="background: var(--color-accent-2-900)">900</div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Play semantics</span>
+        <p class="muted" style="font-size: 12px">
+          Three decisions that must never be confused for one another, so they differ in material
+          as well as hue. Folding is unlit stone — the one cold thing in a warm room. Staying is
+          felt green. Committing chips is the only metal on the screen.
+        </p>
+        <div class="row" style="gap: var(--space-2)">
+          <button class="play play-fold">Fold</button>
+          <button class="play play-pass">Check</button>
+          <button class="play play-commit">Raise to 300</button>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Money states</span>
+        <div class="row wrap" style="gap: var(--space-4)">
+          <span class="seat-stack stack-healthy">2,480 &nbsp;<span class="seat-name">healthy</span></span>
+          <span class="seat-stack stack-medium">640 &nbsp;<span class="seat-name">medium</span></span>
+          <span class="seat-stack stack-short">180 &nbsp;<span class="seat-name">short</span></span>
+          <span class="seat-stack" style="color: var(--state-win)">+1,240 &nbsp;<span class="seat-name">won</span></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

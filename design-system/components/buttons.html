@@ -1,0 +1,79 @@
+<!-- @dsCard group="Components" name="Buttons & tags" subtitle="One struck-brass primary; the three plays differ in material, not just hue" viewport="640x560" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Buttons &amp; tags — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Buttons &amp; tags</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          Exactly one object in this system is struck brass, and it is always the thing that costs
+          you something. Everything else is painted.
+        </p>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Actions</span>
+        <div class="row wrap">
+          <button class="btn btn-primary">Deal me in</button>
+          <button class="btn btn-secondary">Open a room</button>
+          <button class="btn btn-ghost">Browse rooms</button>
+          <button class="btn btn-primary" disabled>Dealing&hellip;</button>
+          <button class="btn btn-icon" aria-label="What beats what">&#9827;</button>
+          <button class="btn btn-icon" aria-label="How to play">?</button>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">The three plays</span>
+        <p class="muted" style="font-size: 12px">
+          Giving up, staying in, and putting chips in are different decisions and must not look
+          alike at a glance. They are separated by material: <b>fold</b> is unlit stone, the one
+          cold surface in a warm room; <b>check / call</b> is felt green; <b>bet / raise</b> is the
+          only metal on the screen. Full-width and equal, so folding never gets more weight than
+          the bet being sized above it.
+        </p>
+        <div class="row" style="gap: var(--space-2)">
+          <button class="play play-fold">Fold</button>
+          <button class="play play-pass">Check</button>
+          <button class="play play-commit">Bet 100</button>
+        </div>
+        <div class="row" style="gap: var(--space-2)">
+          <button class="play play-fold">Fold</button>
+          <button class="play play-pass">
+            Call 250
+            <span class="play-note">all in</span>
+          </button>
+          <button class="play play-commit">Raise to 600</button>
+        </div>
+        <span class="eyebrow" style="margin-top: var(--space-2)">Someone else&rsquo;s turn</span>
+        <p class="muted" style="font-size: 12px">
+          The row stays mounted and dims rather than being replaced by a line of text — swapping it
+          out collapses the console on every opponent action and puts it back a moment later, so
+          the table jumps under the pointer between every decision.
+        </p>
+        <div class="row" style="gap: var(--space-2); opacity: 0.4">
+          <span class="play play-fold">Fold</span>
+          <span class="play play-pass">Call</span>
+          <span class="play play-commit">Raise</span>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Tags</span>
+        <div class="row wrap" style="gap: var(--space-2)">
+          <span class="tag tag-mono">25/50</span>
+          <span class="tag">flop</span>
+          <span class="tag tag-accent">Dealer</span>
+          <span class="tag tag-danger">All in</span>
+          <span class="tag">folded</span>
+          <span class="tag tag-accent">You</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

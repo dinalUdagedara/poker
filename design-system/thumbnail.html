@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Showdown</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        margin: 0;
+      }
+      .cover {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-6);
+        background: radial-gradient(70% 60% at 50% 34%, var(--felt-lit), var(--felt-deep) 70%, var(--color-bg));
+      }
+      .swatches {
+        display: flex;
+        gap: var(--space-2);
+      }
+      .swatches i {
+        display: block;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        box-shadow: var(--shadow-md), inset 0 1px 0 oklch(1 0 0 / 0.25);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cover">
+      <div class="row" style="gap: 0">
+        <span class="card-face card-lg" style="transform: rotate(-10deg)">A<span class="suit">&#9824;</span></span>
+        <span class="card-face card-lg card-red" style="transform: rotate(10deg); margin-left: -14px">A<span class="suit">&#9829;</span></span>
+      </div>
+      <div class="col" style="align-items: center; gap: 2px">
+        <span class="wordmark" style="font-size: 52px">Showdown</span>
+        <span class="eyebrow" style="color: oklch(1 0 0 / 0.5)">Oxblood &amp; brass</span>
+      </div>
+      <div class="swatches">
+        <i style="background: var(--felt)"></i>
+        <i style="background: var(--rail)"></i>
+        <i style="background: var(--color-accent-500)"></i>
+        <i style="background: var(--color-surface)"></i>
+        <i style="background: var(--color-accent-2-500)"></i>
+      </div>
+    </div>
+  </body>
+</html>

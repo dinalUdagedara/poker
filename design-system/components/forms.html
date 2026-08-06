@@ -1,0 +1,109 @@
+<!-- @dsCard group="Components" name="Forms" subtitle="Recessed inputs, a segmented control, and choices shown whole rather than hidden in a menu" viewport="640x560" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Forms — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .choices {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+      }
+      .choice {
+        height: 44px;
+        border-radius: var(--radius-md);
+        border: 1px solid oklch(0.9 0.09 88 / 0.1);
+        background: oklch(0 0 0 / 0.28);
+        color: var(--color-muted);
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 140ms var(--ease), color 140ms var(--ease);
+      }
+      .choice:hover {
+        color: var(--color-text);
+        background: oklch(1 0 0 / 0.06);
+      }
+      .choice[aria-checked='true'] {
+        color: oklch(0.2 0.05 40);
+        border-color: var(--color-accent-300);
+        background: linear-gradient(180deg, var(--color-accent-300), var(--color-accent-600));
+        box-shadow: var(--shadow-sm), inset 0 1px 0 oklch(1 0 0 / 0.4);
+      }
+      .check {
+        display: flex;
+        gap: var(--space-3);
+        align-items: flex-start;
+        padding: var(--space-3);
+        cursor: pointer;
+      }
+      .check input {
+        accent-color: var(--color-accent-500);
+        width: 16px;
+        height: 16px;
+        margin-top: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Forms</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          Native elements, themed states, no script. Inputs are recessed &mdash; set into the panel
+          rather than sitting on it &mdash; so the only raised things on a screen remain the ones
+          you press.
+        </p>
+      </div>
+
+      <div class="panel panel-lg col" style="gap: var(--space-6); max-width: 380px">
+        <div class="field">
+          <label for="name">Your name</label>
+          <input class="input" id="name" placeholder="Leave blank and we will name you" />
+        </div>
+
+        <div class="col" style="gap: var(--space-2)">
+          <div class="seg" role="tablist" style="grid-template-columns: 1fr 1fr">
+            <button class="seg-opt" role="tab" aria-selected="true">Practice</button>
+            <button class="seg-opt" role="tab" aria-selected="false">With people</button>
+          </div>
+        </div>
+
+        <div class="col" style="gap: var(--space-2)">
+          <div class="row between" style="align-items: baseline">
+            <span style="font-size: 13px; font-weight: 500; color: var(--color-muted)">Opponents</span>
+            <span class="muted" style="font-size: 11px">4 handed</span>
+          </div>
+          <div class="choices" role="radiogroup" aria-label="Opponents">
+            <button class="choice" role="radio" aria-checked="false">1</button>
+            <button class="choice" role="radio" aria-checked="false">2</button>
+            <button class="choice" role="radio" aria-checked="true">3</button>
+            <button class="choice" role="radio" aria-checked="false">4</button>
+            <button class="choice" role="radio" aria-checked="false">5</button>
+          </div>
+          <p class="muted" style="font-size: 11px">
+            One tap instead of open-a-menu-then-choose. Five options is few enough to show them
+            all, and seeing the range is part of the choice &mdash; a closed dropdown hides how big
+            a table can get.
+          </p>
+        </div>
+
+        <label class="check well">
+          <input type="checkbox" checked />
+          <span class="col" style="gap: 2px">
+            <span style="font-size: 13px">List it publicly</span>
+            <span class="muted" style="font-size: 11px">Anyone can find this room and sit down.</span>
+          </span>
+        </label>
+
+        <button class="btn btn-primary btn-block" style="height: 52px; letter-spacing: 0.06em; text-transform: uppercase">
+          Deal me in
+        </button>
+      </div>
+    </div>
+  </body>
+</html>
