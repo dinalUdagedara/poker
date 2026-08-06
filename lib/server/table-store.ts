@@ -23,6 +23,7 @@ import {
   type TableView,
 } from '../poker/lifecycle'
 import { generatedName, nameFor } from '../names'
+import { botNames } from './bot-names'
 import { redactFor } from '../poker/redact'
 import { applyAction, legalActions, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
@@ -340,12 +341,23 @@ function deal(tableId: string, room: WaitingTable): PlayingTable {
     settings: { ...room.settings, botCount },
     state,
     owners: Object.fromEntries(humanIds.map((id, index) => [id, sitting[index]])),
-    names: Object.fromEntries(
-      humanIds.map((id, index) => [
-        id,
-        room.names[sitting[index]] ?? generatedName(sitting[index]),
-      ]),
-    ),
+    /*
+     * The bots are named here alongside the people, rather than left to the
+     * screen to caption from their ids. "Bot 3" says the seat is a machine and
+     * nothing else — it cannot be told from "Bot 2" at a glance, and every
+     * table has the same four. A name is what makes a seat somebody to play
+     * against, and it is stored, so it stays that seat's name for the table's
+     * whole life rather than changing under the reader on the next request.
+     */
+    names: Object.fromEntries([
+      ...humanIds.map(
+        (id, index): [string, string] => [
+          id,
+          room.names[sitting[index]] ?? generatedName(sitting[index]),
+        ],
+      ),
+      ...botNames(botCount).map((name, index): [string, string] => [`bot${index + 1}`, name]),
+    ]),
     deadline: Date.now() + TURN_MS,
   }
 }
