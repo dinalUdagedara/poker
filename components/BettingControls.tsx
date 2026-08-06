@@ -1,6 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
@@ -35,6 +41,8 @@ export function BettingControls({
   pot,
   busy,
   status,
+  sizingOpen,
+  onSizingOpenChange,
   onAction,
 }: {
   /** Null while it is somebody else's turn: the controls stay, greyed out. */
@@ -43,6 +51,13 @@ export function BettingControls({
   busy: boolean
   /** What to say in place of the sizing label when it is not our turn. */
   status: string
+  /**
+   * Whether the slider is showing. Owned by the table rather than held here,
+   * because this bar is unmounted every time a hand settles — the result panel
+   * takes its place — and the choice would spring back open on the next hand.
+   */
+  sizingOpen: boolean
+  onSizingOpenChange: (open: boolean) => void
   onAction: SubmitAction
 }) {
   const idle = legal === null
@@ -96,31 +111,73 @@ export function BettingControls({
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
+      <Collapsible
+        open={sizingOpen}
+        onOpenChange={(open) => onSizingOpenChange(open)}
+        className="flex flex-col gap-3"
+      >
         {/* The quick ways to set the stake. The amount itself rides the thumb. */}
         <div className="flex h-7 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <span className={cn('text-muted-foreground text-xs', idle && 'invisible')}>
-            {legal?.raise ? 'Raise to' : 'Bet'}
-          </span>
+          {/*
+            Shaped like the shortcuts across the row rather than left as bare
+            text. It is the one thing here you press that is not a stake, so
+            without a border it read as a stray label — and a disclosure nobody
+            recognises as a control is a panel that never gets opened again once
+            it has been shut.
 
+            Called "Bet size" and not "Raise to": the amber button already says
+            "Raise to 100" a few pixels below, and two controls carrying the
+            same words invite the reader to work out which of them raises.
+
+            Hidden rather than removed between turns, as the label it replaced
+            always was: the status message is centred over the whole bar, and a
+            live disclosure button underneath it would be the one thing still
+            answering the pointer during somebody else's decision.
+          */}
+          <CollapsibleTrigger
+            className={cn(
+              'inline-flex h-7 items-center gap-1.5 rounded-md border border-white/15 px-2.5',
+              'text-xs font-normal text-white/70',
+              'transition-colors hover:border-white/25 hover:bg-white/5 hover:text-white',
+              'focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:outline-none',
+              idle && 'invisible',
+            )}
+            data-testid="sizing-toggle"
+          >
+            <ChevronDown
+              className={cn(
+                'size-3.5 transition-transform duration-200',
+                !sizingOpen && '-rotate-90',
+              )}
+              aria-hidden
+            />
+            Bet size
+          </CollapsibleTrigger>
+
+          {/*
+            The shortcuts stay out here rather than folding away with the
+            slider. Collapsed, they are the whole of the sizing control — half
+            pot and pot are the sizes most hands actually want, and hiding them
+            too would leave nothing to bet with but the minimum.
+          */}
           <div className="flex flex-wrap gap-1.5">
-              {shortcuts.map(([label, value]) => (
-                <Button
-                  key={label}
-                  size="sm"
-                  variant="outline"
-                  className={cn(
-                    'h-7 border-white/15 px-2.5 text-xs font-normal',
-                    amount === value && 'border-amber-400/60 bg-amber-400/10 text-amber-300',
-                  )}
-                  disabled={busy}
-                  onClick={() => setChosen(value)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
+            {shortcuts.map(([label, value]) => (
+              <Button
+                key={label}
+                size="sm"
+                variant="outline"
+                className={cn(
+                  'h-7 border-white/15 px-2.5 text-xs font-normal',
+                  amount === value && 'border-amber-400/60 bg-amber-400/10 text-amber-300',
+                )}
+                disabled={busy}
+                onClick={() => setChosen(value)}
+              >
+                {label}
+              </Button>
+            ))}
           </div>
+        </div>
 
         {/*
           The slider is full width here rather than in a fixed-width box: the
@@ -133,7 +190,7 @@ export function BettingControls({
           legal amount, and between turns there is no range at all — because
           taking it away is the layout jumping again, one row further down.
         */}
-        <div className="flex flex-col gap-1.5">
+        <CollapsibleContent className="sizing-panel flex flex-col gap-1.5">
           {/*
             The amount rides the thumb rather than sitting off to one side,
             because while you are sizing a bet that is where you are looking.
@@ -191,8 +248,8 @@ export function BettingControls({
               {sizing?.max.toLocaleString() ?? ''}
             </span>
           </div>
-        </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/*
         One row of equal, full-width actions. They were small and left-aligned

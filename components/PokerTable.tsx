@@ -107,6 +107,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
    * offering is a fresh table.
    */
   const [gone, setGone] = useState(false)
+  /**
+   * Whether the bet-sizing slider is showing.
+   *
+   * Kept here rather than in the action bar because that bar is unmounted every
+   * time a hand settles — the result panel takes its place — so a preference
+   * held inside it would be forgotten and spring back open on the next hand.
+   */
+  const [sizingOpen, setSizingOpen] = useState(true)
   const router = useRouter()
 
   /** Pending replay steps, cancelled if another update lands or we unmount. */
@@ -431,328 +439,350 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
         </div>
       </header>
 
-      <div className="flex flex-1 items-center justify-center px-4 pb-1">
-        {/* Shallower than it is wide, like a real table seen from the near
-            edge. A taller ellipse leaves a large empty apron below the board. */}
-        <div className="table-rail relative aspect-2/1 w-full max-w-3xl rounded-[46%/54%] p-2.5 sm:p-3.5">
-          <div className="table-felt relative size-full rounded-[46%/54%] border border-black/30">
-            {/* Pot and board */}
-            <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-3">
-              <div className="flex flex-col items-center gap-1">
-                {/*
-                  The pot as chips, in the same denominations as everyone's
-                  stack — which is the point of drawing it at all: a pile in the
-                  middle can be weighed against the pile behind a seat without
-                  reading either number.
-
-                  Gone once the hand settles, because by then it has been paid
-                  out and the award is carrying it to whoever won. Chips cannot
-                  be in the middle and on their way to a seat at the same time.
-                */}
-                <div className="flex h-8 items-end">
-                  {!table.result && <ChipStack stack={table.pot} testId="pot-chips" />}
-                </div>
-                <span className="text-[10px] font-medium tracking-[0.2em] text-white/60 uppercase">
-                  pot
-                </span>
-                <span
-                  className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
-                  data-testid="pot"
-                >
-                  {table.pot.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex gap-1.5" data-testid="board">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const card = table.communityCards[i]
-                  return card ? (
-                    <PlayingCard key={i} card={card} size="md" dealDelay={i * 70} />
-                  ) : (
-                    <div
-                      key={i}
-                      className="h-18 w-13 rounded-lg border border-dashed border-white/20"
-                    />
-                  )
-                })}
-              </div>
-            </div>
-
-            {youWon > 0 && (
-              /*
-               * Winning gets its own moment on the felt rather than only a line
-               * in the panel below. Keyed on the hand so it plays once, inert so
-               * it cannot intercept a click, and it fades itself out — the panel
-               * keeps the same facts, so there is nothing to dismiss.
-               */
-              <div
-                key={`win-${table.handNumber}`}
-                className={cn(
-                  'animate-win pointer-events-none absolute inset-0 z-40 grid place-items-center',
-                  // The felt dims flat rather than through a gradient. A soft
-                  // one left the middle barely darker than the table, and the
-                  // pot read straight through the word sitting on top of it.
-                  'rounded-[46%/54%] bg-[oklch(0.14_0.03_160/0.78)] backdrop-blur-[2px]',
-                )}
-                data-testid="win-banner"
-              >
+      {/*
+        The felt, the viewer's seat and the action bar scale as one unit on a
+        large screen — they are a single composition, and a table that grew
+        while the cards in front of you stayed put would read as two screens.
+        The header is left out: it is chrome, and chrome does not get bigger
+        because the monitor did.
+      */}
+      <div className="table-scale flex flex-1 flex-col">
+        <div className="flex flex-1 items-center justify-center px-4 pb-1">
+          {/* Shallower than it is wide, like a real table seen from the near
+              edge. A taller ellipse leaves a large empty apron below the board. */}
+          <div className="table-rail relative aspect-2/1 w-full max-w-3xl rounded-[46%/54%] p-2.5 sm:p-3.5">
+            <div className="table-felt relative size-full rounded-[46%/54%] border border-black/30">
+              {/* Pot and board */}
+              <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-3">
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-4xl font-bold tracking-tight text-amber-300 drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-5xl">
-                    You win
+                  {/*
+                    The pot as chips, in the same denominations as everyone's
+                    stack — which is the point of drawing it at all: a pile in the
+                    middle can be weighed against the pile behind a seat without
+                    reading either number.
+
+                    Gone once the hand settles, because by then it has been paid
+                    out and the award is carrying it to whoever won. Chips cannot
+                    be in the middle and on their way to a seat at the same time.
+                  */}
+                  <div className="flex h-8 items-end">
+                    {!table.result && <ChipStack stack={table.pot} testId="pot-chips" />}
+                  </div>
+                  <span className="text-[10px] font-medium tracking-[0.2em] text-white/60 uppercase">
+                    pot
                   </span>
-                  <span className="font-mono text-3xl font-bold tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)]">
-                    {youWon.toLocaleString()}
+                  <span
+                    className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
+                    data-testid="pot"
+                  >
+                    {table.pot.toLocaleString()}
                   </span>
-                  {winningHand && (
-                    <span className="text-base font-medium text-amber-100/75">{winningHand}</span>
-                  )}
+                </div>
+
+                <div className="flex gap-1.5" data-testid="board">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const card = table.communityCards[i]
+                    return card ? (
+                      <PlayingCard key={i} card={card} size="md" dealDelay={i * 70} />
+                    ) : (
+                      <div
+                        key={i}
+                        className="h-18 w-13 rounded-lg border border-dashed border-white/20"
+                      />
+                    )
+                  })}
                 </div>
               </div>
-            )}
 
-            {sweeps.map((sweep) => (
-              /*
-               * One flight per seat that had chips out, each starting from its
-               * own side of the table so the pot is seen being built from the
-               * players rather than simply growing.
-               */
-              <span
-                key={sweep.key}
-                className="animate-sweep pointer-events-none absolute z-30"
-                style={
-                  { '--from-x': `${sweep.left}%`, '--from-y': `${sweep.top}%` } as CSSProperties
-                }
-                data-testid={`sweep-${sweep.key}`}
-              >
-                <ChipStack stack={sweep.amount} />
-              </span>
-            ))}
-
-            {award && (
-              /*
-               * Keyed on the hand so it plays once per result: without that,
-               * React reuses the node and a re-render mid-animation restarts
-               * the pot's journey from the middle of the table.
-               */
-              <div
-                key={`award-${table.handNumber}`}
-                className="animate-award pointer-events-none absolute z-30 flex flex-col items-center gap-1"
-                style={
-                  {
-                    '--award-x': `${award.left}%`,
-                    '--award-y': `${award.top}%`,
-                  } as CSSProperties
-                }
-                data-testid="pot-award"
-              >
-                <ChipStack stack={award.amount} />
-                <span className="rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-bold tabular-nums text-amber-300 shadow-lg">
-                  +{award.amount.toLocaleString()}
-                </span>
-              </div>
-            )}
-
-            {/* Opponents around the top arc */}
-            {opponents.map((player, i) => {
-              const { left, top } = seatPosition(i, opponents.length)
-              return (
+              {youWon > 0 && (
+                /*
+                 * Winning gets its own moment on the felt rather than only a line
+                 * in the panel below. Keyed on the hand so it plays once, inert so
+                 * it cannot intercept a click, and it fades itself out — the panel
+                 * keeps the same facts, so there is nothing to dismiss.
+                 */
                 <div
-                  key={player.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: `${left}%`, top: `${top}%` }}
+                  key={`win-${table.handNumber}`}
+                  className={cn(
+                    'animate-win pointer-events-none absolute inset-0 z-40 grid place-items-center',
+                    // The felt dims flat rather than through a gradient. A soft
+                    // one left the middle barely darker than the table, and the
+                    // pot read straight through the word sitting on top of it.
+                    'rounded-[46%/54%] bg-[oklch(0.14_0.03_160/0.78)] backdrop-blur-[2px]',
+                  )}
+                  data-testid="win-banner"
                 >
-                  <PlayerSeat
-                    player={player}
-                    viewerId={table.viewerId}
-                    names={table.names}
-                    isActing={table.actingPlayerId === player.id}
-                    isButton={table.buttonSeat === player.seat}
-                    isWinner={winners.has(player.id)}
-                    handOver={Boolean(table.result)}
-                    compact={opponents.length >= 4}
-                    callout={callouts.get(player.id)}
-                    calloutSide={calloutSide(left)}
-                    chipSide={chipSide(left)}
-                    bigBlind={table.bigBlind}
-                  />
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-4xl font-bold tracking-tight text-amber-300 drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-5xl">
+                      You win
+                    </span>
+                    <span className="font-mono text-3xl font-bold tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)]">
+                      {youWon.toLocaleString()}
+                    </span>
+                    {winningHand && (
+                      <span className="text-base font-medium text-amber-100/75">{winningHand}</span>
+                    )}
+                  </div>
                 </div>
-              )
-            })}
+              )}
+
+              {sweeps.map((sweep) => (
+                /*
+                 * One flight per seat that had chips out, each starting from its
+                 * own side of the table so the pot is seen being built from the
+                 * players rather than simply growing.
+                 */
+                <span
+                  key={sweep.key}
+                  className="animate-sweep pointer-events-none absolute z-30"
+                  style={
+                    { '--from-x': `${sweep.left}%`, '--from-y': `${sweep.top}%` } as CSSProperties
+                  }
+                  data-testid={`sweep-${sweep.key}`}
+                >
+                  <ChipStack stack={sweep.amount} />
+                </span>
+              ))}
+
+              {award && (
+                /*
+                 * Keyed on the hand so it plays once per result: without that,
+                 * React reuses the node and a re-render mid-animation restarts
+                 * the pot's journey from the middle of the table.
+                 */
+                <div
+                  key={`award-${table.handNumber}`}
+                  className="animate-award pointer-events-none absolute z-30 flex flex-col items-center gap-1"
+                  style={
+                    {
+                      '--award-x': `${award.left}%`,
+                      '--award-y': `${award.top}%`,
+                    } as CSSProperties
+                  }
+                  data-testid="pot-award"
+                >
+                  <ChipStack stack={award.amount} />
+                  <span className="rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-bold tabular-nums text-amber-300 shadow-lg">
+                    +{award.amount.toLocaleString()}
+                  </span>
+                </div>
+              )}
+
+              {/* Opponents around the top arc */}
+              {opponents.map((player, i) => {
+                const { left, top } = seatPosition(i, opponents.length)
+                return (
+                  <div
+                    key={player.id}
+                    className="absolute -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: `${left}%`, top: `${top}%` }}
+                  >
+                    <PlayerSeat
+                      player={player}
+                      viewerId={table.viewerId}
+                      names={table.names}
+                      isActing={table.actingPlayerId === player.id}
+                      isButton={table.buttonSeat === player.seat}
+                      isWinner={winners.has(player.id)}
+                      handOver={Boolean(table.result)}
+                      compact={opponents.length >= 4}
+                      callout={callouts.get(player.id)}
+                      calloutSide={calloutSide(left)}
+                      chipSide={chipSide(left)}
+                      bigBlind={table.bigBlind}
+                    />
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* The viewer sits at the near edge, with the action bar directly below */}
-      <div className="flex flex-col items-center gap-3 px-4 pb-5">
-        {you && (
-          <PlayerSeat
-            player={you}
-            viewerId={table.viewerId}
-            names={table.names}
-            isActing={table.actingPlayerId === you.id}
-            isButton={table.buttonSeat === you.seat}
-            isWinner={winners.has(you.id)}
-            handOver={Boolean(table.result)}
-            callout={callouts.get(you.id)}
-            calloutSide="right"
-            bigBlind={table.bigBlind}
-            hero
-          />
-        )}
+        {/* The viewer sits at the near edge, with the action bar directly below */}
+        <div className="flex flex-col items-center gap-3 px-4 pb-5">
+          {you && (
+            <PlayerSeat
+              player={you}
+              viewerId={table.viewerId}
+              names={table.names}
+              isActing={table.actingPlayerId === you.id}
+              isButton={table.buttonSeat === you.seat}
+              isWinner={winners.has(you.id)}
+              handOver={Boolean(table.result)}
+              callout={callouts.get(you.id)}
+              calloutSide="right"
+              bigBlind={table.bigBlind}
+              hero
+            />
+          )}
 
-        {error && (
-          <p className="text-destructive text-sm" role="alert" data-testid="error">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="text-destructive text-sm" role="alert" data-testid="error">
+              {error}
+            </p>
+          )}
 
-        <div className="flex w-full max-w-2xl flex-col items-center gap-3">
-          {/* A dark console resting on the felt: the controls need their own
-              ground to read against now that the page is bright. */}
-          {/* Floored at the height of the betting controls, the tallest thing
-              it ever holds, so the result and game-over panels do not shrink
-              the console the moment a hand ends. */}
-          <Card className="min-h-52 w-full min-w-0 justify-center gap-0 border-black/40 bg-neutral-950/80 p-4 shadow-xl backdrop-blur">
-            {finished ? (
-              /*
-               * The table is over: busted, won outright, or lost to a server
-               * restart. Offering "next hand" here would be offering an action
-               * the server is bound to refuse, which is how the dead end
-               * happened in the first place.
-               */
-              <div className="flex flex-col items-center gap-3" data-testid="game-over">
-                <p className="text-center text-base font-medium">
-                  {gone
-                    ? 'This table is no longer available'
-                    : table.outcome.kind === 'spectating'
-                      ? 'This table has finished'
-                      : table.outcome.kind === 'winner'
-                        ? 'You won the table'
-                        : 'You are out of chips'}
-                </p>
-                <p className="text-muted-foreground text-center text-sm">
-                  {gone
-                    ? 'Tables are held in memory, so a server restart clears them.'
-                    : table.outcome.kind === 'spectating'
-                      ? // Nothing here was theirs to win or lose: they arrived
-                        // on someone else's table with a link.
-                        `It ran for ${table.handNumber} ${
-                          table.handNumber === 1 ? 'hand' : 'hands'
-                        }.`
-                      : table.outcome.kind === 'winner'
-                        ? `You finished with ${you?.stack.toLocaleString()} after ${table.handNumber} ${
+          <div className="flex w-full max-w-2xl flex-col items-center gap-3">
+            {/* A dark console resting on the felt: the controls need their own
+                ground to read against now that the page is bright. */}
+            {/* Floored at the height of the betting controls, the tallest thing
+                it ever holds, so the result and game-over panels do not shrink
+                the console the moment a hand ends.
+
+                The floor follows the slider: left at its full height it would
+                simply backfill whatever folding the slider away had freed, and
+                collapsing would reclaim nothing. Both floors keep the promise
+                above — whichever one is in force, every panel the console holds
+                is the same height as the others. */}
+            <Card
+              className={cn(
+                'w-full min-w-0 justify-center gap-0 border-black/40 bg-neutral-950/80 p-4 shadow-xl backdrop-blur',
+                sizingOpen ? 'min-h-52' : 'min-h-36',
+              )}
+            >
+              {finished ? (
+                /*
+                 * The table is over: busted, won outright, or lost to a server
+                 * restart. Offering "next hand" here would be offering an action
+                 * the server is bound to refuse, which is how the dead end
+                 * happened in the first place.
+                 */
+                <div className="flex flex-col items-center gap-3" data-testid="game-over">
+                  <p className="text-center text-base font-medium">
+                    {gone
+                      ? 'This table is no longer available'
+                      : table.outcome.kind === 'spectating'
+                        ? 'This table has finished'
+                        : table.outcome.kind === 'winner'
+                          ? 'You won the table'
+                          : 'You are out of chips'}
+                  </p>
+                  <p className="text-muted-foreground text-center text-sm">
+                    {gone
+                      ? 'Tables are held in memory, so a server restart clears them.'
+                      : table.outcome.kind === 'spectating'
+                        ? // Nothing here was theirs to win or lose: they arrived
+                          // on someone else's table with a link.
+                          `It ran for ${table.handNumber} ${
                             table.handNumber === 1 ? 'hand' : 'hands'
                           }.`
-                        : `You lasted ${table.handNumber} ${
-                            table.handNumber === 1 ? 'hand' : 'hands'
-                          }.`}
-                </p>
-                <div className="flex w-full max-w-xs flex-col gap-2">
-                  {/*
-                    Offered first, because it is what somebody who just lost a
-                    table actually wants — and offered to a player who busted
-                    while the table plays on, which is the whole point: there is
-                    somewhere to go that is not the door.
-                  */}
-                  {canRematch && (
-                    <Button
-                      className="h-12 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
-                      disabled={busy}
-                      onClick={() => void playAgain()}
-                      data-testid="play-again"
+                        : table.outcome.kind === 'winner'
+                          ? `You finished with ${you?.stack.toLocaleString()} after ${table.handNumber} ${
+                              table.handNumber === 1 ? 'hand' : 'hands'
+                            }.`
+                          : `You lasted ${table.handNumber} ${
+                              table.handNumber === 1 ? 'hand' : 'hands'
+                            }.`}
+                  </p>
+                  <div className="flex w-full max-w-xs flex-col gap-2">
+                    {/*
+                      Offered first, because it is what somebody who just lost a
+                      table actually wants — and offered to a player who busted
+                      while the table plays on, which is the whole point: there is
+                      somewhere to go that is not the door.
+                    */}
+                    {canRematch && (
+                      <Button
+                        className="h-12 w-full rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
+                        disabled={busy}
+                        onClick={() => void playAgain()}
+                        data-testid="play-again"
+                      >
+                        {busy ? 'Opening…' : 'Play again'}
+                      </Button>
+                    )}
+                    {/* This Button has no asChild, so the link carries its styles. */}
+                    <Link
+                      href="/"
+                      className={buttonVariants({
+                        variant: canRematch ? 'ghost' : 'default',
+                        className: 'h-11 w-full',
+                      })}
+                      data-testid="new-table"
                     >
-                      {busy ? 'Opening…' : 'Play again'}
-                    </Button>
-                  )}
-                  {/* This Button has no asChild, so the link carries its styles. */}
+                      New table
+                    </Link>
+                  </div>
+                </div>
+              ) : spectating ? (
+                /*
+                 * Watching. The controls are not merely disabled here, they are
+                 * absent: nothing at this table is this person's to do, and a row
+                 * of greyed-out buttons says "broken" rather than "not yours".
+                 */
+                <div className="flex flex-col items-center gap-3" data-testid="spectating">
+                  {resultSummary}
+                  <p className="text-center text-sm text-white/55">
+                    {table.result
+                      ? 'Watching. The next hand is theirs to deal.'
+                      : actingName
+                        ? `Watching. It is ${actingName}'s turn.`
+                        : 'Watching this table.'}
+                  </p>
                   <Link
                     href="/"
-                    className={buttonVariants({
-                      variant: canRematch ? 'ghost' : 'default',
-                      className: 'h-11 w-full',
-                    })}
-                    data-testid="new-table"
+                    className={buttonVariants({ variant: 'secondary', className: 'h-11 px-5' })}
+                    data-testid="own-table"
                   >
-                    New table
+                    Open a table of your own
                   </Link>
                 </div>
-              </div>
-            ) : spectating ? (
-              /*
-               * Watching. The controls are not merely disabled here, they are
-               * absent: nothing at this table is this person's to do, and a row
-               * of greyed-out buttons says "broken" rather than "not yours".
-               */
-              <div className="flex flex-col items-center gap-3" data-testid="spectating">
-                {resultSummary}
-                <p className="text-center text-sm text-white/55">
-                  {table.result
-                    ? 'Watching. The next hand is theirs to deal.'
-                    : actingName
-                      ? `Watching. It is ${actingName}'s turn.`
-                      : 'Watching this table.'}
-                </p>
-                <Link
-                  href="/"
-                  className={buttonVariants({ variant: 'secondary', className: 'h-11 px-5' })}
-                  data-testid="own-table"
-                >
-                  Open a table of your own
-                </Link>
-              </div>
-            ) : table.result ? (
-              <div className="flex flex-col items-center gap-4" data-testid="hand-result">
-                {resultSummary}
-                <Button
-                  className="h-12 w-full max-w-xs rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
-                  disabled={busy}
-                  onClick={() => void send(`/api/table/${tableId}/next-hand`, {})}
-                  data-testid="next-hand"
-                >
-                  Next hand
-                </Button>
-              </div>
-            ) : (
-              /*
-               * Always mounted while a hand is live, greyed out when it is not
-               * our turn. Replacing it with a line of text collapsed the panel
-               * on every bot action and restored it a moment later, so the
-               * table shifted under the cursor between every single decision.
-               */
-              <BettingControls
-                legal={table.legalActions}
-                pot={table.pot}
-                busy={busy}
-                status={busy ? 'Thinking…' : 'Waiting for the other players…'}
-                onAction={(action) => void send(`/api/table/${tableId}/action`, action)}
-              />
-            )}
-          </Card>
-        </div>
+              ) : table.result ? (
+                <div className="flex flex-col items-center gap-4" data-testid="hand-result">
+                  {resultSummary}
+                  <Button
+                    className="h-12 w-full max-w-xs rounded-xl bg-amber-400 text-base font-bold tracking-wide text-neutral-950 uppercase shadow-lg hover:bg-amber-300"
+                    disabled={busy}
+                    onClick={() => void send(`/api/table/${tableId}/next-hand`, {})}
+                    data-testid="next-hand"
+                  >
+                    Next hand
+                  </Button>
+                </div>
+              ) : (
+                /*
+                 * Always mounted while a hand is live, greyed out when it is not
+                 * our turn. Replacing it with a line of text collapsed the panel
+                 * on every bot action and restored it a moment later, so the
+                 * table shifted under the cursor between every single decision.
+                 */
+                <BettingControls
+                  legal={table.legalActions}
+                  pot={table.pot}
+                  busy={busy}
+                  status={busy ? 'Thinking…' : 'Waiting for the other players…'}
+                  sizingOpen={sizingOpen}
+                  onSizingOpenChange={setSizingOpen}
+                  onAction={(action) => void send(`/api/table/${tableId}/action`, action)}
+                />
+              )}
+            </Card>
+          </div>
 
-        {/* Action log */}
-        <details className="w-full max-w-2xl">
-          <summary className="text-muted-foreground cursor-pointer text-xs select-none">
-            Hand history
-          </summary>
-          <ol
-            className="mt-2 max-h-36 overflow-y-auto rounded-lg border border-white/10 bg-neutral-950/60 p-3 font-mono text-[11px] leading-relaxed text-neutral-400"
-            data-testid="history"
-          >
-            {annotateHistory(table.handHistory).map((entry, i) => (
-              <li key={i}>
-                <span className="text-neutral-600">{entry.street}</span>{' '}
-                <span className="text-neutral-300">
-                  {seatName(entry.playerId, table.names, table.viewerId)}
-                </span>{' '}
-                {ACTION_VERBS[entry.type] ?? entry.type}
-                {/* The level, not the chips added: "raises to 300" was reading
-                    as the 250 that left the stack. */}
-                {entry.level !== null && ` ${entry.level.toLocaleString()}`}
-              </li>
-            ))}
-          </ol>
-        </details>
+          {/* Action log */}
+          <details className="w-full max-w-2xl">
+            <summary className="text-muted-foreground cursor-pointer text-xs select-none">
+              Hand history
+            </summary>
+            <ol
+              className="mt-2 max-h-36 overflow-y-auto rounded-lg border border-white/10 bg-neutral-950/60 p-3 font-mono text-[11px] leading-relaxed text-neutral-400"
+              data-testid="history"
+            >
+              {annotateHistory(table.handHistory).map((entry, i) => (
+                <li key={i}>
+                  <span className="text-neutral-600">{entry.street}</span>{' '}
+                  <span className="text-neutral-300">
+                    {seatName(entry.playerId, table.names, table.viewerId)}
+                  </span>{' '}
+                  {ACTION_VERBS[entry.type] ?? entry.type}
+                  {/* The level, not the chips added: "raises to 300" was reading
+                      as the 250 that left the stack. */}
+                  {entry.level !== null && ` ${entry.level.toLocaleString()}`}
+                </li>
+              ))}
+            </ol>
+          </details>
+        </div>
       </div>
     </main>
   )
