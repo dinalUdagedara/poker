@@ -1,5 +1,18 @@
+import type { Metadata } from 'next'
 import { Lobby } from '@/components/Lobby'
 import { publicRooms } from '@/lib/server/table-store'
+import { shareCard } from '@/lib/site'
+
+/*
+ * Fixed wording, deliberately. The page's contents change by the minute but
+ * its description should not — a description that counted the open rooms would
+ * be quoting a number that went stale before anything finished indexing it.
+ */
+export const metadata: Metadata = shareCard({
+  title: 'Public rooms',
+  description: 'Open tables waiting for players. Take a seat, or start a room of your own.',
+  path: '/rooms',
+})
 
 /**
  * Never prerendered.

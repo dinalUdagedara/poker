@@ -6,12 +6,21 @@ import { Separator } from '@/components/ui/separator'
 import { HandRankings } from '@/components/HandRankings'
 import { PlayingCard } from '@/components/PlayingCard'
 import { parseCards } from '@/lib/poker/cards'
+import { shareCard } from '@/lib/site'
 import { cn } from '@/lib/utils'
 
-export const metadata: Metadata = {
-  title: "How to play — Texas Hold'em",
-  description: 'The rules of no-limit Texas Hold’em, and what every button at the table does.',
-}
+/*
+ * The guide is the one page here worth finding from a search, so it says its
+ * own thing rather than inheriting the lobby's pitch — and says it in the
+ * words someone would actually type.
+ */
+export const metadata: Metadata = shareCard({
+  title: 'How to play Texas Hold’em',
+  description:
+    'The rules of no-limit Texas Hold’em, from blinds to showdown — the betting rounds, the hand rankings in order, and what every button at the table does.',
+  path: '/how-to-play',
+  type: 'article',
+})
 
 /**
  * The numbers quoted below are this table's defaults, from `DEFAULTS` in
