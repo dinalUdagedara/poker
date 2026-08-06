@@ -1,0 +1,96 @@
+<!-- @dsCard group="Foundations" name="Typography" subtitle="Playfair Display for the house, Geist for reading, Geist Mono for every figure that is money" viewport="640x680" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Typography — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .spec {
+        display: grid;
+        grid-template-columns: 76px 1fr;
+        gap: var(--space-4);
+        align-items: baseline;
+        padding: var(--space-3) 0;
+        border-top: 1px solid var(--color-divider);
+      }
+      .spec .key {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--color-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Typography</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          Three voices, and they never trade jobs. A didone carries the house lettering, because
+          that is what casino signage, chip inlays and the back of a deck are set in. A grotesque
+          carries anything you have to read while deciding. Mono carries money — always tabular,
+          so figures do not dance as chips move.
+        </p>
+      </div>
+
+      <div>
+        <div class="spec">
+          <span class="key">display / 44</span>
+          <h1>Showdown</h1>
+        </div>
+        <div class="spec">
+          <span class="key">h2 / 28</span>
+          <h2>Waiting for players</h2>
+        </div>
+        <div class="spec">
+          <span class="key">h3 / 19</span>
+          <h3>What beats what</h3>
+        </div>
+        <div class="spec">
+          <span class="key">body / 15</span>
+          <p>
+            Five in a row, all one suit. The highest card wins between two flushes, and suits
+            never break a tie.
+          </p>
+        </div>
+        <div class="spec">
+          <span class="key">small / 13</span>
+          <p class="muted" style="font-size: 13px">
+            Rooms waiting for players. The cards come out the moment every seat is taken.
+          </p>
+        </div>
+        <div class="spec">
+          <span class="key">eyebrow / 10</span>
+          <span class="eyebrow">Pot</span>
+        </div>
+        <div class="spec">
+          <span class="key">money / 28</span>
+          <span class="money" style="font-size: 28px">1,240</span>
+        </div>
+        <div class="spec">
+          <span class="key">money / 14</span>
+          <span class="money" style="font-size: 14px">2,480</span>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">The wordmark</span>
+        <p class="muted" style="font-size: 12px">
+          Struck in brass rather than printed flat — a gradient clipped to the letterforms, so the
+          name reads as an object in the room and not as a heading on a page.
+        </p>
+        <span class="wordmark" style="font-size: 40px">Showdown</span>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Rules</span>
+        <ul class="muted" style="font-size: 13px; margin: 0; padding-left: 18px; line-height: 1.8">
+          <li>Every figure that is money is <code>.money</code> — mono, tabular, 600.</li>
+          <li>Never set body copy in the didone; it is for names, titles and card ranks only.</li>
+          <li>Card ranks take the didone, which is what gives a card face its printed look.</li>
+          <li>Eyebrows are the only uppercase in the system, and always at 0.22em tracking.</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

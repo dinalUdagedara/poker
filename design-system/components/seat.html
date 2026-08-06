@@ -1,0 +1,180 @@
+<!-- @dsCard group="Components" name="Seat" subtitle="One object, not three: cards tuck under a plate carrying the stack, the face and the name" viewport="640x560" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Seat — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .on-felt {
+        padding: var(--space-8) var(--space-6);
+        border-radius: var(--radius-lg);
+        background-image: radial-gradient(80% 90% at 50% 20%, var(--felt-lit), var(--felt-deep));
+        box-shadow: inset 0 0 60px oklch(0.1 0.04 20 / 0.5), var(--edge);
+      }
+      .seats {
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-start;
+        gap: var(--space-6);
+      }
+      .avatar-a {
+        background: conic-gradient(from 200deg, #facc15, #dc2626, #8b5cf6, #facc15);
+      }
+      .avatar-b {
+        background: conic-gradient(from 40deg, #0ea5e9, #e5e5e5, #8b5cf6, #0ea5e9);
+      }
+      .avatar-c {
+        background: conic-gradient(from 120deg, #dc2626, #facc15, #0ea5e9, #dc2626);
+      }
+      /* The lit felt under whoever is to act. A tinted border on a plate is the
+         same weight as every other border on a busy table; a patch of lit cloth
+         is competing with nothing. */
+      .spotlight {
+        position: absolute;
+        inset: -16px -28px;
+        border-radius: 50%;
+        border: 1px dashed oklch(0.86 0.15 85 / 0.35);
+        background: radial-gradient(closest-side, oklch(0.86 0.15 85 / 0.3), transparent);
+        pointer-events: none;
+      }
+      .caption {
+        font-size: 11px;
+        text-align: center;
+        color: oklch(1 0 0 / 0.55);
+        margin-top: var(--space-4);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Seat</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          A seat is one object. The hole cards tuck behind the top edge of the plate rather than
+          floating above it, and the plate carries the stack, the face and the name together
+          &mdash; otherwise a seat reads as three pieces stacked up. Only the bottom edge of the
+          cards goes under: these carry rank and suit in the middle, so burying more covers the
+          very thing a revealed card is for.
+        </p>
+      </div>
+
+      <div class="on-felt">
+        <div class="seats">
+          <!-- Resting -->
+          <div>
+            <div class="seat">
+              <div class="seat-cards">
+                <span class="card-face card-sm card-back" style="transform: rotate(-6deg)"></span>
+                <span
+                  class="card-face card-sm card-back"
+                  style="transform: rotate(6deg); margin-left: -4px"
+                ></span>
+              </div>
+              <div class="seat-plate">
+                <span class="seat-avatar avatar-a"></span>
+                <span class="col" style="gap: 0">
+                  <span class="seat-stack stack-healthy">2,480</span>
+                  <span class="seat-name">Lucky Otter</span>
+                </span>
+              </div>
+            </div>
+            <p class="caption">Resting</p>
+          </div>
+
+          <!-- To act -->
+          <div>
+            <div class="seat">
+              <span class="spotlight"></span>
+              <div class="seat-cards">
+                <span class="card-face card-sm card-back" style="transform: rotate(-6deg)"></span>
+                <span
+                  class="card-face card-sm card-back"
+                  style="transform: rotate(6deg); margin-left: -4px"
+                ></span>
+              </div>
+              <div class="seat-plate seat-acting" style="position: relative">
+                <span class="dealer-button">D</span>
+                <span class="seat-avatar avatar-b"></span>
+                <span class="col" style="gap: 0">
+                  <span class="seat-stack stack-medium">640</span>
+                  <span class="seat-name">Bot 2</span>
+                </span>
+              </div>
+              <span class="callout" style="margin-top: 8px">raises to 300</span>
+            </div>
+            <p class="caption">To act &middot; on the button</p>
+          </div>
+
+          <!-- Won -->
+          <div>
+            <div class="seat">
+              <div class="seat-cards">
+                <span class="card-face card-sm" style="transform: rotate(-6deg)"
+                  >A<span class="suit">&#9824;</span></span
+                >
+                <span
+                  class="card-face card-sm card-red"
+                  style="transform: rotate(6deg); margin-left: -4px"
+                  >A<span class="suit">&#9829;</span></span
+                >
+              </div>
+              <div class="seat-plate seat-winner">
+                <span class="seat-avatar avatar-c"></span>
+                <span class="col" style="gap: 0">
+                  <span class="seat-stack" style="color: var(--state-win)">3,720</span>
+                  <span class="seat-name">You</span>
+                </span>
+              </div>
+            </div>
+            <p class="caption">Won the pot</p>
+          </div>
+
+          <!-- Folded -->
+          <div>
+            <div class="seat">
+              <div class="seat-cards hand-folded">
+                <span class="card-face card-sm card-back" style="transform: rotate(-6deg)"></span>
+                <span
+                  class="card-face card-sm card-back"
+                  style="transform: rotate(6deg); margin-left: -4px"
+                ></span>
+              </div>
+              <div class="seat-plate" style="opacity: 0.5">
+                <span class="seat-avatar avatar-a" style="filter: grayscale(1)"></span>
+                <span class="col" style="gap: 0">
+                  <span class="seat-stack stack-short">180</span>
+                  <span class="seat-name">Bot 3</span>
+                </span>
+              </div>
+              <span class="tag" style="margin-top: 8px">folded</span>
+            </div>
+            <p class="caption">Out of the hand</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Rules</span>
+        <ul class="muted" style="font-size: 13px; margin: 0; padding-left: 18px; line-height: 1.8">
+          <li>
+            The stack leads and the name is its caption. Whose seat this is gets read once; what
+            they have left is read on every decision, and it was the smaller of the two.
+          </li>
+          <li>
+            Whose turn it is is said on the <em>felt</em>, not only on the plate. A tinted border
+            is the same weight as every other border on a busy table.
+          </li>
+          <li>
+            Winning is the one green thing in the room, and it is the only place green appears
+            outside the pass action.
+          </li>
+          <li>
+            Everything that can appear at a seat &mdash; wager, callout, badge &mdash; has its
+            height reserved. Seats are centred on their own box, so a growing row nudges the seat.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

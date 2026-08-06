@@ -1,0 +1,120 @@
+<!-- @dsCard group="Components" name="Dialog" subtitle="The answer brought to the table rather than the player taken off it" viewport="640x560" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Dialog — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .stage {
+        position: relative;
+        height: 420px;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background-image: radial-gradient(80% 90% at 50% 20%, var(--felt-lit), var(--felt-deep));
+      }
+      .stage .dialog {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 380px;
+        max-height: 88%;
+        display: flex;
+        flex-direction: column;
+      }
+      .rank {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 6px 0;
+        border-top: 1px solid var(--color-divider);
+      }
+      .rank:first-child {
+        border-top: 0;
+      }
+      .rank .cards {
+        display: flex;
+        gap: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Dialog</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          A modal, never a popover. On a phone this is most of the screen either way, and a modal
+          is the one shape that cannot be dismissed by the felt moving underneath it. The heading
+          is pinned, because the list below scrolls and a heading that scrolled away would take the
+          way out with it.
+        </p>
+      </div>
+
+      <div class="stage">
+        <div class="dialog-backdrop"></div>
+        <div class="dialog">
+          <div class="dialog-head">
+            <div class="col" style="gap: 0">
+              <h3 style="font-size: 15px">What beats what</h3>
+              <span class="muted" style="font-size: 12px">Strongest first. Suits never break a tie.</span>
+            </div>
+            <button class="btn btn-icon" aria-label="Close" style="width: 28px; height: 28px; background: transparent; border-color: transparent">&times;</button>
+          </div>
+          <div class="dialog-body" style="overflow: auto">
+            <div class="rank">
+              <span class="cards">
+                <span class="card-face card-xs">A<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">K<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">Q<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">J<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">10<span class="suit">&#9824;</span></span>
+              </span>
+              <span style="font-size: 13px; font-weight: 600">Royal Flush</span>
+            </div>
+            <div class="rank">
+              <span class="cards">
+                <span class="card-face card-xs">9<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">8<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">7<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">6<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs">5<span class="suit">&#9824;</span></span>
+              </span>
+              <span style="font-size: 13px; font-weight: 600">Straight Flush</span>
+            </div>
+            <div class="rank">
+              <span class="cards">
+                <span class="card-face card-xs card-red">Q<span class="suit">&#9829;</span></span>
+                <span class="card-face card-xs card-red">Q<span class="suit">&#9830;</span></span>
+                <span class="card-face card-xs">Q<span class="suit">&#9827;</span></span>
+                <span class="card-face card-xs">Q<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs card-red">3<span class="suit">&#9829;</span></span>
+              </span>
+              <span style="font-size: 13px; font-weight: 600">Four of a Kind</span>
+            </div>
+            <div class="rank">
+              <span class="cards">
+                <span class="card-face card-xs card-red">J<span class="suit">&#9829;</span></span>
+                <span class="card-face card-xs card-red">J<span class="suit">&#9830;</span></span>
+                <span class="card-face card-xs">J<span class="suit">&#9827;</span></span>
+                <span class="card-face card-xs">8<span class="suit">&#9824;</span></span>
+                <span class="card-face card-xs card-red">8<span class="suit">&#9829;</span></span>
+              </span>
+              <span style="font-size: 13px; font-weight: 600">Full House</span>
+            </div>
+            <div class="rank">
+              <span class="cards">
+                <span class="card-face card-xs card-red">A<span class="suit">&#9829;</span></span>
+                <span class="card-face card-xs card-red">J<span class="suit">&#9829;</span></span>
+                <span class="card-face card-xs card-red">8<span class="suit">&#9829;</span></span>
+                <span class="card-face card-xs card-red">5<span class="suit">&#9829;</span></span>
+                <span class="card-face card-xs card-red">2<span class="suit">&#9829;</span></span>
+              </span>
+              <span style="font-size: 13px; font-weight: 600">Flush</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

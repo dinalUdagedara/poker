@@ -146,8 +146,33 @@ environment variable, no build step beyond `next build`, no migrations.
 [DEPLOYMENT.md](DEPLOYMENT.md) is the full briefing, including how to prove
 that what you deployed is really talking to Redis.
 
+## The look
+
+Every colour, font, radius and shadow in the app comes from one design system —
+Showdown, oxblood and brass — rather than from palette classes picked per call
+site. [design-system/](design-system/) is that system's source: `theme.json` is
+the parameters, `styles.css` is the token block the whole thing derives from,
+and the pages under `foundations/`, `components/` and `templates/` render every
+part of it at real size. Open any of them straight in a browser; they are plain
+HTML with no build step.
+
+The app does not import from that folder. `app/globals.css` is where the tokens
+actually live for the running application, and the two are kept in step by hand
+— so when you change one, change the other, and say so in the commit.
+
+The same system is published on [claude.ai/design](https://claude.ai/design) as
+**Showdown — Oxblood & Brass**, where it can be browsed as cards and picked as
+the design system for new work. This folder is the mirror of what was pushed
+there; re-pushing it is a `DesignSync` job, not something the app build does.
+
+[design-system/readme.md](design-system/readme.md) is the guide proper: what
+each class is for, and the rules — why fold is not red, why a card back is not
+red either, and why green only ever means money.
+
 ## The rest of the docs
 
+- [design-system/readme.md](design-system/readme.md) — the look, and the rules
+  behind it
 - [DEPLOYMENT.md](DEPLOYMENT.md) — where it runs, and how to check it
 - [MULTIPLAYER.md](MULTIPLAYER.md) — the plan multiplayer was built to
 - [MULTIPLAYER-PROGRESS.md](MULTIPLAYER-PROGRESS.md) — what landed, what was

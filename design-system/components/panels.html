@@ -1,0 +1,85 @@
+<!-- @dsCard group="Components" name="Panels & wells" subtitle="Milled slabs of the house resting on the felt, and the recesses set into them" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Panels &amp; wells — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .on-room {
+        padding: var(--space-6);
+        border-radius: var(--radius-lg);
+        background: radial-gradient(80% 90% at 50% 10%, oklch(0.29 0.095 22), var(--color-bg));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Panels &amp; wells</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          A panel is a slab of the house resting on the felt: warm, dark, and milled along the top
+          edge. It is never a flat translucent rectangle &mdash; over a lit table that reads as a
+          smudge rather than as an object. A well is the opposite gesture: something set
+          <em>into</em> a panel, so it is recessed and unlit.
+        </p>
+      </div>
+
+      <div class="on-room col" style="gap: var(--space-4)">
+        <div class="panel panel-lg">
+          <div class="col" style="gap: var(--space-2)">
+            <span class="eyebrow">Panel &middot; large</span>
+            <h3>Nobody is waiting right now</h3>
+            <p class="muted" style="font-size: 13px">
+              Open one yourself and it will show up here for other players.
+            </p>
+            <div class="row" style="margin-top: var(--space-2)">
+              <button class="btn btn-primary">Open a room</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel panel-row">
+          <div class="row" style="gap: 5px" aria-hidden="true">
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--color-accent-500)"></span>
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--color-accent-500)"></span>
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--color-accent-500)"></span>
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(1 0 0 / 0.15)"></span>
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(1 0 0 / 0.15)"></span>
+          </div>
+          <div class="col grow" style="gap: 0">
+            <span style="font-size: 13px; font-weight: 500">3 of 5 seated</span>
+            <span class="muted" style="font-size: 11px">2 seats open &middot; 1 bot</span>
+          </div>
+          <button class="btn btn-secondary">Join</button>
+        </div>
+
+        <div class="panel">
+          <div class="col" style="gap: var(--space-2)">
+            <span class="eyebrow">Well &mdash; set into a panel</span>
+            <div class="well col" style="padding: var(--space-3); gap: 4px">
+              <p class="money" style="font-size: 11px; color: var(--color-muted); font-weight: 400">
+                <span style="color: var(--color-neutral-500)">preflop</span>
+                <span style="color: var(--color-neutral-200)">Lucky Otter</span> raises to 150
+              </p>
+              <p class="money" style="font-size: 11px; color: var(--color-muted); font-weight: 400">
+                <span style="color: var(--color-neutral-500)">preflop</span>
+                <span style="color: var(--color-neutral-200)">Bot 2</span> calls 150
+              </p>
+              <p class="money" style="font-size: 11px; color: var(--color-muted); font-weight: 400">
+                <span style="color: var(--color-neutral-500)">flop</span>
+                <span style="color: var(--color-neutral-200)">You</span> bet 300
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="muted" style="font-size: 12px">
+        Rows are hinted rather than promised: seats fill while a list is being read, so acting on
+        a row can fail &mdash; and when it does, the answer is a refreshed list rather than an
+        apology. Hover lifts the row a step on the surface ramp and warms its border to brass.
+      </p>
+    </div>
+  </body>
+</html>

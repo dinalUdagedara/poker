@@ -1,0 +1,114 @@
+<!-- @dsCard group="Foundations" name="Space & elevation" subtitle="A 4px scale, generous radii, and elevation drawn as a shadow beneath plus a brass edge on top" viewport="640x620" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Space &amp; elevation — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--color-muted);
+      }
+      .bar i {
+        display: block;
+        height: 14px;
+        border-radius: 3px;
+        background: linear-gradient(90deg, var(--color-accent-500), var(--color-accent-800));
+      }
+      .radii {
+        display: flex;
+        gap: var(--space-4);
+      }
+      .radii div {
+        width: 76px;
+        height: 60px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--color-divider);
+        background: var(--color-surface);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--color-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Space &amp; elevation</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          A table is not a dashboard. The scale runs at full density on a 4px base and the radii
+          are generous, because everything in this room — chips, cards, the rail, the plates — is
+          a rounded physical object.
+        </p>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Spacing</span>
+        <div class="bar"><i style="width: 4px"></i> --space-1 &middot; 4px</div>
+        <div class="bar"><i style="width: 8px"></i> --space-2 &middot; 8px</div>
+        <div class="bar"><i style="width: 12px"></i> --space-3 &middot; 12px</div>
+        <div class="bar"><i style="width: 16px"></i> --space-4 &middot; 16px</div>
+        <div class="bar"><i style="width: 24px"></i> --space-6 &middot; 24px</div>
+        <div class="bar"><i style="width: 32px"></i> --space-8 &middot; 32px</div>
+        <div class="bar"><i style="width: 48px"></i> --space-12 &middot; 48px</div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Radius</span>
+        <div class="radii">
+          <div style="border-radius: var(--radius-sm)">sm &middot; 6</div>
+          <div style="border-radius: var(--radius-md)">md &middot; 10</div>
+          <div style="border-radius: var(--radius-lg)">lg &middot; 16</div>
+          <div style="border-radius: var(--radius-full)">full</div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Elevation</span>
+        <p class="muted" style="font-size: 12px">
+          On a dark ground a shadow alone is invisible, so elevation here is two things at once: a
+          shadow beneath and a lit hairline along the top edge. The hairline is brass, because
+          every lit edge in this room is brass. That is what makes a panel look milled rather
+          than pasted on.
+        </p>
+        <div class="row" style="gap: var(--space-4)">
+          <div class="panel" style="box-shadow: var(--shadow-sm), var(--edge); flex: 1">
+            <b style="font-size: 13px">sm</b>
+            <p class="muted" style="font-size: 11px">Resting — tags, chips, a card</p>
+          </div>
+          <div class="panel" style="flex: 1">
+            <b style="font-size: 13px">md</b>
+            <p class="muted" style="font-size: 11px">Raised — plates, the console</p>
+          </div>
+          <div class="panel" style="box-shadow: var(--shadow-lg), var(--edge-strong); flex: 1">
+            <b style="font-size: 13px">lg</b>
+            <p class="muted" style="font-size: 11px">Over everything — dialogs, the rail</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Motion</span>
+        <p class="muted" style="font-size: 12px">
+          Every duration in the system is a physical claim. Dealing is quick and light; chips have
+          weight and overshoot slightly as they land; the pot takes its time crossing the felt,
+          because that journey is the whole point of the animation. All of it drops under
+          <code>prefers-reduced-motion</code>, and anything that ends on nothing is removed rather
+          than frozen.
+        </p>
+        <div class="row wrap" style="gap: var(--space-2)">
+          <span class="tag tag-mono">--dur-deal 260ms</span>
+          <span class="tag tag-mono">--dur-wager 420ms</span>
+          <span class="tag tag-mono">--dur-award 1500ms</span>
+          <span class="tag tag-mono">--ease cubic-bezier(.2,.8,.3,1)</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

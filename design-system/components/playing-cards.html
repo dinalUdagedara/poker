@@ -1,0 +1,99 @@
+<!-- @dsCard group="Components" name="Playing cards" subtitle="Paper — the only light surface in the system, in four sizes, plus the house back" viewport="640x560" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Playing cards — Showdown</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .on-felt {
+        padding: var(--space-6);
+        border-radius: var(--radius-lg);
+        background-image:
+          repeating-linear-gradient(45deg, oklch(1 0 0 / 0.014) 0 2px, transparent 2px 4px),
+          radial-gradient(80% 90% at 50% 20%, var(--felt-lit), var(--felt-deep));
+        box-shadow: inset 0 0 60px oklch(0.1 0.04 20 / 0.5), var(--edge);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Playing cards</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          The card is the brightest thing in the room and the only object with a light surface.
+          That is deliberate: it is what lets the rest of the scheme sit this dark without going
+          murky, and it is why a card is never tinted, faded or given a coloured face.
+        </p>
+      </div>
+
+      <div class="on-felt col" style="gap: var(--space-6)">
+        <div class="row" style="gap: var(--space-2)">
+          <div class="card-face card-lg">A<span class="suit">&#9824;</span></div>
+          <div class="card-face card-lg card-red">K<span class="suit">&#9829;</span></div>
+          <div class="card-face">Q<span class="suit">&#9824;</span></div>
+          <div class="card-face card-red">10<span class="suit">&#9830;</span></div>
+          <div class="card-face card-sm">7<span class="suit">&#9827;</span></div>
+          <div class="card-face card-xs">2<span class="suit">&#9824;</span></div>
+          <div class="card-face card-back"></div>
+          <div class="card-face card-back card-sm"></div>
+          <div class="card-slot"></div>
+        </div>
+
+        <div class="row" style="gap: var(--space-6); align-items: flex-end">
+          <div class="col" style="gap: 6px">
+            <span class="eyebrow">The board</span>
+            <div class="row" style="gap: 6px">
+              <div class="card-face">A<span class="suit">&#9824;</span></div>
+              <div class="card-face card-red">K<span class="suit">&#9830;</span></div>
+              <div class="card-face">7<span class="suit">&#9827;</span></div>
+              <div class="card-slot"></div>
+              <div class="card-slot"></div>
+            </div>
+          </div>
+
+          <div class="col" style="gap: 6px">
+            <span class="eyebrow">Squared up</span>
+            <div class="row" style="gap: 0">
+              <div class="card-face card-sm" style="transform: rotate(-6deg)">
+                J<span class="suit">&#9824;</span>
+              </div>
+              <div class="card-face card-sm" style="transform: rotate(6deg); margin-left: -4px">
+                J<span class="suit">&#9827;</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col" style="gap: 6px">
+            <span class="eyebrow">Folded</span>
+            <div class="row hand-folded" style="gap: 0">
+              <div class="card-face card-sm card-back" style="transform: rotate(-6deg)"></div>
+              <div class="card-face card-sm card-back" style="transform: rotate(6deg); margin-left: -4px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Rules</span>
+        <ul class="muted" style="font-size: 13px; margin: 0; padding-left: 18px; line-height: 1.8">
+          <li>
+            The back is near-black house stock inside a brass rule &mdash; never red. A red back on
+            a red table is one object, and counting an opponent&rsquo;s cards from across the felt
+            is the entire job of a face-down card.
+          </li>
+          <li>
+            Ranks are set in the didone. That printed look is most of what makes a rectangle read
+            as a card.
+          </li>
+          <li>
+            Cards are opaque. Fading is applied to the <em>hand</em> (<code>.hand-folded</code>),
+            never to each card &mdash; overlapping translucent cards show through one another and
+            double up where they cross.
+          </li>
+          <li>Overlap is shallow. These carry their rank in the middle, so a deep fan buries it.</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

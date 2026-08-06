@@ -1,0 +1,86 @@
+<!-- @dsCard group="Theme" name="Parameters" subtitle="The parameters this system was derived from" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Parameters — Showdown</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .params {
+        display: grid;
+        grid-template-columns: 132px 1fr;
+      }
+      .params dt,
+      .params dd {
+        margin: 0;
+        padding: var(--space-2) 0;
+        border-top: 1px solid var(--color-divider);
+        font-size: 13px;
+      }
+      .params dt {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--color-muted);
+      }
+      .sw {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        vertical-align: -2px;
+        margin-right: 6px;
+        box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pad col" style="gap: var(--space-6)">
+      <div>
+        <h2>Parameters</h2>
+        <p class="muted" style="font-size: 13px; margin-top: 6px">
+          Everything in this system was derived from these. To change the look, change them here
+          and in the token block at the top of <code>styles.css</code>, and keep
+          <code>readme.md</code> in step so the written guidance does not drift from what the CSS
+          actually does.
+        </p>
+      </div>
+
+      <dl class="params">
+        <dt>name</dt>
+        <dd>Showdown</dd>
+        <dt>hue</dt>
+        <dd>22 &mdash; oxblood</dd>
+        <dt>band</dt>
+        <dd>dark</dd>
+        <dt>scheme</dt>
+        <dd>complementary &mdash; red ground, brass accent</dd>
+        <dt>bg</dt>
+        <dd><span class="sw" style="background: var(--color-bg)"></span>oklch(0.155 0.042 22)</dd>
+        <dt>surface</dt>
+        <dd><span class="sw" style="background: var(--color-surface)"></span>oklch(0.205 0.045 22)</dd>
+        <dt>accent</dt>
+        <dd><span class="sw" style="background: var(--color-accent)"></span>oklch(0.8 0.135 82) &mdash; brass</dd>
+        <dt>accent2</dt>
+        <dd><span class="sw" style="background: var(--color-accent-2)"></span>oklch(0.58 0.19 25) &mdash; signal red</dd>
+        <dt>felt</dt>
+        <dd><span class="sw" style="background: var(--felt)"></span>oklch(0.375 0.13 22)</dd>
+        <dt>rail</dt>
+        <dd><span class="sw" style="background: var(--rail)"></span>oklch(0.245 0.055 38) &mdash; mahogany</dd>
+        <dt>heading</dt>
+        <dd>Playfair Display &mdash; didone, 500/600/700</dd>
+        <dt>body</dt>
+        <dd>Geist &mdash; grotesque, 400/500/600/700</dd>
+        <dt>mono</dt>
+        <dd>Geist Mono &mdash; every figure that is money</dd>
+        <dt>density</dt>
+        <dd>1.0 on a 4px base</dd>
+        <dt>radius</dt>
+        <dd>10px base &mdash; everything here is a rounded physical object</dd>
+        <dt>frame</dt>
+        <dd>milled &mdash; shadow beneath, brass hairline on top</dd>
+        <dt>layoutStyle</dt>
+        <dd>stage &mdash; one lit surface, chrome kept to the edges</dd>
+      </dl>
+    </div>
+  </body>
+</html>

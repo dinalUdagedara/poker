@@ -1,0 +1,51 @@
+{
+  "name": "Showdown",
+  "palette": {
+    "hue": 22,
+    "band": "dark",
+    "scheme": "complementary",
+    "sat": 0.55,
+    "bg": "oklch(0.155 0.042 22)",
+    "surface": "oklch(0.205 0.045 22)",
+    "text": "oklch(0.97 0.012 70)",
+    "accent": "oklch(0.8 0.135 82)",
+    "accent2": "oklch(0.58 0.19 25)"
+  },
+  "table": {
+    "felt": "oklch(0.375 0.13 22)",
+    "feltLit": "oklch(0.44 0.145 24)",
+    "feltDeep": "oklch(0.3 0.105 20)",
+    "rail": "oklch(0.245 0.055 38)",
+    "trim": "brass"
+  },
+  "play": {
+    "fold": "oklch(0.34 0.014 40)",
+    "pass": "oklch(0.52 0.12 158)",
+    "commit": "oklch(0.8 0.135 82)",
+    "principle": "separate by material, not only hue — stone, felt, metal"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Playfair Display",
+      "class": "didone",
+      "weights": [500, 600, 700]
+    },
+    "body": {
+      "family": "Geist",
+      "class": "grotesque",
+      "weights": [400, 500, 600, 700]
+    },
+    "mono": {
+      "family": "Geist Mono",
+      "class": "mono",
+      "weights": [400, 500, 600, 700]
+    }
+  },
+  "density": 1,
+  "radius": 10,
+  "layoutStyle": "stage",
+  "frame": "milled",
+  "elevation": "shadow-plus-brass-edge",
+  "imageTreatment": "none",
+  "iconSet": "lucide"
+}
