@@ -380,7 +380,7 @@ function outOfTime(table: StoredTable, now: number): boolean {
 }
 
 function enforceClock(table: PlayingTable, now: number): PlayingTable {
-  if (!outOfTime(table, Date.now())) return table
+  if (!outOfTime(table, now)) return table
 
   const acting = table.state.actingPlayerId
   if (!acting) return table
@@ -394,6 +394,22 @@ function enforceClock(table: PlayingTable, now: number): PlayingTable {
     new Set(Object.keys(table.owners)),
   )
 
+  return advance(table, state, now)
+}
+
+/**
+ * The table carrying this state, with a fresh clock on it.
+ *
+ * Every advance of a hand goes through here rather than spreading the table by
+ * hand, because a deadline is owed to whoever is *about to* act and a stale one
+ * expires under them. Leaving it behind cost a player their turn twice over:
+ * the clock became a single window shared by everyone from the deal onwards,
+ * and a hand dealt after a pause on the result screen was born already expired
+ * — folded by the next read, which is the opponent's stream rather than the
+ * dealer's own answer, so the two screens disagreed about whether the hand was
+ * still alive.
+ */
+function advance(table: PlayingTable, state: TableState, now = Date.now()): PlayingTable {
   return { ...table, state, deadline: now + TURN_MS }
 }
 
@@ -808,7 +824,7 @@ export async function submitAction(
     next = playBots(next, new Set(Object.keys(table.owners)), steps)
 
     return {
-      table: { ...table, state: next },
+      table: advance(table, next),
       result: updateFrom(steps, next, seat, table.names),
     }
   })
@@ -922,7 +938,7 @@ export async function startNextHand(
     const state = playBots(dealt, new Set(Object.keys(table.owners)), steps)
 
     return {
-      table: { ...table, state },
+      table: advance(table, state),
       result: updateFrom(steps, state, seat, table.names),
     }
   })
