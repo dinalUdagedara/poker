@@ -601,15 +601,57 @@ describe('a player who stops answering', () => {
   })
 
   it('gives them a fresh clock every time they act', async () => {
-    const { tableId } = await dealtTable()
+    // Two people, so that whoever acts second is a seat the clock can be
+    // enforced against rather than a bot that answers instantly.
+    const { tableId } = asRoom(await createTable({ seatCount: 2, botCount: 0 }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    const first = asTable(await findTable(tableId, OWNER))
+    const firstToAct = first.actingPlayerId === first.viewerId ? OWNER : STRANGER
+
+    // The first player thinks for nearly their whole clock, then acts. That
+    // must start the second player's clock rather than hand them what is left
+    // of the first player's — the two used to share one window from the deal.
+    vi.advanceTimersByTime(TURN_MS - 1000)
+    await submitAction(tableId, firstToAct, { type: 'call' })
+    const secondToAct = asTable(await findTable(tableId, OWNER))
 
     vi.advanceTimersByTime(TURN_MS - 1000)
-    await submitAction(tableId, OWNER, { type: 'call' })
-    vi.advanceTimersByTime(TURN_MS - 1000)
-
-    // Still their table to act on: the clock restarted when they called.
     const view = asTable(await findTable(tableId, OWNER))
-    expect(view.result !== null || view.actingPlayerId === view.viewerId).toBe(true)
+
+    // Named rather than merely non-null: acting for them would also leave
+    // somebody to act, so "the table moved on" and "their turn is intact" are
+    // only told apart by whose turn it still is.
+    expect(view.actingPlayerId).toBe(secondToAct.actingPlayerId)
+    expect(view.street).toBe(secondToAct.street)
+  })
+
+  it('deals the next hand on a fresh clock however long the result was read for', async () => {
+    // The bug this covers was asymmetric, which is what made it so confusing:
+    // the player who clicked rendered the answer to their own request and saw a
+    // live hand, while everybody else's screen read the table back through the
+    // clock and was shown that same hand already folded out from under them.
+    const { tableId } = asRoom(await createTable({ seatCount: 2, botCount: 0 }, OWNER))
+    await joinTable(tableId, STRANGER)
+
+    let view = asTable(await findTable(tableId, OWNER))
+    for (let guard = 0; view.result === null && guard < 20; guard++) {
+      await submitAction(tableId, view.actingPlayerId === view.viewerId ? OWNER : STRANGER, {
+        type: 'fold',
+      })
+      view = asTable(await findTable(tableId, OWNER))
+    }
+    expect(view.result).not.toBeNull()
+
+    // Long enough that the finished hand's deadline is well past.
+    vi.advanceTimersByTime(TURN_MS * 3)
+
+    const forClicker = await startNextHand(tableId, OWNER)
+    const forEveryoneElse = asTable(await findTable(tableId, STRANGER))
+
+    expect(forClicker.result).toBeNull()
+    expect(forEveryoneElse.result).toBeNull()
+    expect(forEveryoneElse.handNumber).toBe(forClicker.handNumber)
   })
 })
 
