@@ -28,12 +28,12 @@ export function useTableSounds(table: TableView) {
     previous.current = table
     if (!before) return
 
-    // New hand: shuffle once, then deal slides for the field.
+    // New hand: deal slides only — the UI has a deal-in animation, not a
+    // shuffle beat, so a riffle here would be a sound with nothing to watch.
     if (before.handNumber !== table.handNumber) {
-      audio.play('shuffle')
       const dealt = table.players.filter((p) => p.cardCount > 0).length
       for (let i = 0; i < Math.min(dealt, 6); i++) {
-        window.setTimeout(() => audio.play('deal'), 120 + i * 85)
+        window.setTimeout(() => audio.play('deal'), i * 90)
       }
       if (before.bigBlind < table.bigBlind) {
         window.setTimeout(() => audio.play('confirm'), 40)

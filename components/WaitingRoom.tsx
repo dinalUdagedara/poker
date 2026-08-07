@@ -52,7 +52,6 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
         const payload = await response.json()
         if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
         if (payload.stage === 'playing') {
-          getAudio().play('shuffle')
           return router.refresh()
         }
         setRoom(payload as RoomView)
