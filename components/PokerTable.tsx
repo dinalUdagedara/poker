@@ -6,6 +6,7 @@ import { CircleQuestionMark, Eye } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ChipStack } from './ChipStack'
+import { Logo } from './Logo'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -475,12 +476,11 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
           badge is worth — so the chrome shrinks rather than stacking. */}
       <header className="flex items-center justify-between gap-2 px-3 py-2 text-white sm:gap-4 sm:px-5 sm:py-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          {/* The house mark, struck in brass. A spade rather than a logo: it
-              says which game this is before the name is read. */}
+          {/* The house crest, which says which game this is before the name is
+              read. Small enough that it reads as a mark beside the name rather
+              than as a picture the header is carrying. */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
-            <span className="text-brass" aria-hidden>
-              &spades;
-            </span>
+            <Logo className="h-5 w-auto shrink-0 sm:h-6" />
             <span className="wordmark text-sm font-bold tracking-tight whitespace-nowrap sm:text-base">
               Showdown
             </span>

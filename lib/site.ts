@@ -46,10 +46,10 @@ export const SITE_DESCRIPTION =
  * the old picture.
  */
 export const OG_IMAGE = {
-  url: '/opengraph-image?v=1',
+  url: '/opengraph-image?v=2',
   width: 1200,
   height: 630,
-  alt: 'Showdown — a royal flush in spades dealt across a dark oxblood table, under the house lettering',
+  alt: 'Showdown — the house crest, a brass diamond over crossed arrows around a red heart, on a dark oxblood table under the house lettering',
 } as const
 
 /**
