@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
+import { NextHandButton } from './NextHandButton'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
 import { RankingsButton } from './RankingsButton'
@@ -875,18 +876,11 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               ) : table.result ? (
                 <div className="flex flex-col items-center gap-4" data-testid="hand-result">
                   {resultSummary}
-                  <Button
-                    className="h-12 w-full max-w-xs brass-button rounded-xl text-base font-bold tracking-wide uppercase"
-                    disabled={busy}
-                    onClick={() => {
-                      getAudio().unlock()
-                      getAudio().play('click')
-                      void send(`/api/table/${tableId}/next-hand`, {})
-                    }}
-                    data-testid="next-hand"
-                  >
-                    Next hand
-                  </Button>
+                  <NextHandButton
+                    busy={busy}
+                    handNumber={table.handNumber}
+                    onNext={() => void send(`/api/table/${tableId}/next-hand`, {})}
+                  />
                 </div>
               ) : (
                 /*

@@ -407,6 +407,38 @@
   background: linear-gradient(180deg, oklch(0.91 0.085 88) 0%, oklch(0.83 0.128 84) 100%);
 }
 
+/*
+ * Next-hand countdown: the fill sweeps the whole brass face. The unfilled
+ * portion is the wait left; when it covers the button, the hand deals.
+ */
+.next-hand-button {
+  background: linear-gradient(180deg, oklch(0.72 0.1 82) 0%, oklch(0.58 0.11 76) 100%);
+}
+
+.next-hand-button:hover {
+  background: linear-gradient(180deg, oklch(0.76 0.1 84) 0%, oklch(0.62 0.115 78) 100%);
+}
+
+.next-hand-fill {
+  width: 0%;
+  background: linear-gradient(180deg, oklch(0.91 0.085 88) 0%, oklch(0.83 0.128 84) 100%);
+  animation: next-hand-fill var(--next-hand-ms, 4s) linear forwards;
+}
+
+.next-hand-fill-done {
+  animation: none;
+  width: 100%;
+}
+
+@keyframes next-hand-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 /* The wordmark, struck rather than printed: brass clipped to the letterforms. */
 .wordmark {
   font-family: var(--font-display);
