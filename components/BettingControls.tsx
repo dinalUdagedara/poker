@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
+import { getAudio } from '@/lib/audio'
 import type { LegalActions } from '@/lib/poker/types'
 
 export type SubmitAction = (action: { type: string; amount?: number }) => void
@@ -71,6 +72,12 @@ export function BettingControls({
   const idle = legal === null
   const sizing = legal ? (legal.raise ?? legal.bet) : null
   const [chosen, setChosen] = useState(sizing?.min ?? 0)
+
+  function act(action: { type: string; amount?: number }) {
+    getAudio().unlock()
+    getAudio().play('click')
+    onAction(action)
+  }
 
   // The legal range shifts every time the betting does, so the slider position
   // is clamped as it is read rather than corrected afterwards in an effect:
@@ -292,7 +299,7 @@ export function BettingControls({
             <Button
               className={cn(ACTION_BUTTON, FOLD)}
               disabled={busy}
-              onClick={() => onAction({ type: 'fold' })}
+              onClick={() => act({ type: 'fold' })}
               data-testid="action-fold"
             >
               Fold
@@ -302,7 +309,7 @@ export function BettingControls({
               <Button
                 className={cn(ACTION_BUTTON, PASSIVE)}
                 disabled={busy}
-                onClick={() => onAction({ type: 'check' })}
+                onClick={() => act({ type: 'check' })}
                 data-testid="action-check"
               >
                 Check
@@ -313,7 +320,7 @@ export function BettingControls({
               <Button
                 className={cn(ACTION_BUTTON, PASSIVE, 'flex-col gap-0')}
                 disabled={busy}
-                onClick={() => onAction({ type: 'call' })}
+                onClick={() => act({ type: 'call' })}
                 data-testid="action-call"
               >
                 <span>Call {legal.call.amount.toLocaleString()}</span>
@@ -334,7 +341,7 @@ export function BettingControls({
                  */
                 className={cn(ACTION_BUTTON, COMMIT, 'flex-col gap-0 sm:flex-row sm:gap-1.5')}
                 disabled={busy}
-                onClick={() => onAction({ type: legal.raise ? 'raise' : 'bet', amount })}
+                onClick={() => act({ type: legal.raise ? 'raise' : 'bet', amount })}
                 data-testid="action-bet"
               >
                 <span>{legal.raise ? 'Raise to' : 'Bet'}</span>

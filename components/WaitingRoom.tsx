@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Copy, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SoundToggle } from '@/components/SoundToggle'
 import { cn } from '@/lib/utils'
+import { getAudio } from '@/lib/audio'
 import { useTableStream } from '@/lib/use-table-stream'
 import type { RoomView } from '@/lib/poker/lifecycle'
 
@@ -23,22 +25,39 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const takenBefore = useRef(initial.seats.filter((seat) => seat.taken).length)
 
   const seated = room.seats.some((seat) => seat.you)
   const taken = room.seats.filter((seat) => seat.taken).length
   const remaining = room.seats.length - taken
 
+  useEffect(() => {
+    const audio = getAudio()
+    audio.playMusic('lobby')
+    return () => audio.stopMusic()
+  }, [])
+
+  useEffect(() => {
+    if (taken > takenBefore.current) getAudio().play('seat')
+    takenBefore.current = taken
+  }, [taken])
+
   const send = useCallback(
     async (path: string) => {
       setBusy(true)
       setError(null)
+      getAudio().play('click')
       try {
         const response = await fetch(path, { method: 'POST' })
         const payload = await response.json()
         if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
-        if (payload.stage === 'playing') return router.refresh()
+        if (payload.stage === 'playing') {
+          getAudio().play('shuffle')
+          return router.refresh()
+        }
         setRoom(payload as RoomView)
       } catch (e) {
+        getAudio().play('error')
         setError((e as Error).message)
       } finally {
         setBusy(false)
@@ -51,6 +70,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
   const copyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href).catch(() => {})
     setCopied(true)
+    getAudio().play('confirm')
     setTimeout(() => setCopied(false), 2000)
   }, [])
 
@@ -64,7 +84,10 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
   )
 
   return (
-    <main className="table-room flex flex-1 items-center justify-center p-6">
+    <main className="table-room relative flex flex-1 items-center justify-center p-6">
+      <div className="absolute top-4 right-4 sm:top-5 sm:right-5">
+        <SoundToggle />
+      </div>
       <div className="flex w-full max-w-sm flex-col items-center">
         <Card className="panel-milled border-border w-full backdrop-blur">
           <CardContent className="flex flex-col gap-6">

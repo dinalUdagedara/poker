@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Logo } from '@/components/Logo'
 import { PlayingCard } from '@/components/PlayingCard'
+import { SoundToggle } from '@/components/SoundToggle'
 import { parseCards } from '@/lib/poker/cards'
+import { getAudio } from '@/lib/audio'
 import { MAX_NAME_LENGTH } from '@/lib/names'
 import { cn } from '@/lib/utils'
 
@@ -73,7 +75,10 @@ function ModeTile({
     <button
       type="button"
       disabled={disabled}
-      onClick={onClick}
+      onClick={() => {
+        getAudio().play('click')
+        onClick()
+      }}
       data-testid={testId}
       className={cn(
         'group bg-secondary border-border flex w-full items-center gap-4 rounded-lg border p-4 text-left',
@@ -160,6 +165,12 @@ export function HomePanel({ initialScreen }: { initialScreen: Screen }) {
     if (found && nameField.current) nameField.current.value = decodeURIComponent(found[1])
   }, [])
 
+  useEffect(() => {
+    const audio = getAudio()
+    audio.playMusic('lobby')
+    return () => audio.stopMusic()
+  }, [])
+
   /** A year, because a name is a preference rather than a session. */
   function rememberName(value: string) {
     document.cookie = `pname=${encodeURIComponent(value.slice(0, MAX_NAME_LENGTH))}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
@@ -175,6 +186,8 @@ export function HomePanel({ initialScreen }: { initialScreen: Screen }) {
   async function deal(seatCount = 1, isPublic = false) {
     setBusy(true)
     setError(null)
+    getAudio().unlock()
+    getAudio().play('confirm')
     try {
       const response = await fetch('/api/table', {
         method: 'POST',
@@ -189,6 +202,7 @@ export function HomePanel({ initialScreen }: { initialScreen: Screen }) {
       if (!response.ok) throw new Error(payload.error ?? 'Could not start a table')
       router.push(`/table/${payload.tableId}`)
     } catch (e) {
+      getAudio().play('error')
       setError((e as Error).message)
       setBusy(false)
     }
@@ -205,7 +219,10 @@ export function HomePanel({ initialScreen }: { initialScreen: Screen }) {
     )
 
   return (
-    <main className="table-room flex flex-1 items-center justify-center p-6">
+    <main className="table-room relative flex flex-1 items-center justify-center p-6">
+      <div className="absolute top-4 right-4 sm:top-5 sm:right-5">
+        <SoundToggle />
+      </div>
       <div className="flex w-full max-w-sm flex-col items-center">
         {/*
           A hand fanned above the panel, overlapping it. The lobby was a plain

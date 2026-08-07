@@ -15,7 +15,10 @@ import { BettingControls } from './BettingControls'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
 import { RankingsButton } from './RankingsButton'
+import { SoundToggle } from './SoundToggle'
+import { getAudio } from '@/lib/audio'
 import { useTableStream } from '@/lib/use-table-stream'
+import { useTableSounds } from '@/lib/use-table-sounds'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import {
@@ -123,6 +126,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
   const [table, setTable] = useState(initial)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  useTableSounds(table)
   /**
    * Set when the server no longer knows this table — the store is in memory, so
    * a restart loses it. Retrying can only fail again, so the only thing worth
@@ -288,6 +292,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
         showUpdate(payload as TableUpdate)
       } catch (e) {
         setError((e as Error).message)
+        getAudio().play('error')
         // Idle again, and worth a catch-up: a refused action usually means the
         // table has moved on without us, which is precisely the state we are
         // now holding a stale copy of.
@@ -307,12 +312,15 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
   const playAgain = useCallback(async () => {
     setBusy(true)
     setError(null)
+    getAudio().unlock()
+    getAudio().play('confirm')
     try {
       const response = await fetch(`/api/table/${tableId}/rematch`, { method: 'POST' })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error ?? 'Could not open another table')
       router.push(`/table/${payload.tableId}`)
     } catch (e) {
+      getAudio().play('error')
       setError((e as Error).message)
       setBusy(false)
     }
@@ -511,6 +519,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               have in the middle of a decision, and anything that takes you off
               the table to answer it is the wrong shape. */}
           <RankingsButton />
+          <SoundToggle />
           {/*
             The full guide, opened in its own tab rather than navigating.
             Leaving the table would throw away any replay still stepping through
@@ -869,7 +878,11 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   <Button
                     className="h-12 w-full max-w-xs brass-button rounded-xl text-base font-bold tracking-wide uppercase"
                     disabled={busy}
-                    onClick={() => void send(`/api/table/${tableId}/next-hand`, {})}
+                    onClick={() => {
+                      getAudio().unlock()
+                      getAudio().play('click')
+                      void send(`/api/table/${tableId}/next-hand`, {})
+                    }}
                     data-testid="next-hand"
                   >
                     Next hand

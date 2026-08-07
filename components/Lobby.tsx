@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SoundToggle } from '@/components/SoundToggle'
 import { cn } from '@/lib/utils'
+import { getAudio } from '@/lib/audio'
 import type { RoomSummary } from '@/lib/poker/lifecycle'
 
 /**
@@ -41,10 +43,18 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
     return () => clearInterval(timer)
   }, [refresh])
 
+  useEffect(() => {
+    const audio = getAudio()
+    audio.playMusic('lobby')
+    return () => audio.stopMusic()
+  }, [])
+
   const join = useCallback(
     async (tableId: string) => {
       setBusy(tableId)
       setError(null)
+      getAudio().unlock()
+      getAudio().play('confirm')
       try {
         const response = await fetch(`/api/table/${tableId}/join`, { method: 'POST' })
         const payload = await response.json()
@@ -53,6 +63,7 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
       } catch (e) {
         // The room filled while it was being read. Ordinary, so it is handled
         // rather than guarded against: say so, refresh, let them pick again.
+        getAudio().play('error')
         setError((e as Error).message)
         await refresh()
         setBusy(null)
@@ -62,7 +73,10 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
   )
 
   return (
-    <main className="table-room flex flex-1 justify-center p-6">
+    <main className="table-room relative flex flex-1 justify-center p-6">
+      <div className="absolute top-4 right-4 sm:top-5 sm:right-5">
+        <SoundToggle />
+      </div>
       <div className="flex w-full max-w-md flex-col gap-5 pt-10">
         <div className="flex flex-col gap-1">
           <h1 className="wordmark text-4xl font-bold tracking-tight">Open rooms</h1>
