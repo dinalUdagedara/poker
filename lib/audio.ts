@@ -68,7 +68,7 @@ const MUSIC_FILES: Record<MusicTrack, string> = {
 
 const SFX_VOLUME = 0.55
 const BOT_VOLUME = 0.32
-const MUSIC_VOLUME = 0.2
+const MUSIC_VOLUME = 0.14
 
 type Listener = () => void
 

@@ -187,7 +187,6 @@ export function HomePanel({ initialScreen }: { initialScreen: Screen }) {
     setBusy(true)
     setError(null)
     getAudio().unlock()
-    getAudio().play('confirm')
     try {
       const response = await fetch('/api/table', {
         method: 'POST',

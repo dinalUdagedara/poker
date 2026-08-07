@@ -14,14 +14,16 @@ released under [Creative Commons CC0 1.0](https://creativecommons.org/publicdoma
 
 Optional credit: Kenney.nl
 
-## Background music (CC BY)
+## Background music
+
+Calm gangster / noir beds — low volume under the table.
 
 | File | Track | Author | License |
 |------|-------|--------|---------|
-| `music/lobby-loop.mp3` | Trouble Makers (loopable) | [Matthew Pablo](https://www.matthewpablo.com/) | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) via [OpenGameArt](https://opengameart.org/content/trouble-makers-coolriff-jazz) |
-| `music/table-loop.mp3` | The Italian Heist | [Eric Matyas](https://soundimage.org/) | Free for games with attribution via [OpenGameArt](https://opengameart.org/content/the-italian-heist-looping) |
+| `music/lobby-loop.mp3` | 10 Past Midnight (looping) | [Eric Matyas](https://soundimage.org/) | Free for games with attribution |
+| `music/table-loop.mp3` | Moil | Ruskerdax | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) via [OpenGameArt](https://opengameart.org/content/moil) |
 
 Please credit:
 
-- Music: “Trouble Makers” by Matthew Pablo (www.matthewpablo.com)
-- Music: “The Italian Heist” by Eric Matyas (www.soundimage.org)
+- Music: “10 Past Midnight” by Eric Matyas (www.soundimage.org)
+- Music: “Moil” by Ruskerdax (CC0)
