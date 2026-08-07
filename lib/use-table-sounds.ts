@@ -28,28 +28,37 @@ export function useTableSounds(table: TableView) {
     previous.current = table
     if (!before) return
 
-    // New hand: deal slides only — the UI has a deal-in animation, not a
-    // shuffle beat, so a riffle here would be a sound with nothing to watch.
-    if (before.handNumber !== table.handNumber) {
-      const dealt = table.players.filter((p) => p.cardCount > 0).length
-      for (let i = 0; i < Math.min(dealt, 6); i++) {
-        window.setTimeout(() => audio.play('deal'), i * 90)
-      }
-      if (before.bigBlind < table.bigBlind) {
-        window.setTimeout(() => audio.play('confirm'), 40)
-      }
-      return
+    const timers: number[] = []
+    const later = (fn: () => void, ms: number) => {
+      timers.push(window.setTimeout(fn, ms))
     }
 
-    // Board grew — flop is three places; turn/river one.
-    if (table.communityCards.length > before.communityCards.length) {
+    const newHand = before.handNumber !== table.handNumber
+    let dealTailMs = 0
+
+    // Deal slides only — the UI has a deal-in animation, not a shuffle beat.
+    if (newHand) {
+      const dealt = Math.min(
+        table.players.filter((p) => p.cardCount > 0).length,
+        6,
+      )
+      for (let i = 0; i < dealt; i++) {
+        later(() => audio.play('deal'), i * 90)
+      }
+      dealTailMs = Math.max(dealt, 1) * 90
+      if (before.bigBlind < table.bigBlind) {
+        later(() => audio.play('confirm'), 40)
+      }
+    } else if (table.communityCards.length > before.communityCards.length) {
+      // Board grew — flop is three places; turn/river one.
       const added = table.communityCards.length - before.communityCards.length
       for (let i = 0; i < added; i++) {
-        window.setTimeout(() => audio.play('board'), i * 70)
+        later(() => audio.play('board'), i * 70)
       }
     }
 
-    // New history lines — usually one per replay step.
+    // New history lines — usually one per replay step; on a fresh hand this
+    // also covers the blinds that were posted with the deal.
     if (table.handHistory.length > before.handHistory.length) {
       const fresh = table.handHistory.slice(before.handHistory.length)
       for (const entry of fresh) {
@@ -57,29 +66,39 @@ export function useTableSounds(table: TableView) {
       }
     }
 
-    // Your turn only — opponent turn pings would never stop.
+    // Your turn only — opponent turn pings would never stop. After a new deal,
+    // wait for the slides so the ping is not buried under them.
     if (
       table.viewerId &&
       table.actingPlayerId === table.viewerId &&
       before.actingPlayerId !== table.viewerId &&
       table.legalActions
     ) {
-      audio.play('turn', { volume: 0.4 })
+      later(() => audio.play('turn', { volume: 0.4 }), dealTailMs)
     }
 
-    // Hand settled.
+    // Hand settled — one sting. If the same update also ends the session, skip
+    // the second win below.
+    let playedWin = false
     if (!before.result && table.result) {
       const won = table.result.payouts[table.viewerId ?? ''] ?? 0
-      if (won > 0) audio.play('win')
-      else audio.play('pot', { volume: 0.45 })
+      if (won > 0) {
+        audio.play('win')
+        playedWin = true
+      } else {
+        audio.play('pot', { volume: 0.45 })
+      }
     }
 
-    // Session over.
-    if (before.outcome.kind !== 'winner' && table.outcome.kind === 'winner') {
+    if (!playedWin && before.outcome.kind !== 'winner' && table.outcome.kind === 'winner') {
       audio.play('win')
     }
     if (before.outcome.kind !== 'eliminated' && table.outcome.kind === 'eliminated') {
       audio.play('lose')
+    }
+
+    return () => {
+      for (const id of timers) window.clearTimeout(id)
     }
   }, [table])
 }
