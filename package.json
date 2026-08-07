@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:slow": "RUN_SLOW=1 vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "icons": "python3 scripts/build-icons.py"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

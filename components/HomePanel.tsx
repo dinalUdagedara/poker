@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Logo } from '@/components/Logo'
 import { PlayingCard } from '@/components/PlayingCard'
 import { parseCards } from '@/lib/poker/cards'
 import { MAX_NAME_LENGTH } from '@/lib/names'
@@ -224,6 +225,10 @@ export function HomePanel({ initialScreen }: { initialScreen: Screen }) {
         <Card className="panel-milled border-border w-full pt-10 backdrop-blur">
           <CardContent className="flex flex-col gap-6">
             <div className="flex flex-col items-center gap-1 text-center">
+              {/* The crest over the name, the way a house puts its mark over
+                  its door. This is the one screen with room to show it at a
+                  size worth showing. */}
+              <Logo className="mb-2 h-20 w-auto" />
               {/* Struck in brass rather than printed flat: the name is the one
                   object on this screen that belongs to the room. */}
               <h1 className="wordmark text-4xl font-bold tracking-tight">Showdown</h1>

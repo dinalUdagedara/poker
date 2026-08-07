@@ -26,47 +26,30 @@ const BRASS = '#e9b44b' // --brass
 const BRASS_DEEP = '#744c0e' // --brass-deep
 const CREAM = '#fbf4ed' // --foreground
 const MUTED = '#bba69d' // --muted-foreground
-const CARD_TOP = '#fefdfb' // the card face, top of its gradient
-const CARD_BOTTOM = '#ebe7e2'
-const CARD_INK = '#1e1311'
 
 /**
- * The hand the lobby deals behind its panel, dealt again here.
+ * The crest, at the size it is drawn here.
  *
- * A royal flush is the one hand that needs no caption to say what game this
- * is, and using the lobby's own cards means the link and the page it opens
- * are recognisably the same room.
+ * `public/mark.png` is the transparent cut of the master in `assets/`, so the
+ * room's gradient shows through the open middle of the diamond rather than the
+ * mark bringing a plate of its own — the same reason the header uses it.
  */
-const FAN = [
-  { rank: 'A', rotate: -14, lift: 10 },
-  { rank: 'K', rotate: -7, lift: 2 },
-  { rank: 'Q', rotate: 0, lift: 0 },
-  { rank: 'J', rotate: 7, lift: 2 },
-  { rank: '10', rotate: 14, lift: 10 },
-]
-
-/**
- * The pip, drawn rather than typed.
- *
- * Neither Playfair nor Geist carries U+2660, and Satori has no system fonts to
- * fall back to — a literal ♠ comes out as a blank box. A path always renders.
- */
-function Spade({ size: s }: { size: number }) {
-  return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill={CARD_INK}>
-      <path d="M12 2.2c0 0-8.2 6.4-8.2 11.4a4.6 4.6 0 0 0 7.7 3.4c-.2 2-1.1 3.4-2.7 4.3h6.4c-1.6-.9-2.5-2.3-2.7-4.3a4.6 4.6 0 0 0 7.7-3.4C20.2 8.6 12 2.2 12 2.2z" />
-    </svg>
-  )
-}
+const CREST = { width: 188, height: 210 }
 
 export default async function Image() {
   // process.cwd() is the project root, so these resolve the same in `next dev`
   // and in a build — which is when this image is actually rendered.
-  const [playfair, geist, geistMedium] = await Promise.all([
+  const [playfair, geist, geistMedium, crest] = await Promise.all([
     readFile(join(process.cwd(), 'assets/PlayfairDisplay-Bold.ttf')),
     readFile(join(process.cwd(), 'assets/Geist-Regular.ttf')),
     readFile(join(process.cwd(), 'assets/Geist-Medium.ttf')),
+    readFile(join(process.cwd(), 'public/mark.png')),
   ])
+
+  // Inlined rather than linked. Satori fetches a remote `src` over the network,
+  // and this is rendered during the build, when the site it would be fetching
+  // from is the thing being built.
+  const crestSrc = `data:image/png;base64,${crest.toString('base64')}`
 
   return new ImageResponse(
     (
@@ -120,49 +103,16 @@ export default async function Image() {
             padding: '0 80px',
           }}
         >
-          {/* The fan. Each card is tilted by the wrapper so the shadow tilts
-              with it, and pulled left to overlap the one before. */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: 52 }}>
-            {FAN.map((card, i) => (
-              <div
-                key={card.rank}
-                style={{
-                  display: 'flex',
-                  marginLeft: i === 0 ? 0 : -26,
-                  transform: `translateY(${card.lift}px) rotate(${card.rotate}deg)`,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 124,
-                    height: 176,
-                    borderRadius: 14,
-                    border: '1px solid rgba(0,0,0,0.25)',
-                    backgroundImage: `linear-gradient(180deg, ${CARD_TOP} 0%, ${CARD_BOTTOM} 100%)`,
-                    boxShadow: '0 14px 34px -8px rgba(0,0,0,0.8)',
-                    color: CARD_INK,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: 'Playfair Display',
-                      fontSize: 56,
-                      lineHeight: 1,
-                      letterSpacing: '-0.02em',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {card.rank}
-                  </div>
-                  <Spade size={46} />
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* The house crest, over the name the way a house puts its mark over
+              its door — and the same mark the tab and the header carry, so a
+              link and the page it opens are recognisably the same room. */}
+          <img
+            src={crestSrc}
+            width={CREST.width}
+            height={CREST.height}
+            style={{ marginBottom: 40 }}
+            alt=""
+          />
 
           {/* Casino signage reads as an eyebrow over a name, so it is set the
               way signage is: small, brass, and spaced out. */}
