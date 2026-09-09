@@ -80,24 +80,55 @@ export function PlayerSeat({
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
   const tone = stackTone(player.stack, bigBlind)
+  // Cards or a face, never both. See the slot below.
+  const holds = player.cardCount > 0 && player.status !== 'folded'
 
   return (
     <div className="relative flex flex-col items-center gap-1 sm:gap-1.5" data-testid={`seat-${player.id}`}>
-      <div className={cn('-mb-5 flex sm:-mb-3.5', isOut && 'opacity-40 saturate-50')}>
-        {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
-          <PlayingCard
-            key={i}
-            card={player.holeCards?.[i] ?? null}
-            size={hero ? 'lg' : compact ? 'xs' : 'sm'}
-            dealDelay={i * 90}
+      {/*
+        One slot above the plate, holding either the cards or the player.
+        
+        Showing both is what made a seat tall, and tall seats are why five
+        opponents have to be shrunk to fit round the felt. A player is only ever
+        one of two things here — someone still in the hand, who is their cards,
+        or someone who is not, who is just a face — so the two never need to be
+        on screen at once. Folding swaps one for the other, which also means a
+        seat that is out of the hand reads as out from across the table rather
+        than from the badge underneath it.
+      */}
+      <div
+        className={cn(
+          '-mb-5 flex items-end justify-center sm:-mb-3.5',
+          // Whichever of the two is showing. A folded seat has to recede, and a
+          // portrait left at full strength does the opposite of that — the
+          // brightest thing on the felt became the people no longer in the hand.
+          isOut && 'opacity-45 saturate-50',
+        )}
+      >
+        {holds ? (
+          Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
+            <PlayingCard
+              key={i}
+              card={player.holeCards?.[i] ?? null}
+              size={hero ? 'lg' : compact ? 'xs' : 'sm'}
+              dealDelay={i * 90}
+              className={cn(
+                TILT[i % TILT.length],
+                i > 0 && (hero ? '-ml-2' : '-ml-1'),
+                hero && 'h-18 w-13 text-sm sm:h-24 sm:w-17 sm:text-base',
+                'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
+              )}
+            />
+          ))
+        ) : (
+          <PlayerAvatar
+            seed={player.id}
             className={cn(
-              TILT[i % TILT.length],
-              i > 0 && (hero ? '-ml-2' : '-ml-1'),
-              hero && 'h-18 w-13 text-sm sm:h-24 sm:w-17 sm:text-base',
-              'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
+              'ring-2 ring-black/45',
+              hero ? 'size-14 sm:size-16' : compact ? 'size-9 sm:size-10' : 'size-11 sm:size-12',
             )}
           />
-        ))}
+        )}
       </div>
 
       <Card
@@ -132,34 +163,30 @@ export function PlayerSeat({
           )}
         />
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <PlayerAvatar
-            seed={player.id}
+        {/*
+          Name over money, which is the order they are asked for: who is this,
+          then what have they got. The stack is the louder of the two because it
+          is the one being re-read every street.
+        */}
+        <div className="text-center leading-tight">
+          <div
             className={cn(
-              hero ? 'size-8 sm:size-9' : compact ? 'size-5 sm:size-6' : 'size-6 sm:size-7',
-              isOut && 'grayscale',
+              'truncate font-medium',
+              hero ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-[11px]',
+              isOut ? 'text-foreground/45' : 'text-foreground/90',
             )}
-          />
-          <div className="text-center leading-tight">
-            <div
-              className={cn(
-                'font-mono font-semibold tabular-nums',
-                hero ? 'text-sm sm:text-base' : 'text-xs sm:text-sm',
-                player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
-              )}
-              data-testid={`stack-${player.id}`}
-            >
-              {player.stack.toLocaleString()}
-            </div>
-            <div
-              className={cn(
-                'truncate font-medium',
-                hero ? 'text-[11px] sm:text-xs' : 'text-[9px] sm:text-[10px]',
-                isOut ? 'text-muted-foreground/60' : 'text-muted-foreground',
-              )}
-            >
-              {displayName(player, viewerId, names)}
-            </div>
+          >
+            {displayName(player, viewerId, names)}
+          </div>
+          <div
+            className={cn(
+              'font-mono font-semibold tabular-nums',
+              hero ? 'text-sm sm:text-base' : 'text-xs sm:text-sm',
+              player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
+            )}
+            data-testid={`stack-${player.id}`}
+          >
+            {player.stack.toLocaleString()}
           </div>
         </div>
       </Card>

@@ -757,19 +757,30 @@ p {
   position: relative;
 }
 
+/*
+ * One slot above the plate, holding either the cards or the player's face.
+ *
+ * Never both. Showing both is what makes a seat tall, and tall seats are what
+ * force a crowded table to shrink everyone to fit. A player is only ever one of
+ * two things here — someone still in the hand, who is their cards, or someone
+ * who is not, who is just a face — so folding swaps one for the other and a
+ * seat that is out reads as out from across the felt.
+ */
 .seat-cards {
   display: flex;
+  align-items: flex-end;
+  justify-content: center;
   margin-bottom: -14px;
 }
 
 .seat-plate {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: 6px var(--space-3);
+  padding: 5px var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-divider);
-  background: linear-gradient(180deg, var(--color-surface) 0%, oklch(0.14 0.035 22) 100%);
+  background: linear-gradient(180deg, var(--plate) 0%, oklch(0.24 0.007 250) 100%);
   box-shadow: var(--shadow-md), var(--edge);
   transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease);
 }
@@ -780,20 +791,34 @@ p {
   box-shadow: var(--shadow-md), 0 0 0 3px oklch(0.8 0.135 82 / 0.22);
 }
 
-/* Won it: green, the one colour in the room that is not the house. */
+/* Won it: cyan, which in this room is money and only ever money. */
 .seat-winner {
   border-color: var(--state-win);
-  box-shadow: var(--shadow-md), 0 0 0 3px oklch(0.78 0.16 155 / 0.28);
+  box-shadow: var(--shadow-md), 0 0 0 3px color-mix(in oklab, var(--state-win) 28%, transparent);
 }
 
+/* The face, when it is the face's turn to be there. Sized to the cards it
+   stands in for, so the plate underneath does not move when a player folds. */
 .seat-avatar {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
-  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.18);
+  box-shadow: 0 0 0 2px oklch(0 0 0 / 0.45);
   flex-shrink: 0;
 }
 
+/* A folded seat recedes. Left at full strength the portraits became the
+   brightest thing on the felt, which is the opposite of what folding means. */
+.seat-out .seat-cards {
+  opacity: 0.45;
+  filter: saturate(0.5);
+}
+
+/*
+ * Name over money, in the order they are asked for: who is this, then what
+ * have they got. The stack is the louder of the two — it is the one being
+ * re-read every street, while the name is read once and then recognised.
+ */
 .seat-stack {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -803,9 +828,9 @@ p {
 }
 
 .seat-name {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  color: var(--color-muted);
+  color: oklch(from var(--color-text) l c h / 0.9);
   line-height: 1.3;
 }
 

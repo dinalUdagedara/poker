@@ -1,0 +1,254 @@
+/*
+ * Materials for the table preview.
+ *
+ * Everything the two candidate looks disagree about is a custom property set
+ * on the stage, so switching palette is a class swap rather than a second copy
+ * of the markup. Scoped to a CSS module because none of it is meant to reach
+ * the real table until it has been signed off.
+ */
+
+.stage {
+  background: var(--pv-room);
+  --pv-line: oklch(0.9 0.09 88 / 0.14);
+  --pv-mark: oklch(0.9 0.09 88 / 0.13);
+  --pv-chair: oklch(0.16 0.01 30 / 0.55);
+  --pv-chair-text: oklch(0.95 0.01 80 / 0.7);
+}
+
+/* The house: oxblood felt in a mahogany rail, brass as the only accent. */
+.house {
+  /* The room the table stands in. Part of the palette, not a page background:
+     the whole point of the house scheme is that the felt is the lit thing in a
+     dark red room, and ClubGG's surround is near-black instead. */
+  --pv-room: radial-gradient(
+    120% 90% at 50% 20%,
+    oklch(0.2 0.05 22) 0%,
+    oklch(0.155 0.042 22) 55%,
+    oklch(0.1 0.03 20) 100%
+  );
+  --pv-felt-lit: var(--felt-lit);
+  --pv-felt: var(--felt);
+  --pv-felt-deep: var(--felt-deep);
+  --pv-rail-lit: var(--rail-lit);
+  --pv-rail: var(--rail);
+  --pv-rail-deep: var(--rail-deep);
+  --pv-plate: oklch(0.205 0.045 22 / 0.9);
+  --pv-plate-edge: oklch(0.95 0.03 70 / 0.14);
+  --pv-name: oklch(0.74 0.028 45);
+  --pv-money: var(--state-healthy);
+  --pv-pill: oklch(0.13 0.035 22 / 0.72);
+  --pv-pill-label: oklch(0.9 0.02 70 / 0.7);
+  --pv-pill-value: var(--brass-lit);
+  --pv-acting: var(--brass);
+  --pv-badge: oklch(0.29 0.05 22);
+  --pv-badge-text: oklch(0.97 0.012 70);
+}
+
+/*
+ * Green felt on the house's own rail and plates. The middle option, and the
+ * one worth looking at hardest: it answers "can the table be green" without
+ * also giving up brass, which is the only accent the rest of the app has.
+ */
+.hybrid {
+  --pv-room: radial-gradient(
+    120% 90% at 50% 20%,
+    oklch(0.2 0.05 22) 0%,
+    oklch(0.155 0.042 22) 55%,
+    oklch(0.1 0.03 20) 100%
+  );
+  --pv-felt-lit: oklch(0.58 0.115 149);
+  --pv-felt: oklch(0.5 0.105 150);
+  --pv-felt-deep: oklch(0.36 0.08 152);
+  --pv-rail-lit: var(--rail-lit);
+  --pv-rail: var(--rail);
+  --pv-rail-deep: var(--rail-deep);
+  --pv-plate: oklch(0.205 0.045 22 / 0.9);
+  --pv-plate-edge: oklch(0.95 0.03 70 / 0.14);
+  --pv-name: oklch(0.9 0.02 70 / 0.8);
+  --pv-money: var(--brass-lit);
+  /* Brass at the house's own strength disappears on green, so the printed
+     lettering is given back the contrast the oxblood felt was granting it. */
+  --pv-mark: oklch(0.95 0.055 90 / 0.22);
+  --pv-pill: oklch(0.13 0.03 150 / 0.7);
+  --pv-pill-label: oklch(0.92 0.015 90 / 0.7);
+  --pv-pill-value: var(--brass-lit);
+  --pv-acting: var(--brass);
+  --pv-badge: oklch(0.29 0.05 22);
+  --pv-badge-text: oklch(0.97 0.012 70);
+}
+
+/* ClubGG as drawn: green cloth, near-black rail, blue-grey plates, gold pot. */
+.clubgg {
+  --pv-room: radial-gradient(
+    120% 90% at 50% 20%,
+    oklch(0.22 0.02 150) 0%,
+    oklch(0.16 0.012 150) 55%,
+    oklch(0.1 0.006 150) 100%
+  );
+  --pv-felt-lit: oklch(0.585 0.12 149);
+  --pv-felt: oklch(0.5 0.11 150);
+  --pv-felt-deep: oklch(0.355 0.085 152);
+  --pv-rail-lit: oklch(0.3 0.008 150);
+  --pv-rail: oklch(0.2 0.006 150);
+  --pv-rail-deep: oklch(0.125 0.004 150);
+  /* Charcoal with the barest blue in it, measured off the screenshot rather
+     than guessed — a true navy plate reads as a different product. */
+  --pv-plate: oklch(0.32 0.008 250 / 0.95);
+  --pv-plate-edge: oklch(0.8 0.02 240 / 0.16);
+  --pv-name: oklch(0.98 0.002 250);
+  --pv-money: oklch(0.81 0.095 205);
+  --pv-pill: oklch(0.16 0.008 150 / 0.68);
+  --pv-pill-label: oklch(0.93 0.005 150 / 0.8);
+  --pv-pill-value: oklch(0.88 0.13 92);
+  --pv-acting: oklch(0.86 0.14 95);
+  --pv-badge: oklch(0.19 0.02 250);
+  --pv-badge-text: oklch(0.95 0.01 250);
+  --pv-line: oklch(0.95 0.02 150 / 0.12);
+  --pv-mark: oklch(0.98 0.008 150 / 0.2);
+}
+
+.rail {
+  background: linear-gradient(
+    180deg,
+    var(--pv-rail-lit) 0%,
+    var(--pv-rail) 52%,
+    var(--pv-rail-deep) 100%
+  );
+  box-shadow:
+    0 24px 60px oklch(0 0 0 / 0.5),
+    inset 0 1px 0 oklch(1 0 0 / 0.06);
+}
+
+.felt {
+  position: relative;
+  background-image:
+    repeating-linear-gradient(45deg, oklch(1 0 0 / 0.014) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.022) 0 2px, transparent 2px 4px),
+    radial-gradient(
+      86% 72% at 50% 30%,
+      var(--pv-felt-lit) 0%,
+      var(--pv-felt) 52%,
+      var(--pv-felt-deep) 100%
+    );
+  box-shadow: inset 0 0 80px oklch(0.1 0.04 20 / 0.55);
+}
+
+/* The printed betting line. Under the seats, so ::before rather than ::after. */
+.felt::before {
+  content: "";
+  position: absolute;
+  inset: 7% 5%;
+  border-radius: 46% / 54%;
+  border: 1px solid var(--pv-line);
+  pointer-events: none;
+}
+
+.mark {
+  color: var(--pv-mark);
+  letter-spacing: 0.55em;
+}
+
+.apron {
+  color: var(--pv-mark);
+  letter-spacing: 0.08em;
+}
+
+.plate {
+  background: var(--pv-plate);
+  border: 1px solid var(--pv-plate-edge);
+  box-shadow:
+    0 6px 16px oklch(0 0 0 / 0.45),
+    inset 0 1px 0 oklch(1 0 0 / 0.07);
+}
+
+.acting {
+  border-color: var(--pv-acting);
+  box-shadow:
+    0 0 0 1px var(--pv-acting),
+    0 0 18px -2px var(--pv-acting),
+    0 6px 16px oklch(0 0 0 / 0.45);
+}
+
+.name {
+  color: var(--pv-name);
+}
+
+.money {
+  color: var(--pv-money);
+}
+
+.pill {
+  background: var(--pv-pill);
+  border: 1px solid var(--pv-plate-edge);
+}
+
+.pillLabel {
+  color: var(--pv-pill-label);
+}
+
+.pillValue {
+  color: var(--pv-pill-value);
+}
+
+/* The countdown square ClubGG hangs off the plate edge. Static here: nothing
+   on the wire carries a turn deadline yet. */
+.badge {
+  background: var(--pv-badge);
+  color: var(--pv-badge-text);
+  border: 1px solid var(--pv-plate-edge);
+}
+
+/*
+ * The ClubGG deck. Paper white with no border and a generous corner, which is
+ * most of why their cards read as plastic rather than as printed card stock.
+ */
+.cardFace {
+  background: oklch(0.985 0.002 90);
+  box-shadow: 0 2px 5px oklch(0 0 0 / 0.4);
+}
+
+.cardRed {
+  color: oklch(0.5 0.2 27);
+}
+
+.cardBlack {
+  color: oklch(0.2 0.01 260);
+}
+
+/* Their back is a woven net rather than a printed pattern. */
+.cardBack {
+  background-color: oklch(0.42 0.02 200);
+  background-image:
+    repeating-linear-gradient(45deg, oklch(1 0 0 / 0.22) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.22) 0 1px, transparent 1px 4px);
+  box-shadow:
+    0 2px 5px oklch(0 0 0 / 0.4),
+    inset 0 0 0 1.5px oklch(0.98 0.002 90 / 0.85);
+}
+
+/* The hairline between a name and what that player is sitting behind. */
+.plateRule {
+  border-top: 1px solid oklch(1 0 0 / 0.12);
+}
+
+/*
+ * The number that straddles the top-left corner of every ClubGG plate. Drawn
+ * with their white keyline, and inert: nothing on the wire says what it counts.
+ */
+.stat {
+  background: oklch(0.24 0.01 250);
+  color: oklch(0.99 0 0);
+  box-shadow: 0 0 0 1.5px oklch(0.98 0.002 90 / 0.9);
+}
+
+/* The capsule behind a figure standing on the felt. */
+.tag {
+  background: oklch(0.14 0.008 150 / 0.8);
+  color: oklch(0.99 0 0);
+}
+
+.chair {
+  background: var(--pv-chair);
+  color: var(--pv-chair-text);
+  border: 1px solid var(--pv-plate-edge);
+}

@@ -52,7 +52,7 @@ Every duration is a physical claim: dealing is quick and light (`--dur-deal`), c
 | `.tag` with `.tag-accent`, `.tag-danger`, `.tag-mono` | Small labels — blinds, street, status | components/buttons.html |
 | `.card-face` with `.card-red`, `.card-back`, `.card-xs/-sm/-lg`, `.card-slot`, `.hand-folded` | Playing cards — paper, the only light surface | components/playing-cards.html |
 | `.chip` with `.chip-1/-5/-25/-100/-500/-1000` | Chips — denominations, never decoration | components/chips.html |
-| `.seat` + `.seat-cards`, `.seat-plate` (`.seat-acting`, `.seat-winner`), `.seat-avatar`, `.seat-stack`, `.seat-name`, `.dealer-button`, `.callout` | One seat at the table, as one object | components/seat.html |
+| `.seat` (`.seat-out`) + `.seat-cards`, `.seat-plate` (`.seat-acting`, `.seat-winner`), `.seat-avatar`, `.seat-stack`, `.seat-name`, `.dealer-button`, `.callout` | One seat at the table, as one object. `.seat-cards` is a slot holding **either** the cards or the player's face, never both | components/seat.html |
 | `.stack-healthy`, `.stack-medium`, `.stack-short` | What a stack is worth, read at a glance | components/seat.html |
 | `.panel`, `.panel-lg`, `.panel-row`, `.well` | Milled slabs, and the recesses set into them | components/panels.html |
 | `.field` + `.input`, `.seg` + `.seg-opt`, `.slider` + `.slider-range/-thumb/-bubble` | Native form elements, themed states, no script | components/forms.html |
