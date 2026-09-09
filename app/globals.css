@@ -524,38 +524,6 @@
   cursor: default;
 }
 
-.action-preset-num {
-  display: grid;
-  place-items: center;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-/*
- * The lobby's console. Always a dock — landing has no table to protect on a
- * phone, so it does not go transparent the way the betting bar does.
- */
-.landing-dock {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 0.85rem;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  box-shadow:
-    0 6px 18px -6px oklch(0 0 0 / 0.6),
-    var(--edge);
-  padding: 14px;
-}
-
-.landing-dock .action-presets {
-  height: 40px;
-}
-
 /*
  * Next-hand countdown: the fill sweeps the whole brass face. The unfilled
  * portion is the wait left; when it covers the button, the hand deals.

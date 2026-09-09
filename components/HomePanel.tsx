@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { LandingShell, PlayerNameField, SizePicker } from '@/components/LandingShell'
+import { Card, CardContent } from '@/components/ui/card'
+import { HouseMark, LandingShell, PlayerNameField, SizePicker } from '@/components/LandingShell'
 import { getAudio } from '@/lib/audio'
 import { requestTable } from '@/lib/request-table'
 
@@ -14,9 +15,8 @@ const OPPONENTS = [1, 2, 3, 4, 5] as const
 /**
  * Play now.
  *
- * The house mark sits on the rail. The royal flush sits on the cloth. The
- * dock is the deal — name, seats, brass — so this screen is a table you have
- * not sat down at yet, rather than a form glued onto one.
+ * The lobby is one screen: a name, how many to sit against, and a deal. The
+ * other way to play lives on `/rooms`.
  */
 export function HomePanel() {
   const router = useRouter()
@@ -39,54 +39,63 @@ export function HomePanel() {
   }
 
   return (
-    <LandingShell fan brandHeading subtitle={"No-limit Hold'em"}>
-      <div className="landing-dock">
-        <PlayerNameField />
-        <SizePicker
-          label="Opponents"
-          hint={botCount === 1 ? 'heads up' : `${botCount + 1} handed`}
-          values={OPPONENTS}
-          value={botCount}
-          onChange={setBotCount}
-          testIdPrefix="opponents"
-          ariaLabel="Opponents"
-          disabled={busy}
-        />
-        <Button
-          className="brass-button h-12 w-full rounded-xl text-sm font-bold tracking-wide uppercase"
-          disabled={busy}
-          onClick={() => void deal()}
-          data-testid="deal"
-        >
-          {busy ? 'Dealing…' : 'Deal me in'}
-        </Button>
-        {error && (
-          <p className="text-destructive text-center text-sm" role="alert" data-testid="error">
-            {error}
-          </p>
-        )}
-      </div>
+    <LandingShell fan>
+      <Card className="panel-milled border-border w-full pt-10 backdrop-blur">
+        <CardContent className="flex flex-col gap-6">
+          <HouseMark />
+          <PlayerNameField />
 
-      <Link
-        href="/rooms"
-        data-testid="tab-people"
-        onClick={() => getAudio().play('click')}
-        className="group mt-5 flex items-center gap-1 text-sm text-white/80 transition-colors hover:text-white"
-      >
-        With people
-        <span className="text-muted-foreground group-hover:text-white/70 text-xs">
-          · open or join a table
-        </span>
-        <ChevronRight className="text-muted-foreground group-hover:text-brass size-3.5 transition-colors" aria-hidden />
-      </Link>
+          <SizePicker
+            label="Opponents"
+            hint={botCount === 1 ? 'heads up' : `${botCount + 1} handed`}
+            values={OPPONENTS}
+            value={botCount}
+            onChange={setBotCount}
+            testIdPrefix="opponents"
+            ariaLabel="Opponents"
+            disabled={busy}
+          />
 
-      <Link
-        href="/how-to-play"
-        className="text-muted-foreground mt-3 text-center text-sm underline-offset-4 hover:text-white hover:underline"
-        data-testid="how-to-play"
-      >
-        New to Hold&rsquo;em? Read the guide
-      </Link>
+          <Button
+            className="brass-button h-14 w-full rounded-xl text-base font-bold tracking-wide uppercase"
+            disabled={busy}
+            onClick={() => void deal()}
+            data-testid="deal"
+          >
+            {busy ? 'Dealing…' : 'Deal me in'}
+          </Button>
+
+          <Link
+            href="/rooms"
+            data-testid="tab-people"
+            onClick={() => getAudio().play('click')}
+            className="group bg-secondary border-border flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors hover:border-brass/30 hover:bg-white/6 focus-visible:ring-brass/50 focus-visible:ring-2 focus-visible:outline-none"
+          >
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold text-white">With people</span>
+              <span className="text-muted-foreground text-xs">Open or join a real table</span>
+            </span>
+            <ChevronRight
+              className="text-muted-foreground group-hover:text-brass ml-auto size-4 shrink-0 transition-colors"
+              aria-hidden
+            />
+          </Link>
+
+          {error && (
+            <p className="text-destructive text-center text-sm" role="alert" data-testid="error">
+              {error}
+            </p>
+          )}
+
+          <Link
+            href="/how-to-play"
+            className="text-muted-foreground -mt-2 text-center text-sm underline-offset-4 hover:text-white hover:underline"
+            data-testid="how-to-play"
+          >
+            New to Hold&rsquo;em? Read the guide
+          </Link>
+        </CardContent>
+      </Card>
     </LandingShell>
   )
 }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { LandingShell, PlayerNameField, SizePicker } from '@/components/LandingShell'
 import { cn } from '@/lib/utils'
 import { getAudio } from '@/lib/audio'
@@ -25,8 +26,8 @@ const ROOM_SIZES = [2, 3, 4, 5, 6] as const
 /**
  * Rooms waiting for people, and a way to open one.
  *
- * Same room as home: rail, dock, pills. The join list is glass rows on the
- * felt, not a second stack of milled cards.
+ * This is the people half of the landing. Home deals against bots in one tap;
+ * everything about sitting with someone else lives here.
  */
 export function Lobby({ initial }: { initial: RoomSummary[] }) {
   const [rooms, setRooms] = useState(initial)
@@ -86,113 +87,107 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
   const locked = opening || busy !== null
 
   return (
-    <LandingShell
-      width="md"
-      title="Open rooms"
-      subtitle="Sit with people. Open a table, or take a seat at one that is waiting."
-    >
-      <div className="landing-dock">
-        <PlayerNameField />
-        <SizePicker
-          label="Seats"
-          hint={seatCount === 2 ? 'heads up' : `${seatCount} seats`}
-          values={ROOM_SIZES}
-          value={seatCount}
-          onChange={setSeatCount}
-          testIdPrefix="seats"
-          ariaLabel="Seats"
-          disabled={locked}
-        />
-        <div className="flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">Listing</span>
-          <div role="radiogroup" aria-label="Listing" className="action-presets h-10">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={isPublic}
-              disabled={locked}
-              onClick={() => setIsPublic(true)}
-              data-testid="list-publicly"
-              className={cn('action-preset', isPublic && 'is-on')}
-            >
-              Public
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={!isPublic}
-              disabled={locked}
-              onClick={() => setIsPublic(false)}
-              className={cn('action-preset', !isPublic && 'is-on')}
-            >
-              Private
-            </button>
-          </div>
-          <p className="text-muted-foreground/70 text-xs">
-            {isPublic
-              ? 'Anyone can find this room and sit down.'
-              : 'Only people you send the link to can join.'}
-          </p>
-        </div>
-        <Button
-          className="brass-button h-12 w-full rounded-xl text-sm font-bold tracking-wide uppercase"
-          disabled={locked}
-          onClick={() => void openRoom()}
-          data-testid="open-public-room"
-        >
-          {opening ? 'Opening…' : 'Open a room'}
-        </Button>
+    <LandingShell width="md" centered={false}>
+      <div className="flex flex-col gap-1">
+        <h1 className="wordmark text-4xl font-bold tracking-tight">Open rooms</h1>
+        <p className="text-muted-foreground text-sm">
+          Sit with people. Open a table, or take a seat at one that is waiting.
+        </p>
       </div>
 
+      <Card className="panel-milled border-border backdrop-blur">
+        <CardContent className="flex flex-col gap-4 py-1">
+          <PlayerNameField />
+          <SizePicker
+            label="Seats at the table"
+            hint={seatCount === 2 ? 'heads up' : `${seatCount} seats`}
+            values={ROOM_SIZES}
+            value={seatCount}
+            onChange={setSeatCount}
+            testIdPrefix="seats"
+            ariaLabel="Seats"
+            disabled={locked}
+          />
+          <label className="panel-well ring-border flex cursor-pointer items-start gap-3 rounded-lg p-3 ring-1 ring-inset hover:bg-white/8">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              data-testid="list-publicly"
+              className="accent-brass mt-0.5 size-4"
+            />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm text-white/85">List it publicly</span>
+              <span className="text-muted-foreground/70 text-xs">
+                {isPublic
+                  ? 'Anyone can find this room and sit down.'
+                  : 'Private — only people you send the link to can join.'}
+              </span>
+            </span>
+          </label>
+          <Button
+            className="brass-button h-12 w-full rounded-xl text-sm font-bold tracking-wide uppercase"
+            disabled={locked}
+            onClick={() => void openRoom()}
+            data-testid="open-public-room"
+          >
+            {opening ? 'Opening…' : 'Open a room'}
+          </Button>
+        </CardContent>
+      </Card>
+
       {error && (
-        <p className="text-destructive mt-4 text-sm" role="alert">
+        <p className="text-destructive text-sm" role="alert">
           {error}
         </p>
       )}
 
       {rooms.length === 0 ? (
-        <p className="text-muted-foreground mt-6 text-center text-sm" data-testid="no-rooms">
+        <p className="text-muted-foreground text-center text-sm" data-testid="no-rooms">
           Nobody is waiting right now. Open one above and it will show up here.
         </p>
       ) : (
-        <ul className="mt-6 flex w-full flex-col gap-2" data-testid="room-list">
+        <ul className="flex flex-col gap-2" data-testid="room-list">
           {rooms.map((room) => {
             const open = room.seatCount - room.taken
             return (
-              <li
-                key={room.tableId}
-                className="flex items-center gap-3 rounded-xl bg-black/30 px-3 py-2.5 ring-1 ring-white/10"
-                data-testid="room"
-                data-table-id={room.tableId}
-              >
-                <div className="flex gap-1" aria-hidden>
-                  {Array.from({ length: room.seatCount }, (_, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'size-2 rounded-full',
-                        i < room.taken ? 'bg-brass' : 'bg-white/15',
-                      )}
-                    />
-                  ))}
-                </div>
-                <div className="flex flex-1 flex-col">
-                  <span className="text-sm font-medium text-white">
-                    {room.taken} of {room.seatCount} seated
-                  </span>
-                  <span className="text-muted-foreground/70 text-xs">
-                    {open} seat{open === 1 ? '' : 's'} open
-                    {room.botCount > 0 &&
-                      ` · ${room.botCount} bot${room.botCount === 1 ? '' : 's'}`}
-                  </span>
-                </div>
-                <Button
-                  className="h-8 rounded-full bg-white/10 px-4 text-xs font-semibold text-white hover:bg-white/16"
-                  disabled={locked}
-                  onClick={() => void join(room.tableId)}
+              <li key={room.tableId}>
+                <Card
+                  className="panel-milled border-border backdrop-blur transition-colors hover:border-brass/28"
+                  data-testid="room"
+                  data-table-id={room.tableId}
                 >
-                  {busy === room.tableId ? 'Joining…' : 'Join'}
-                </Button>
+                  <CardContent className="flex items-center gap-4 py-1">
+                    <div className="flex gap-1" aria-hidden>
+                      {Array.from({ length: room.seatCount }, (_, i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            'size-2.5 rounded-full',
+                            i < room.taken ? 'bg-brass' : 'bg-white/15',
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex flex-1 flex-col">
+                      <span className="text-sm font-medium text-white">
+                        {room.taken} of {room.seatCount} seated
+                      </span>
+                      <span className="text-muted-foreground/70 text-xs">
+                        {open} seat{open === 1 ? '' : 's'} open
+                        {room.botCount > 0 &&
+                          ` · ${room.botCount} bot${room.botCount === 1 ? '' : 's'}`}
+                      </span>
+                    </div>
+                    <Button
+                      className="ring-border h-10 bg-white/10 px-5 text-sm font-semibold text-white ring-1 ring-inset hover:bg-white/20"
+                      disabled={locked}
+                      onClick={() => void join(room.tableId)}
+                    >
+                      {busy === room.tableId ? 'Joining…' : 'Join'}
+                    </Button>
+                  </CardContent>
+                </Card>
               </li>
             )
           })}
@@ -201,7 +196,7 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
 
       <Link
         href="/"
-        className="text-muted-foreground mt-6 text-center text-sm underline-offset-4 hover:text-white hover:underline"
+        className="text-muted-foreground text-center text-sm underline-offset-4 hover:text-white hover:underline"
       >
         Back to play
       </Link>

@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Logo } from '@/components/Logo'
 import { PlayingCard } from '@/components/PlayingCard'
@@ -10,7 +9,7 @@ import { MAX_NAME_LENGTH } from '@/lib/names'
 import { parseCards } from '@/lib/poker/cards'
 import { cn } from '@/lib/utils'
 
-/** Dealt face up on the felt, as a sign of what game this is. */
+/** Dealt face up behind the panel, as a sign of what game this is. */
 const FAN = parseCards('AsKsQsJsTs')
 /**
  * The tilt rides a wrapper, not the card.
@@ -30,24 +29,20 @@ const FAN_TILT = [
 /**
  * The room every landing screen sits in.
  *
- * Identity lives on the rail. The cards sit on the cloth. The controls are a
- * dock — the same object as the betting bar — rather than a milled modal
- * pasted onto the felt.
+ * Home, rooms and the waiting room used to each invent this chrome — felt,
+ * sound, lobby music — and then disagree about padding. One shell keeps them
+ * in the same house; the pages only fill in what they are for.
  */
 export function LandingShell({
   children,
   fan = false,
-  title,
-  subtitle,
-  brandHeading = false,
   width = 'sm',
+  centered = true,
 }: {
   children: ReactNode
   fan?: boolean
-  title?: string
-  subtitle?: string
-  brandHeading?: boolean
   width?: 'sm' | 'md'
+  centered?: boolean
 }) {
   useEffect(() => {
     const audio = getAudio()
@@ -55,58 +50,47 @@ export function LandingShell({
     return () => audio.stopMusic()
   }, [])
 
-  const brand = (
-    <>
-      <Logo className="h-8 w-auto" />
-      {brandHeading ? (
-        <h1 className="wordmark text-xl font-bold tracking-tight">Showdown</h1>
-      ) : (
-        <span className="wordmark text-xl font-bold tracking-tight">Showdown</span>
-      )}
-    </>
-  )
-
   return (
-    <main className="table-room relative flex flex-1 flex-col">
-      <header className="flex items-center justify-between px-4 py-3 sm:px-6">
-        {brandHeading ? (
-          <div className="flex items-center gap-2.5">{brand}</div>
-        ) : (
-          <Link href="/" className="flex items-center gap-2.5">
-            {brand}
-          </Link>
-        )}
+    <main
+      className={cn(
+        'table-room relative flex flex-1 p-6',
+        centered ? 'items-center justify-center' : 'justify-center',
+      )}
+    >
+      <div className="absolute top-4 right-4 sm:top-5 sm:right-5">
         <SoundToggle />
-      </header>
-
-      <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8">
-        <div
-          className={cn(
-            'flex w-full flex-col items-center',
-            width === 'sm' ? 'max-w-sm' : 'max-w-md',
-          )}
-        >
-          {fan && (
-            <div className="mb-4 flex justify-center" aria-hidden>
-              {FAN.map((card, i) => (
-                <span key={i} className={cn('-ml-5 first:ml-0', FAN_TILT[i])}>
-                  <PlayingCard card={card} size="lg" dealDelay={i * 80} className="drop-shadow-xl" />
-                </span>
-              ))}
-            </div>
-          )}
-
-          {(title || subtitle) && (
-            <div className="mb-5 flex flex-col items-center gap-1 text-center">
-              {title && <h1 className="wordmark text-3xl font-bold tracking-tight">{title}</h1>}
-              {subtitle && <p className="text-muted-foreground text-sm">{subtitle}</p>}
-            </div>
-          )}
-
-          {children}
-        </div>
+      </div>
+      <div
+        className={cn(
+          'flex w-full flex-col',
+          width === 'sm' ? 'max-w-sm' : 'max-w-md',
+          !centered && 'gap-5 pt-10',
+          centered && 'items-center',
+        )}
+      >
+        {fan && (
+          <div className="-mb-5 flex justify-center" aria-hidden>
+            {FAN.map((card, i) => (
+              <span key={i} className={cn('-ml-5 first:ml-0', FAN_TILT[i])}>
+                <PlayingCard card={card} size="lg" dealDelay={i * 80} className="drop-shadow-xl" />
+              </span>
+            ))}
+          </div>
+        )}
+        {children}
       </div>
     </main>
+  )
+}
+
+/** Crest, wordmark, game — the door of the house. */
+export function HouseMark() {
+  return (
+    <div className="flex flex-col items-center gap-1 text-center">
+      <Logo className="mb-2 h-20 w-auto" />
+      <h1 className="wordmark text-4xl font-bold tracking-tight">Showdown</h1>
+      <p className="text-muted-foreground text-sm">No-limit Hold&rsquo;em</p>
+    </div>
   )
 }
 
@@ -128,8 +112,8 @@ export function PlayerNameField() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor="player-name" className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+    <div className="flex flex-col gap-2">
+      <label htmlFor="player-name" className="text-muted-foreground text-sm font-medium">
         Your name
       </label>
       <input
@@ -142,7 +126,7 @@ export function PlayerNameField() {
         }}
         placeholder="Leave blank and we will name you"
         data-testid="player-name"
-        className="placeholder:text-muted-foreground/50 focus:ring-brass/50 h-10 w-full rounded-full bg-white/6 px-4 text-sm text-white outline-none focus:bg-white/8 focus:ring-1"
+        className="panel-well ring-border placeholder:text-muted-foreground/50 focus:ring-brass h-11 w-full rounded-lg px-3 text-sm text-white ring-1 ring-inset transition-colors outline-none"
       />
     </div>
   )
@@ -169,12 +153,12 @@ export function SizePicker({
   disabled?: boolean
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
-        <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">{label}</span>
+        <span className="text-muted-foreground text-sm font-medium">{label}</span>
         <span className="text-muted-foreground/70 text-xs">{hint}</span>
       </div>
-      <div role="radiogroup" aria-label={ariaLabel} className="action-presets h-10">
+      <div role="radiogroup" aria-label={ariaLabel} className="grid grid-cols-5 gap-1.5">
         {values.map((n) => {
           const selected = value === n
           return (
@@ -187,7 +171,13 @@ export function SizePicker({
               disabled={disabled}
               onClick={() => onChange(n)}
               data-testid={`${testIdPrefix}-${n}`}
-              className={cn('action-preset action-preset-num', selected && 'is-on')}
+              className={cn(
+                'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
+                'ring-1 ring-inset disabled:opacity-50',
+                selected
+                  ? 'brass-button ring-brass'
+                  : 'panel-well text-muted-foreground ring-border hover:bg-white/8',
+              )}
             >
               {n}
             </button>
