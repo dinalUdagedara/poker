@@ -1,10 +1,12 @@
 import type Redis from 'ioredis'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  ARCHIVE_LIMIT,
   redisStorage,
   storage,
   TABLE_TTL_MS,
   WAITING_TTL_MS,
+  type ArchivedHand,
   type StoredTable,
 } from '../table-storage'
 
@@ -21,9 +23,27 @@ const fakeRedis = () => {
     get: vi.fn(async (): Promise<string | null> => null),
     expire: vi.fn(async () => 1),
     publish: vi.fn(async () => 1),
+    hset: vi.fn(),
+    hdel: vi.fn(),
+    pexpire: vi.fn(),
+    hgetall: vi.fn(async (): Promise<Record<string, string>> => ({})),
   }
-  return { calls, redis: calls as unknown as Redis }
+
+  // The archive writes as one pipeline, so the commands in it are recorded off
+  // a chainable stand-in rather than off the client itself.
+  const chain = {
+    hset: (...args: unknown[]) => (calls.hset(...args), chain),
+    hdel: (...args: unknown[]) => (calls.hdel(...args), chain),
+    pexpire: (...args: unknown[]) => (calls.pexpire(...args), chain),
+    exec: async () => [],
+  }
+
+  return { calls, redis: { ...calls, multi: () => chain } as unknown as Redis }
 }
+
+/** A finished hand. Only its number matters to the storage layer. */
+const hand = (handNumber: number) =>
+  ({ endedAt: 1, names: {}, state: { handNumber } }) as unknown as ArchivedHand
 
 const table = { state: { tableId: 'abc' }, settings: {} } as unknown as StoredTable
 
@@ -180,5 +200,52 @@ describe('watching a table for changes', () => {
 
     expect(first).toHaveBeenCalled()
     expect(second).toHaveBeenCalled()
+  })
+})
+
+describe('keeping the hands a table has played', () => {
+  beforeEach(() => {
+    vi.stubEnv('VERCEL_ENV', 'preview')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('writes a hand as a field named for the hand, on the table clock', async () => {
+    const { calls, redis } = fakeRedis()
+
+    await redisStorage(redis).archive('abc', hand(7))
+
+    expect(calls.hset).toHaveBeenCalledWith('hands:preview:abc', '7', JSON.stringify(hand(7)))
+    // The oldest goes as the newest arrives, without anything having to scan.
+    expect(calls.hdel).toHaveBeenCalledWith('hands:preview:abc', String(7 - ARCHIVE_LIMIT))
+    // PEXPIRE counts milliseconds. EXPIRE counts seconds, and handing it these
+    // would keep every hand ever played for the best part of three months.
+    expect(calls.pexpire).toHaveBeenCalledWith('hands:preview:abc', TABLE_TTL_MS)
+  })
+
+  it('files a hand under its own number, so filing it twice files it once', async () => {
+    // The property the whole archive rests on: the write that files a hand
+    // follows a table write that may have been retried.
+    await storage.archive('same-hand-twice', hand(1))
+    await storage.archive('same-hand-twice', hand(1))
+
+    expect(await storage.archived('same-hand-twice')).toHaveLength(1)
+  })
+
+  it('forgets the oldest once the limit is reached', async () => {
+    for (let number = 1; number <= ARCHIVE_LIMIT + 1; number++) {
+      await storage.archive('a-very-long-game', hand(number))
+    }
+
+    const kept = await storage.archived('a-very-long-game')
+
+    expect(kept).toHaveLength(ARCHIVE_LIMIT)
+    expect(kept[0].state.handNumber).toBe(2)
+  })
+
+  it('has nothing to hand back for a table nobody has played at', async () => {
+    expect(await storage.archived('never-dealt')).toEqual([])
   })
 })

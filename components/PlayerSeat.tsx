@@ -65,33 +65,17 @@ export function PlayerSeat({
 }: {
   player: RedactedPlayer
   viewerId: string | null
-  /** Display names by seat id. Absent for a bot, which is named from its id. */
   names: Record<string, string>
   isActing: boolean
   isButton: boolean
   isWinner: boolean
-  /** The hand has settled, so nothing is still staked in front of anyone. */
   handOver?: boolean
-  /**
-   * Draw the seat small. A full table has only a few percent of felt between
-   * neighbours at the left and right of the arc, and seats drawn at the roomier
-   * size run into each other there.
-   */
   compact?: boolean
   bigBlind: number
-  /** What this player last did on this street, or null for nothing to say. */
   callout?: string | null
-  /** Which way the callout hangs. The caller knows where the seat sits. */
-  calloutSide?: 'right' | 'below'
-  /**
-   * Which end of the seat a hanging callout is anchored to. A bubble is wider
-   * than the seat it belongs to, so a seat at the edge of the arc anchors its
-   * own inboard end and lets the bubble run inward across the felt.
-   */
+  calloutSide?: 'right' | 'below' | 'above'
   calloutAlign?: 'start' | 'center' | 'end'
-  /** Which side the chips sit on — inward, so they stay on the felt. */
   chipSide?: 'left' | 'right'
-  /** The viewer's own seat, drawn larger and with bigger cards. */
   hero?: boolean
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
@@ -99,29 +83,6 @@ export function PlayerSeat({
 
   return (
     <div className="relative flex flex-col items-center gap-1 sm:gap-1.5" data-testid={`seat-${player.id}`}>
-      {isActing && (
-        /*
-         * Lit felt under the seat whose turn it is. First in the DOM so
-         * everything else paints over it, and inert so it cannot swallow a
-         * click meant for the cards or the plate above it.
-         */
-        <span
-          className="animate-spotlight pointer-events-none absolute -inset-x-7 -inset-y-4 rounded-[50%] border border-dashed border-brass/35 bg-[radial-gradient(closest-side,oklch(0.86_0.15_85/0.3),transparent)]"
-          data-testid={`turn-${player.id}`}
-        />
-      )}
-
-      {/*
-        Folding dims the hand, not each card in it. Per-card opacity made the
-        overlap show one card through the other and darken twice where they
-        crossed; a group is composited first and faded once.
-      */}
-      {/*
-        The cards tuck behind the nameplate rather than floating above it, so a
-        seat reads as one object instead of three stacked pieces. Only the
-        bottom edge goes under: these cards carry rank and suit in the middle,
-        so burying more would cover the very thing a revealed card is for.
-      */}
       <div className={cn('-mb-5 flex sm:-mb-3.5', isOut && 'opacity-40 saturate-50')}>
         {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
           <PlayingCard
@@ -131,14 +92,8 @@ export function PlayerSeat({
             dealDelay={i * 90}
             className={cn(
               TILT[i % TILT.length],
-              // Only enough overlap to look squared up. These cards carry their
-              // rank in the middle rather than the corner, so a deep fan would
-              // bury the very thing the card is for.
               i > 0 && (hero ? '-ml-2' : '-ml-1'),
-              // Your own cards are a size down on a phone. They are the largest
-              // thing on the screen and the felt above them needs the room more
-              // — you can already read your own hand at any size.
-              hero && 'h-18 w-13 text-lg sm:h-24 sm:w-17 sm:text-2xl',
+              hero && 'h-18 w-13 text-sm sm:h-24 sm:w-17 sm:text-base',
               'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
             )}
           />
@@ -148,23 +103,15 @@ export function PlayerSeat({
       <Card
         className={cn(
           'relative gap-0 rounded-xl border px-2 py-1 transition-all duration-200 sm:px-3 sm:py-1.5',
-          // Card clips by default, which quietly shaved the dealer button down
-          // to a sliver. The button and the chips both sit proud of the plate.
-          // Milled rather than a flat translucent fill: over lit felt a flat
-          // panel reads as a smudge instead of as an object on the table.
           'panel-milled overflow-visible backdrop-blur-sm',
-          isActing && 'border-brass/80 shadow-[0_0_0_3px_oklch(0.8_0.135_82/0.22)]',
+          isActing && 'animate-turn-ring border-brass/80',
           isWinner && 'animate-winner border-win',
           !isActing && !isWinner && 'border-border',
           isOut && 'opacity-50',
         )}
+        data-testid={isActing ? `turn-${player.id}` : undefined}
       >
         {isButton && (
-          /*
-           * Position matters every hand — it decides who acts last — so the
-           * button is drawn as an actual dealer button rather than a marker:
-           * full size, ringed, and sitting proud of the plate.
-           */
           <span
             className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-linear-to-b from-white to-[oklch(0.88_0.01_80)] font-(family-name:--font-display) text-[11px] font-bold text-[oklch(0.2_0.02_30)] ring-2 ring-[oklch(0.145_0.035_32)]/80 shadow-md"
             title="dealer button"
@@ -174,33 +121,22 @@ export function PlayerSeat({
           </span>
         )}
 
-        {/* Chips take whichever side the callout does not. */}
         <ChipStack
           stack={player.stack}
           testId={`chips-${player.id}`}
           className={cn(
             'absolute top-1/2 -translate-y-1/2',
+            !hero && 'max-sm:hidden',
             chipSide === 'left' ? 'right-full mr-1.5' : 'left-full ml-1.5',
             isOut && 'opacity-60',
           )}
         />
 
-        {/*
-          The stack leads and the name is the caption under it. Whose seat this
-          is gets read once; what they have left is read on every decision, and
-          it was the smaller of the two.
-
-          The avatar sits inside the plate rather than above it: the hole cards
-          already tuck under the plate's top edge, so a face up there would land
-          underneath them.
-        */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <PlayerAvatar
             seed={player.id}
             className={cn(
               hero ? 'size-8 sm:size-9' : compact ? 'size-5 sm:size-6' : 'size-6 sm:size-7',
-              // Folding takes the colour out of the face too, rather than
-              // leaving the one bright thing at a seat that is out of the hand.
               isOut && 'grayscale',
             )}
           />
@@ -228,10 +164,6 @@ export function PlayerSeat({
         </div>
       </Card>
 
-      {/* Height reserved whether or not anything is wagered: seats are centred
-          on their own box, so a growing pile would nudge the seat as chips land.
-          Sized for a face-on clay disc, not a pill — the reservation is still
-          dead space at empty seats, so it stays as short as those discs allow. */}
       <div className="flex h-8 items-center gap-1 sm:h-10">
         {player.status === 'folded' && (
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
@@ -243,20 +175,7 @@ export function PlayerSeat({
             all in
           </Badge>
         )}
-        {/*
-          Nothing is on the felt once the hand settles: the chips have gone to
-          the pot or come back as an uncalled bet, and the stack already says
-          so. The engine leaves currentBet where it was, so this asks the
-          question that actually matters rather than trusting that field.
-        */}
         {player.currentBet > 0 && player.status !== 'folded' && !handOver && (
-          /*
-           * The wager as actual chips out on the felt, not just a number.
-           *
-           * Keyed on the amount so raising the same street over again replays
-           * the push rather than silently swapping the figure, and offset so
-           * the chips arrive from the player's own side of the table.
-           */
           <span
             key={player.currentBet}
             className="animate-wager flex items-end gap-1"
@@ -272,22 +191,19 @@ export function PlayerSeat({
       </div>
 
       {callout && (
-        /*
-         * Absolutely positioned so a bot acting never nudges the seats around,
-         * and keyed on the text so a second action on the same street replays
-         * the animation instead of silently swapping the words.
-         */
         <div
           key={callout}
           className={cn(
-            'animate-callout pointer-events-none absolute z-20 whitespace-nowrap',
+            'animate-callout pointer-events-none absolute z-10 whitespace-nowrap',
             calloutSide === 'right'
               ? 'top-1/2 left-full ml-2.5 -translate-y-1/2'
-              : calloutAlign === 'start'
-                ? 'top-full left-0 mt-1.5'
-                : calloutAlign === 'end'
-                  ? 'top-full right-0 mt-1.5'
-                  : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
+              : calloutSide === 'above'
+                ? 'bottom-full left-1/2 mb-1.5 -translate-x-1/2'
+                : calloutAlign === 'start'
+                  ? 'top-full left-0 mt-1.5'
+                  : calloutAlign === 'end'
+                    ? 'top-full right-0 mt-1.5'
+                    : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
           )}
           data-testid={`callout-${player.id}`}
         >
@@ -298,16 +214,16 @@ export function PlayerSeat({
                 'absolute size-2 rotate-45 bg-[oklch(0.25_0.036_24)]',
                 calloutSide === 'right'
                   ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-border'
-                  : cn(
-                      '-top-1 border-t border-l border-border',
-                      // The tail stays over the seat even when the bubble has
-                      // been pushed inboard, so it still points at its owner.
-                      calloutAlign === 'start'
-                        ? 'left-5'
-                        : calloutAlign === 'end'
-                          ? 'right-5'
-                          : 'left-1/2 -translate-x-1/2',
-                    ),
+                  : calloutSide === 'above'
+                    ? 'right-auto -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-border'
+                    : cn(
+                        '-top-1 border-t border-l border-border',
+                        calloutAlign === 'start'
+                          ? 'left-5'
+                          : calloutAlign === 'end'
+                            ? 'right-5'
+                            : 'left-1/2 -translate-x-1/2',
+                      ),
               )}
             />
           </span>

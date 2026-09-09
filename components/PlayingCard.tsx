@@ -1,14 +1,20 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { Card, Suit } from '@/lib/poker/cards'
 
 const SUIT_SYMBOLS: Record<Suit, string> = { h: '♥', d: '♦', c: '♣', s: '♠' }
+const SUIT_NAMES = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' } as const
 
 const SIZES = {
-  xs: 'h-11 w-8 text-[11px] rounded-[4px]',
-  sm: 'h-14 w-10 text-sm rounded-md',
-  md: 'h-18 w-13 text-lg rounded-lg',
-  lg: 'h-24 w-17 text-2xl rounded-xl',
+  xs: 'h-11 w-8 text-[9px] rounded-[4px]',
+  sm: 'h-14 w-10 text-[11px] rounded-md',
+  md: 'h-18 w-13 text-xs rounded-lg',
+  lg: 'h-24 w-17 text-sm rounded-xl',
 } as const
+
+const printed = 'font-(family-name:--font-display) leading-none'
 
 /**
  * A single card, face up or face down.
@@ -29,37 +35,74 @@ export function PlayingCard({
   dealDelay?: number
   className?: string
 }) {
-  // Cards are opaque on purpose. Fading one is the caller's job and belongs on
-  // the hand as a whole, since overlapping translucent cards show through each
-  // other and double up wherever they cross.
-  const base = cn(
+  const startedFacedown = useRef(!card)
+  const [revealed, setRevealed] = useState(Boolean(card))
+
+  useEffect(() => {
+    if (card) setRevealed(true)
+  }, [card])
+
+  const style = dealDelay !== undefined ? { animationDelay: `${dealDelay}ms` } : undefined
+  const shell = cn(
     SIZES[size],
-    'relative flex shrink-0 flex-col items-center justify-center border font-semibold select-none',
-    'shadow-[0_2px_8px_-2px_oklch(0_0_0/0.7)]',
+    'card-stock relative shrink-0 border select-none',
     dealDelay !== undefined && 'animate-deal',
     className,
   )
+
+  const back = <div className={cn(shell, 'card-back')} style={style} aria-label="face-down card" />
+
+  if (!card && !revealed) return back
+
+  const face = card ? <CardFace card={card} size={size} className={shell} style={style} /> : back
+
+  if (!startedFacedown.current || !card) return face
+
   /*
-   * The rank and the pip are set in the house didone.
-   *
-   * That printed look is most of what makes a rectangle read as a card rather
-   * than as a rounded div with a letter in it — and on this table the card is
-   * the only light surface there is, so it has to carry the illusion alone.
+   * Showdown: the same seat used to hold a back, and now it holds a face. A
+   * flip is the only way that change reads as a turn rather than as a swap.
    */
-  const printed = 'font-(family-name:--font-display) leading-none'
-  const style = dealDelay !== undefined ? { animationDelay: `${dealDelay}ms` } : undefined
+  return (
+    <div
+      className={cn('card-flip', revealed && 'is-face', SIZES[size], className)}
+      style={style}
+    >
+      <div className="card-flip-inner">
+        <div className="card-stock card-back card-flip-back border" aria-hidden />
+        <div className="card-flip-face">
+          <CardFace card={card} size={size} className="card-stock size-full border" />
+        </div>
+      </div>
+    </div>
+  )
+}
 
-  if (!card) {
-    return <div className={cn(base, 'card-back')} style={style} aria-label="face-down card" />
-  }
-
+function CardFace({
+  card,
+  size,
+  className,
+  style,
+}: {
+  card: Card
+  size: keyof typeof SIZES
+  className?: string
+  style?: { animationDelay: string }
+}) {
   const isRed = card.suit === 'h' || card.suit === 'd'
   const rank = card.rank === 'T' ? '10' : card.rank
+  const suit = SUIT_SYMBOLS[card.suit]
+  const ink = cn(printed, isRed && 'text-suit-red')
+  const corner = (
+    <span className={cn(ink, 'flex flex-col items-center')}>
+      <span className="tracking-tight">{rank}</span>
+      <span className={cn('text-[0.9em]', size === 'xs' && 'text-[0.8em]')}>{suit}</span>
+    </span>
+  )
 
   return (
     <div
       className={cn(
-        base,
+        className,
         // Warm paper rather than a cool white. Against an oxblood room a grey
         // card reads as a hole in the felt; a cream one reads as card stock.
         'border-black/20 bg-linear-to-b from-[oklch(0.995_0.003_90)] to-[oklch(0.93_0.008_80)]',
@@ -67,12 +110,15 @@ export function PlayingCard({
       )}
       style={style}
       data-testid="card-face"
-      aria-label={`${rank} of ${{ h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' }[card.suit]}`}
+      aria-label={`${rank} of ${SUIT_NAMES[card.suit]}`}
     >
-      <span className={cn(printed, 'tracking-tight', isRed && 'text-suit-red')}>{rank}</span>
-      <span className={cn(printed, 'text-[0.9em]', isRed && 'text-suit-red')}>
-        {SUIT_SYMBOLS[card.suit]}
-      </span>
+      <span className="absolute top-0.5 left-0.5 sm:top-1 sm:left-1">{corner}</span>
+      {size !== 'xs' && (
+        <span className={cn(ink, 'absolute inset-0 grid place-items-center text-[1.35em] opacity-90')}>
+          {suit}
+        </span>
+      )}
+      <span className="absolute right-0.5 bottom-0.5 rotate-180 sm:right-1 sm:bottom-1">{corner}</span>
     </div>
   )
 }
