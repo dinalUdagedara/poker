@@ -72,11 +72,8 @@
                 ></span>
               </div>
               <div class="seat-plate">
-                <span class="seat-avatar avatar-a"></span>
-                <span class="col" style="gap: 0">
-                  <span class="seat-stack stack-healthy">2,480</span>
-                  <span class="seat-name">Lucky Otter</span>
-                </span>
+                <span class="seat-name">Lucky Otter</span>
+                <span class="seat-stack stack-healthy">2,480</span>
               </div>
             </div>
             <p class="caption">Resting</p>
@@ -95,11 +92,8 @@
               </div>
               <div class="seat-plate seat-acting" style="position: relative">
                 <span class="dealer-button">D</span>
-                <span class="seat-avatar avatar-b"></span>
-                <span class="col" style="gap: 0">
-                  <span class="seat-stack stack-medium">640</span>
-                  <span class="seat-name">Bot 2</span>
-                </span>
+                <span class="seat-name">Bot 2</span>
+                <span class="seat-stack stack-medium">640</span>
               </div>
               <span class="callout" style="margin-top: 8px">raises to 300</span>
             </div>
@@ -120,11 +114,8 @@
                 >
               </div>
               <div class="seat-plate seat-winner">
-                <span class="seat-avatar avatar-c"></span>
-                <span class="col" style="gap: 0">
-                  <span class="seat-stack" style="color: var(--state-win)">3,720</span>
-                  <span class="seat-name">You</span>
-                </span>
+                <span class="seat-name">You</span>
+                <span class="seat-stack" style="color: var(--state-win)">3,720</span>
               </div>
             </div>
             <p class="caption">Won the pot</p>
@@ -132,20 +123,14 @@
 
           <!-- Folded -->
           <div>
-            <div class="seat">
-              <div class="seat-cards hand-folded">
-                <span class="card-face card-sm card-back" style="transform: rotate(-6deg)"></span>
-                <span
-                  class="card-face card-sm card-back"
-                  style="transform: rotate(6deg); margin-left: -4px"
-                ></span>
+            <!-- Folded: the cards are gone, so the face takes their slot. -->
+            <div class="seat seat-out">
+              <div class="seat-cards">
+                <span class="seat-avatar avatar-a"></span>
               </div>
               <div class="seat-plate" style="opacity: 0.5">
-                <span class="seat-avatar avatar-a" style="filter: grayscale(1)"></span>
-                <span class="col" style="gap: 0">
-                  <span class="seat-stack stack-short">180</span>
-                  <span class="seat-name">Bot 3</span>
-                </span>
+                <span class="seat-name">Bot 3</span>
+                <span class="seat-stack stack-short">180</span>
               </div>
               <span class="tag" style="margin-top: 8px">folded</span>
             </div>

@@ -10,14 +10,16 @@
 
 :root {
   /* ---------------------------------------------------------------------
-     Ground — the room. A dark red house, lit from over the table.
+     Ground — the room. A near-black house around a green table, lit from
+     over the felt. The ground carries the faintest green so the surround
+     belongs to the cloth rather than sitting behind it as a neutral.
      --------------------------------------------------------------------- */
-  --color-bg: oklch(0.155 0.042 22);
-  --color-surface: oklch(0.205 0.045 22);
-  --color-surface-2: oklch(0.255 0.048 22);
-  --color-text: oklch(0.97 0.012 70);
-  --color-muted: oklch(0.74 0.028 45);
-  --color-divider: oklch(0.95 0.03 70 / 0.12);
+  --color-bg: oklch(0.155 0.012 152);
+  --color-surface: oklch(0.27 0.008 250);
+  --color-surface-2: oklch(0.32 0.008 250);
+  --color-text: oklch(0.98 0.003 250);
+  --color-muted: oklch(0.73 0.012 250);
+  --color-divider: oklch(0.92 0.02 240 / 0.14);
 
   /* The brass accent, and the signal red that is not the room. */
   --color-accent: oklch(0.8 0.135 82);
@@ -28,15 +30,18 @@
      300 does on another. Light steps tint, 500 is the base, dark steps
      carry text on tinted fills and pressed states.
      --------------------------------------------------------------------- */
-  --color-neutral-100: oklch(0.97 0.012 40);
-  --color-neutral-200: oklch(0.88 0.016 36);
-  --color-neutral-300: oklch(0.77 0.02 34);
-  --color-neutral-400: oklch(0.64 0.024 32);
-  --color-neutral-500: oklch(0.52 0.028 30);
-  --color-neutral-600: oklch(0.42 0.03 28);
-  --color-neutral-700: oklch(0.33 0.032 26);
-  --color-neutral-800: oklch(0.25 0.036 24);
-  --color-neutral-900: oklch(0.18 0.04 22);
+  /* Cool and barely tinted. A warm neutral is the near-opposite hue to the
+     felt, so every panel built from this ramp used to read as a patch stuck
+     onto the green rather than an object resting on it. */
+  --color-neutral-100: oklch(0.97 0.004 250);
+  --color-neutral-200: oklch(0.88 0.006 250);
+  --color-neutral-300: oklch(0.77 0.008 250);
+  --color-neutral-400: oklch(0.64 0.01 250);
+  --color-neutral-500: oklch(0.52 0.012 250);
+  --color-neutral-600: oklch(0.42 0.012 250);
+  --color-neutral-700: oklch(0.33 0.01 250);
+  --color-neutral-800: oklch(0.25 0.009 250);
+  --color-neutral-900: oklch(0.18 0.008 250);
 
   --color-accent-100: oklch(0.96 0.045 90);
   --color-accent-200: oklch(0.91 0.085 88);
@@ -61,31 +66,50 @@
   /* ---------------------------------------------------------------------
      The table. The one thing in this system that is a place, not a control.
      --------------------------------------------------------------------- */
-  --felt-lit: oklch(0.44 0.145 24);
-  --felt: oklch(0.375 0.13 22);
-  --felt-deep: oklch(0.3 0.105 20);
-  --rail-lit: oklch(0.36 0.07 45);
-  --rail: oklch(0.245 0.055 38);
-  --rail-deep: oklch(0.145 0.035 32);
+  --felt-lit: oklch(0.585 0.12 149);
+  --felt: oklch(0.5 0.11 150);
+  --felt-deep: oklch(0.355 0.085 152);
+  --rail-lit: oklch(0.3 0.008 150);
+  --rail: oklch(0.2 0.006 150);
+  --rail-deep: oklch(0.125 0.004 150);
   --brass: var(--color-accent-500);
   --brass-lit: var(--color-accent-200);
   --brass-deep: var(--color-accent-800);
+
+  /* A nameplate: half a step lighter than a panel, because it sits on the
+     brightest surface in the room. */
+  --plate: var(--color-surface-2);
+
+  /* The red suits, which are no longer the signal red. Measured off a ClubGG
+     card: deeper and slightly warmer, and it has the room to be, now that the
+     cloth it lies on is green rather than red. */
+  --suit-red: oklch(0.5 0.2 27);
 
   /* ---------------------------------------------------------------------
      Play semantics. Three decisions that must never be confused for one
      another, so they differ in material as well as hue: folding is unlit
      stone, staying is felt, and committing chips is the only metal.
      --------------------------------------------------------------------- */
-  --play-fold: oklch(0.34 0.014 40);
-  --play-fold-lit: oklch(0.41 0.016 40);
-  --play-pass: oklch(0.52 0.12 158);
-  --play-pass-lit: oklch(0.6 0.135 158);
+  --play-fold: oklch(0.34 0.012 250);
+  --play-fold-lit: oklch(0.41 0.014 250);
+  /* Staying in is still felt, but not this felt — held at the cloth's own hue
+     it is the one button invisible against the table behind it. */
+  --play-pass: oklch(0.55 0.13 163);
+  --play-pass-lit: oklch(0.62 0.14 163);
   --play-commit: var(--brass);
   --play-commit-lit: var(--color-accent-300);
 
-  /* Money states, read off a stack at a glance. */
-  --state-win: oklch(0.78 0.16 155);
-  --state-healthy: oklch(0.76 0.15 156);
+  /*
+   * Money states, read off a stack at a glance — and no longer green.
+   *
+   * Green meant money here and nothing else, which worked while the room was
+   * red. On a green table a healthy stack in felt green, printed on felt
+   * green, says nothing. Cyan is the only hue left that is not the cloth, not
+   * the brass and not the red suits. The warning steps keep amber and red:
+   * neither was ever the felt.
+   */
+  --state-win: oklch(0.84 0.115 202);
+  --state-healthy: oklch(0.81 0.095 205);
   --state-medium: oklch(0.83 0.13 84);
   --state-short: oklch(0.7 0.185 22);
 
@@ -233,13 +257,14 @@ p {
   background:
     radial-gradient(
       78% 62% at 50% 32%,
-      oklch(0.29 0.095 22) 0%,
-      oklch(0.225 0.075 21) 45%,
+      oklch(0.235 0.022 152) 0%,
+      oklch(0.185 0.017 152) 45%,
       var(--color-bg) 100%
     );
 }
 
-/* The rail: polished mahogany, with a brass hairline where the light lands. */
+/* The rail: near-black, with a brass hairline where the light lands. It is the
+   darkest thing on the screen, which is what makes the felt read as lit. */
 .rail {
   padding: var(--space-3);
   border-radius: 46% / 54%;
@@ -263,13 +288,13 @@ p {
   position: relative;
   height: 100%;
   border-radius: 46% / 54%;
-  border: 1px solid oklch(0.9 0.09 88 / 0.14);
+  border: 1px solid oklch(0.95 0.02 150 / 0.12);
   background-image:
     repeating-linear-gradient(45deg, oklch(1 0 0 / 0.014) 0 2px, transparent 2px 4px),
     repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.022) 0 2px, transparent 2px 4px),
     radial-gradient(86% 72% at 50% 30%, var(--felt-lit) 0%, var(--felt) 52%, var(--felt-deep) 100%);
   box-shadow:
-    inset 0 0 80px oklch(0.1 0.04 20 / 0.55),
+    inset 0 0 80px oklch(0.12 0.03 152 / 0.5),
     var(--edge);
 }
 
@@ -282,18 +307,25 @@ p {
   position: absolute;
   inset: 7% 5%;
   border-radius: 46% / 54%;
-  border: 1px solid oklch(0.9 0.09 88 / 0.14);
+  border: 1px solid oklch(0.95 0.02 150 / 0.12);
   pointer-events: none;
 }
 
-/* The house mark printed on the cloth. Barely there, and never read aloud. */
+/*
+ * The house mark printed on the cloth. Barely there, and never read aloud.
+ *
+ * Lighter and far less saturated than the brass it used to be: brass at a
+ * thirteenth of an alpha was legible on a dark red table and vanishes on a lit
+ * green one, so it is carried at nearly twice the opacity to land in the same
+ * place perceptually.
+ */
 .felt-mark {
   font-family: var(--font-heading);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.55em;
   text-transform: uppercase;
-  color: oklch(0.9 0.09 88 / 0.13);
+  color: oklch(0.95 0.055 90 / 0.22);
   pointer-events: none;
   user-select: none;
 }
@@ -489,6 +521,55 @@ p {
   opacity: 0.75;
 }
 
+.action-dock {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  padding: 6px 12px max(8px, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+  .action-dock {
+    gap: var(--space-3);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-divider);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md), var(--edge);
+    padding: 14px;
+  }
+}
+
+.action-presets {
+  display: flex;
+  height: 28px;
+  gap: 6px;
+  background: transparent;
+}
+
+.action-preset {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.06);
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.action-preset.is-on {
+  background: oklch(0.8 0.135 82 / 0.22);
+  color: var(--color-accent-200);
+}
+
 /* ---------------------------------------------------------------------------
    Tags
    --------------------------------------------------------------------------- */
@@ -529,8 +610,13 @@ p {
    --------------------------------------------------------------------------- */
 
 /*
- * A card is paper. It is the brightest thing in the room and the only object
- * with a light surface, which is why the whole scheme can be this dark.
+ * A card is paper. It is still the brightest thing in the room, which is why
+ * the whole scheme can be this dark — but it is no longer the *only* light
+ * surface, now that the felt itself is lit green.
+ *
+ * The face is a printed card: rank and pip in both corners, a pip in the
+ * middle. Ranks are the didone. That printed look is most of what makes a
+ * rectangle read as a card.
  */
 .card-face {
   position: relative;
@@ -541,10 +627,10 @@ p {
   flex-shrink: 0;
   width: 52px;
   height: 72px;
-  border: 1px solid oklch(0 0 0 / 0.2);
+  border: 1px solid oklch(0 0 0 / 0.15);
   border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, oklch(0.995 0.003 90) 0%, oklch(0.93 0.008 80) 100%);
-  color: oklch(0.2 0.02 30);
+  background: linear-gradient(180deg, oklch(0.99 0.002 90) 0%, oklch(0.955 0.004 90) 100%);
+  color: oklch(0.2 0.01 260);
   font-family: var(--font-heading);
   font-size: 19px;
   font-weight: 600;
@@ -560,7 +646,7 @@ p {
 }
 
 .card-red {
-  color: var(--color-accent-2-500);
+  color: var(--suit-red);
 }
 
 /*
@@ -572,8 +658,8 @@ p {
   border-color: oklch(0.8 0.135 82 / 0.45);
   background-image: repeating-linear-gradient(
     45deg,
-    oklch(0.3 0.05 30) 0 3px,
-    oklch(0.185 0.038 26) 3px 6px
+    oklch(0.29 0.008 250) 0 3px,
+    oklch(0.175 0.006 250) 3px 6px
   );
   box-shadow: 0 2px 8px -2px oklch(0 0 0 / 0.7), inset 0 0 0 1px oklch(0.8 0.135 82 / 0.18);
 }
@@ -725,19 +811,30 @@ p {
   position: relative;
 }
 
+/*
+ * One slot above the plate, holding either the cards or the player's face.
+ *
+ * Never both. Showing both is what makes a seat tall, and tall seats are what
+ * force a crowded table to shrink everyone to fit. A player is only ever one of
+ * two things here — someone still in the hand, who is their cards, or someone
+ * who is not, who is just a face — so folding swaps one for the other and a
+ * seat that is out reads as out from across the felt.
+ */
 .seat-cards {
   display: flex;
+  align-items: flex-end;
+  justify-content: center;
   margin-bottom: -14px;
 }
 
 .seat-plate {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: 6px var(--space-3);
+  padding: 5px var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-divider);
-  background: linear-gradient(180deg, var(--color-surface) 0%, oklch(0.14 0.035 22) 100%);
+  background: linear-gradient(180deg, var(--plate) 0%, oklch(0.24 0.007 250) 100%);
   box-shadow: var(--shadow-md), var(--edge);
   transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease);
 }
@@ -748,20 +845,34 @@ p {
   box-shadow: var(--shadow-md), 0 0 0 3px oklch(0.8 0.135 82 / 0.22);
 }
 
-/* Won it: green, the one colour in the room that is not the house. */
+/* Won it: cyan, which in this room is money and only ever money. */
 .seat-winner {
   border-color: var(--state-win);
-  box-shadow: var(--shadow-md), 0 0 0 3px oklch(0.78 0.16 155 / 0.28);
+  box-shadow: var(--shadow-md), 0 0 0 3px color-mix(in oklab, var(--state-win) 28%, transparent);
 }
 
+/* The face, when it is the face's turn to be there. Sized to the cards it
+   stands in for, so the plate underneath does not move when a player folds. */
 .seat-avatar {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
-  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.18);
+  box-shadow: 0 0 0 2px oklch(0 0 0 / 0.45);
   flex-shrink: 0;
 }
 
+/* A folded seat recedes. Left at full strength the portraits became the
+   brightest thing on the felt, which is the opposite of what folding means. */
+.seat-out .seat-cards {
+  opacity: 0.45;
+  filter: saturate(0.5);
+}
+
+/*
+ * Name over money, in the order they are asked for: who is this, then what
+ * have they got. The stack is the louder of the two — it is the one being
+ * re-read every street, while the name is read once and then recognised.
+ */
 .seat-stack {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -771,9 +882,9 @@ p {
 }
 
 .seat-name {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  color: var(--color-muted);
+  color: oklch(from var(--color-text) l c h / 0.9);
   line-height: 1.3;
 }
 

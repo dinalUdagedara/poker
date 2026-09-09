@@ -30,7 +30,7 @@ export function RankingsButton() {
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-[oklch(0.1_0.03_20/0.72)] backdrop-blur-sm" />
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-[oklch(0.1_0.012_150/0.72)] backdrop-blur-sm" />
         <Dialog.Popup
           className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-2xl panel-milled border-border border outline-none sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-2xl"
           data-testid="rankings-panel"

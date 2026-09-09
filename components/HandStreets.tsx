@@ -57,10 +57,10 @@ export function HandStreets({
           <div
             key={`${section.street}-${i}`}
             className={cn(
-              'panel-well border-border flex shrink-0 flex-col rounded-lg border',
+              'flex shrink-0 flex-col rounded-lg',
               compact
-                ? 'w-32 sm:w-auto sm:max-w-44 sm:min-w-28 sm:flex-1'
-                : 'w-36 sm:w-auto sm:max-w-48 sm:min-w-0 sm:flex-1',
+                ? 'w-32 border border-white/10 bg-white/6 sm:w-auto sm:max-w-44 sm:min-w-28 sm:flex-1'
+                : 'panel-well border-border w-36 border sm:w-auto sm:max-w-48 sm:min-w-0 sm:flex-1',
             )}
           >
             <div className="border-border flex flex-col items-center gap-0.5 border-b px-2 py-1.5">
@@ -74,7 +74,10 @@ export function HandStreets({
               {section.entries.map((entry, j) => (
                 <li
                   key={j}
-                  className="panel-milled flex items-center gap-1.5 rounded-md px-1.5 py-1"
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-md px-1.5 py-1',
+                    compact ? 'bg-white/6' : 'panel-milled',
+                  )}
                 >
                   <PlayerAvatar seed={entry.playerId} className="size-5" />
                   <div className="min-w-0 flex-1">

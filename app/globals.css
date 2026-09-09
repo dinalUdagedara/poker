@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Showdown — oxblood and brass.
+ * Showdown — green felt and brass.
  *
- * The whole app is one dark red room lit from over the table, in either OS
+ * The whole app is one near-black room lit from over the table, in either OS
  * theme: the felt, the chips and the white card faces all depend on the
  * surround staying dark, so nothing here flips with the system setting.
  *
@@ -60,7 +60,7 @@
    */
   --color-suit-red: var(--suit-red);
 
-  /* Money, read off a stack at a glance. Green here only ever means money. */
+  /* Money, read off a stack at a glance. Cyan, because green is the table. */
   --color-win: var(--state-win);
   --color-stack-healthy: var(--state-healthy);
   --color-stack-medium: var(--state-medium);
@@ -107,29 +107,37 @@
 /*
  * The shadcn roles, in the house palette.
  *
- * Warm and red-tinted rather than neutral, so every primitive that reads these
- * — Card, Badge, Button, Slider, Select — arrives already belonging to the
- * room instead of having to be overridden at each call site. `--primary` is
- * brass, because the primary action is always the one that costs something.
+ * Charcoal with a hair of blue in it, so every primitive that reads these —
+ * Card, Badge, Button, Slider, Select — arrives already belonging to the room
+ * instead of having to be overridden at each call site. `--primary` is brass,
+ * because the primary action is always the one that costs something.
+ *
+ * Cool rather than warm, and only barely tinted. The felt is green now, and a
+ * red-tinted panel on a green table is the one combination this palette cannot
+ * carry: the two are near-opposite hues at similar lightness, so every plate
+ * and every console read as a patch stuck onto the cloth rather than an object
+ * resting on it. The chroma is kept low enough that the panels stay a neutral
+ * dark and the only coloured things in the room are the felt, the brass and
+ * the cards.
  */
 :root {
-  --background: oklch(0.155 0.042 22);
-  --foreground: oklch(0.97 0.012 70);
-  --card: oklch(0.205 0.045 22);
-  --card-foreground: oklch(0.97 0.012 70);
-  --popover: oklch(0.19 0.045 22);
-  --popover-foreground: oklch(0.97 0.012 70);
+  --background: oklch(0.155 0.012 152);
+  --foreground: oklch(0.98 0.003 250);
+  --card: oklch(0.27 0.008 250);
+  --card-foreground: oklch(0.98 0.003 250);
+  --popover: oklch(0.23 0.008 250);
+  --popover-foreground: oklch(0.98 0.003 250);
   --primary: oklch(0.8 0.135 82);
   --primary-foreground: oklch(0.2 0.05 40);
-  --secondary: oklch(0.29 0.05 22);
-  --secondary-foreground: oklch(0.97 0.012 70);
-  --muted: oklch(0.28 0.045 22);
-  --muted-foreground: oklch(0.74 0.028 45);
-  --accent: oklch(0.33 0.06 24);
-  --accent-foreground: oklch(0.97 0.012 70);
+  --secondary: oklch(0.3 0.01 250);
+  --secondary-foreground: oklch(0.98 0.003 250);
+  --muted: oklch(0.29 0.01 250);
+  --muted-foreground: oklch(0.73 0.012 250);
+  --accent: oklch(0.34 0.014 250);
+  --accent-foreground: oklch(0.98 0.003 250);
   --destructive: oklch(0.67 0.175 25);
-  --border: oklch(0.95 0.03 70 / 12%);
-  --input: oklch(0.95 0.03 70 / 16%);
+  --border: oklch(0.92 0.02 240 / 14%);
+  --input: oklch(0.92 0.02 240 / 18%);
   --ring: oklch(0.8 0.13 82);
   /* The chip denominations, so a chart on this table is the same room. */
   --chart-1: oklch(0.88 0.15 92);
@@ -138,13 +146,13 @@
   --chart-4: oklch(0.6 0.2 25);
   --chart-5: oklch(0.34 0.01 30);
   --radius: 0.625rem;
-  --sidebar: oklch(0.205 0.045 22);
-  --sidebar-foreground: oklch(0.97 0.012 70);
+  --sidebar: oklch(0.27 0.008 250);
+  --sidebar-foreground: oklch(0.98 0.003 250);
   --sidebar-primary: oklch(0.8 0.135 82);
   --sidebar-primary-foreground: oklch(0.2 0.05 40);
-  --sidebar-accent: oklch(0.29 0.05 22);
-  --sidebar-accent-foreground: oklch(0.97 0.012 70);
-  --sidebar-border: oklch(0.95 0.03 70 / 12%);
+  --sidebar-accent: oklch(0.3 0.01 250);
+  --sidebar-accent-foreground: oklch(0.98 0.003 250);
+  --sidebar-border: oklch(0.92 0.02 240 / 14%);
   --sidebar-ring: oklch(0.8 0.13 82);
 }
 
@@ -154,36 +162,36 @@
  * ones above — the room does not have a light mode.
  */
 .dark {
-  --background: oklch(0.155 0.042 22);
-  --foreground: oklch(0.97 0.012 70);
-  --card: oklch(0.205 0.045 22);
-  --card-foreground: oklch(0.97 0.012 70);
-  --popover: oklch(0.19 0.045 22);
-  --popover-foreground: oklch(0.97 0.012 70);
+  --background: oklch(0.155 0.012 152);
+  --foreground: oklch(0.98 0.003 250);
+  --card: oklch(0.27 0.008 250);
+  --card-foreground: oklch(0.98 0.003 250);
+  --popover: oklch(0.23 0.008 250);
+  --popover-foreground: oklch(0.98 0.003 250);
   --primary: oklch(0.8 0.135 82);
   --primary-foreground: oklch(0.2 0.05 40);
-  --secondary: oklch(0.29 0.05 22);
-  --secondary-foreground: oklch(0.97 0.012 70);
-  --muted: oklch(0.28 0.045 22);
-  --muted-foreground: oklch(0.74 0.028 45);
-  --accent: oklch(0.33 0.06 24);
-  --accent-foreground: oklch(0.97 0.012 70);
+  --secondary: oklch(0.3 0.01 250);
+  --secondary-foreground: oklch(0.98 0.003 250);
+  --muted: oklch(0.29 0.01 250);
+  --muted-foreground: oklch(0.73 0.012 250);
+  --accent: oklch(0.34 0.014 250);
+  --accent-foreground: oklch(0.98 0.003 250);
   --destructive: oklch(0.67 0.175 25);
-  --border: oklch(0.95 0.03 70 / 12%);
-  --input: oklch(0.95 0.03 70 / 16%);
+  --border: oklch(0.92 0.02 240 / 14%);
+  --input: oklch(0.92 0.02 240 / 18%);
   --ring: oklch(0.8 0.13 82);
   --chart-1: oklch(0.88 0.15 92);
   --chart-2: oklch(0.62 0.19 300);
   --chart-3: oklch(0.66 0.15 240);
   --chart-4: oklch(0.6 0.2 25);
   --chart-5: oklch(0.34 0.01 30);
-  --sidebar: oklch(0.205 0.045 22);
-  --sidebar-foreground: oklch(0.97 0.012 70);
+  --sidebar: oklch(0.27 0.008 250);
+  --sidebar-foreground: oklch(0.98 0.003 250);
   --sidebar-primary: oklch(0.8 0.135 82);
   --sidebar-primary-foreground: oklch(0.2 0.05 40);
-  --sidebar-accent: oklch(0.29 0.05 22);
-  --sidebar-accent-foreground: oklch(0.97 0.012 70);
-  --sidebar-border: oklch(0.95 0.03 70 / 12%);
+  --sidebar-accent: oklch(0.3 0.01 250);
+  --sidebar-accent-foreground: oklch(0.98 0.003 250);
+  --sidebar-border: oklch(0.92 0.02 240 / 14%);
   --sidebar-ring: oklch(0.8 0.13 82);
 }
 
@@ -204,25 +212,56 @@
    --------------------------------------------------------------------------- */
 
 :root {
-  --felt-lit: oklch(0.44 0.145 24);
-  --felt: oklch(0.375 0.13 22);
-  --felt-deep: oklch(0.3 0.105 20);
-  --rail-lit: oklch(0.36 0.07 45);
-  --rail: oklch(0.245 0.055 38);
-  --rail-deep: oklch(0.145 0.035 32);
+  /* Cloth. Lit from over the middle and falling off to the rail. */
+  --felt-lit: oklch(0.585 0.12 149);
+  --felt: oklch(0.5 0.11 150);
+  --felt-deep: oklch(0.355 0.085 152);
+
+  /* The rail is the darkest thing on the screen, so the felt reads as lit. */
+  --rail-lit: oklch(0.3 0.008 150);
+  --rail: oklch(0.2 0.006 150);
+  --rail-deep: oklch(0.125 0.004 150);
+
   --brass: oklch(0.8 0.135 82);
   --brass-lit: oklch(0.91 0.085 88);
   --brass-deep: oklch(0.45 0.09 72);
 
-  --play-fold: oklch(0.34 0.014 40);
-  --play-fold-lit: oklch(0.41 0.016 40);
-  --play-pass: oklch(0.52 0.12 158);
-  --play-pass-lit: oklch(0.6 0.135 158);
+  /* A nameplate. Half a step lighter than a panel, because it sits on the
+     brightest surface in the room and a panel-dark plate disappears into the
+     rail behind it. */
+  --plate: oklch(0.32 0.008 250);
 
-  --suit-red: oklch(0.58 0.19 25);
+  --play-fold: oklch(0.34 0.012 250);
+  --play-fold-lit: oklch(0.41 0.014 250);
+  /*
+   * Staying in is still felt, but not this felt. Held at the cloth's own hue it
+   * became the one button you could not see against the table behind it, so it
+   * is pushed round towards emerald and lifted a step — near enough to still
+   * read as "the colour of staying in", far enough to be an object on the
+   * table rather than a hole in it.
+   */
+  --play-pass: oklch(0.55 0.13 163);
+  --play-pass-lit: oklch(0.62 0.14 163);
 
-  --state-win: oklch(0.78 0.16 155);
-  --state-healthy: oklch(0.76 0.15 156);
+  /* Measured off a ClubGG card rather than chosen: their red is deeper and
+     slightly warmer than the signal red this palette used. */
+  --suit-red: oklch(0.5 0.2 27);
+
+  /*
+   * Money, and no longer green.
+   *
+   * Green meant money in this system and nothing else, which worked while the
+   * room was red. It cannot survive a green table: a healthy stack in felt
+   * green, printed on felt green, says nothing at all. Cyan takes the job —
+   * it is the only hue left that is not the cloth, not the brass and not the
+   * red suits, and it is what ClubGG uses for exactly this reason.
+   *
+   * The warning steps keep their old colours. Amber and red were never the
+   * felt, and a short stack has to shout in a hue nothing else on the table
+   * owns.
+   */
+  --state-win: oklch(0.84 0.115 202);
+  --state-healthy: oklch(0.81 0.095 205);
   --state-medium: oklch(0.83 0.13 84);
   --state-short: oklch(0.7 0.185 22);
 
@@ -248,8 +287,8 @@
   background:
     radial-gradient(
       78% 62% at 50% 32%,
-      oklch(0.29 0.095 22) 0%,
-      oklch(0.225 0.075 21) 45%,
+      oklch(0.235 0.022 152) 0%,
+      oklch(0.185 0.017 152) 45%,
       var(--background) 100%
     );
 }
@@ -312,7 +351,8 @@
   }
 }
 
-/* Polished mahogany, with a brass hairline where the light lands on it. */
+/* Near-black, with a brass hairline where the light lands on it. The darkest
+   thing on the screen, which is what makes the felt read as lit. */
 .table-rail {
   background: linear-gradient(
     180deg,
@@ -338,7 +378,7 @@
     repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.022) 0 2px, transparent 2px 4px),
     radial-gradient(86% 72% at 50% 30%, var(--felt-lit) 0%, var(--felt) 52%, var(--felt-deep) 100%);
   box-shadow:
-    inset 0 0 80px oklch(0.1 0.04 20 / 0.55),
+    inset 0 0 80px oklch(0.12 0.03 152 / 0.5),
     var(--edge);
 }
 
@@ -354,15 +394,22 @@
   position: absolute;
   inset: 7% 5%;
   border-radius: 46% / 54%;
-  border: 1px solid oklch(0.9 0.09 88 / 0.14);
+  border: 1px solid oklch(0.95 0.02 150 / 0.12);
   pointer-events: none;
 }
 
-/* The house mark printed on the cloth. Barely there, and never read aloud. */
+/*
+ * The house mark printed on the cloth. Barely there, and never read aloud.
+ *
+ * Given back the contrast the oxblood felt used to grant it for free: brass at
+ * a thirteenth of an alpha was legible on a dark red table and vanishes on a
+ * lit green one, so the lettering is lighter, far less saturated and carried
+ * at nearly twice the opacity to land in the same place perceptually.
+ */
 .felt-mark {
   font-family: var(--font-display);
   letter-spacing: 0.55em;
-  color: oklch(0.9 0.09 88 / 0.13);
+  color: oklch(0.95 0.055 90 / 0.22);
 }
 
 /*
@@ -405,6 +452,76 @@
 
 .brass-button:hover {
   background: linear-gradient(180deg, oklch(0.91 0.085 88) 0%, oklch(0.83 0.128 84) 100%);
+}
+
+/*
+ * The action dock. On a phone it is just the controls on the room — no sheet,
+ * no hairline, no extra padding. Above sm it is a milled console again.
+ */
+.action-dock {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+  background: transparent;
+  padding: 6px 12px max(8px, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+  .action-dock {
+    gap: 0.75rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow:
+      0 6px 18px -6px oklch(0 0 0 / 0.6),
+      var(--edge);
+    padding: 14px;
+  }
+}
+
+.action-presets {
+  display: flex;
+  height: 28px;
+  gap: 6px;
+  background: transparent;
+}
+
+@media (min-width: 640px) {
+  .action-presets {
+    height: 32px;
+  }
+}
+
+.action-preset {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.06);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 640px) {
+  .action-preset {
+    font-size: 11px;
+  }
+}
+
+.action-preset.is-on {
+  background: oklch(0.8 0.135 82 / 0.22);
+  color: var(--brass-lit);
+}
+
+.action-preset:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /*
@@ -471,16 +588,18 @@
 /*
  * Face-down cards get house stock: near-black woven cloth inside a brass rule.
  *
- * Not red. A red back on a red table is one object, and counting an opponent's
- * cards from across the felt is the entire job of a face-down card.
+ * The weave is neutral, not warm. It was written as a near-black and mixed
+ * warm, which passed unnoticed on a red table and turns to maroon on a green
+ * one — and counting an opponent's cards from across the felt is the entire
+ * job of a face-down card, so it has to stay the darkest thing out there.
  */
 .card-back {
   background-image:
-    repeating-linear-gradient(45deg, oklch(0.3 0.05 30) 0 3px, oklch(0.185 0.038 26) 3px 6px);
+    repeating-linear-gradient(45deg, oklch(0.29 0.008 250) 0 3px, oklch(0.175 0.006 250) 3px 6px);
   border-color: oklch(0.8 0.135 82 / 0.45);
   box-shadow:
     0 1px 0 oklch(0.45 0.06 70),
-    0 2px 0 oklch(0.28 0.04 40),
+    0 2px 0 oklch(0.26 0.01 250),
     0 4px 10px -2px oklch(0 0 0 / 0.7),
     inset 0 0 0 1px oklch(0.8 0.135 82 / 0.18);
 }
@@ -500,7 +619,7 @@
 .card-back.card-stock {
   box-shadow:
     0 1px 0 oklch(0.45 0.06 70),
-    0 2px 0 oklch(0.28 0.04 40),
+    0 2px 0 oklch(0.26 0.01 250),
     0 4px 10px -2px oklch(0 0 0 / 0.7),
     inset 0 0 0 1px oklch(0.8 0.135 82 / 0.18);
 }
@@ -683,15 +802,16 @@
 }
 
 /* The winning seat breathes rather than just sitting in a static ring, so the
-   eye is pulled to who took it down before the result panel is read. Green:
-   in this room green is only ever money. */
+   eye is pulled to who took it down before the result panel is read. Read off
+   the money token rather than written out, so it cannot fall behind it again —
+   this ring was still green for a while after money stopped being. */
 @keyframes winner-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 3px oklch(0.78 0.16 155 / 0.42);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--state-win) 42%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 8px oklch(0.78 0.16 155 / 0.1);
+    box-shadow: 0 0 0 8px color-mix(in oklab, var(--state-win) 10%, transparent);
   }
 }
 

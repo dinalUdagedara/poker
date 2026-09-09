@@ -58,7 +58,6 @@ export function PlayerSeat({
   compact = false,
   callout,
   calloutSide = 'below',
-  calloutAlign = 'center',
   chipSide = 'left',
   bigBlind,
   hero = false,
@@ -73,37 +72,69 @@ export function PlayerSeat({
   compact?: boolean
   bigBlind: number
   callout?: string | null
-  calloutSide?: 'right' | 'below' | 'above'
-  calloutAlign?: 'start' | 'center' | 'end'
+  calloutSide?: 'right' | 'left' | 'below' | 'above'
   chipSide?: 'left' | 'right'
   hero?: boolean
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
   const tone = stackTone(player.stack, bigBlind)
+  // Cards or a face, never both. See the slot below.
+  const holds = player.cardCount > 0 && player.status !== 'folded'
 
   return (
     <div className="relative flex flex-col items-center gap-1 sm:gap-1.5" data-testid={`seat-${player.id}`}>
-      <div className={cn('-mb-5 flex sm:-mb-3.5', isOut && 'opacity-40 saturate-50')}>
-        {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
-          <PlayingCard
-            key={i}
-            card={player.holeCards?.[i] ?? null}
-            size={hero ? 'lg' : compact ? 'xs' : 'sm'}
-            dealDelay={i * 90}
+      {/*
+        One slot above the plate, holding either the cards or the player.
+        
+        Showing both is what made a seat tall, and tall seats are why five
+        opponents have to be shrunk to fit round the felt. A player is only ever
+        one of two things here — someone still in the hand, who is their cards,
+        or someone who is not, who is just a face — so the two never need to be
+        on screen at once. Folding swaps one for the other, which also means a
+        seat that is out of the hand reads as out from across the table rather
+        than from the badge underneath it.
+      */}
+      <div
+        className={cn(
+          'flex items-end justify-center',
+          hero ? '-mb-4 sm:-mb-3.5' : '-mb-3 sm:-mb-3.5',
+          // Whichever of the two is showing. A folded seat has to recede, and a
+          // portrait left at full strength does the opposite of that — the
+          // brightest thing on the felt became the people no longer in the hand.
+          isOut && 'opacity-45 saturate-50',
+        )}
+      >
+        {holds ? (
+          Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
+            <PlayingCard
+              key={i}
+              card={player.holeCards?.[i] ?? null}
+              size={hero ? 'lg' : compact ? 'xs' : 'sm'}
+              dealDelay={i * 90}
+              className={cn(
+                TILT[i % TILT.length],
+                i > 0 && (hero ? '-ml-2.5 sm:-ml-2' : '-ml-1'),
+                hero && 'h-18 w-13 text-sm sm:h-24 sm:w-17 sm:text-base',
+                'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
+              )}
+            />
+          ))
+        ) : (
+          <PlayerAvatar
+            seed={player.id}
             className={cn(
-              TILT[i % TILT.length],
-              i > 0 && (hero ? '-ml-2' : '-ml-1'),
-              hero && 'h-18 w-13 text-sm sm:h-24 sm:w-17 sm:text-base',
-              'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
+              'ring-2 ring-black/45',
+              hero ? 'size-16 sm:size-16' : compact ? 'size-10 sm:size-10' : 'size-11 sm:size-12',
             )}
           />
-        ))}
+        )}
       </div>
 
       <Card
         className={cn(
-          'relative gap-0 rounded-xl border px-2 py-1 transition-all duration-200 sm:px-3 sm:py-1.5',
+          'relative gap-0 rounded-xl border transition-all duration-200',
           'panel-milled overflow-visible backdrop-blur-sm',
+          hero ? 'px-3 py-1.5 sm:px-3 sm:py-1.5' : 'px-2 py-1 sm:px-3 sm:py-1.5',
           isActing && 'animate-turn-ring border-brass/80',
           isWinner && 'animate-winner border-win',
           !isActing && !isWinner && 'border-border',
@@ -113,7 +144,7 @@ export function PlayerSeat({
       >
         {isButton && (
           <span
-            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-linear-to-b from-white to-[oklch(0.88_0.01_80)] font-(family-name:--font-display) text-[11px] font-bold text-[oklch(0.2_0.02_30)] ring-2 ring-[oklch(0.145_0.035_32)]/80 shadow-md"
+            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-linear-to-b from-white to-[oklch(0.88_0.01_80)] font-(family-name:--font-display) text-[11px] font-bold text-[oklch(0.2_0.02_30)] ring-2 ring-[var(--rail-deep)]/80 shadow-md"
             title="dealer button"
             data-testid="dealer-button"
           >
@@ -132,39 +163,40 @@ export function PlayerSeat({
           )}
         />
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <PlayerAvatar
-            seed={player.id}
+        {/*
+          Name over money, which is the order they are asked for: who is this,
+          then what have they got. The stack is the louder of the two because it
+          is the one being re-read every street.
+        */}
+        <div className="text-center leading-tight">
+          <div
             className={cn(
-              hero ? 'size-8 sm:size-9' : compact ? 'size-5 sm:size-6' : 'size-6 sm:size-7',
-              isOut && 'grayscale',
+              'truncate font-medium',
+              hero ? 'text-sm' : 'text-[10px] sm:text-[11px]',
+              isOut ? 'text-foreground/45' : 'text-foreground/90',
             )}
-          />
-          <div className="text-center leading-tight">
-            <div
-              className={cn(
-                'font-mono font-semibold tabular-nums',
-                hero ? 'text-sm sm:text-base' : 'text-xs sm:text-sm',
-                player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
-              )}
-              data-testid={`stack-${player.id}`}
-            >
-              {player.stack.toLocaleString()}
-            </div>
-            <div
-              className={cn(
-                'truncate font-medium',
-                hero ? 'text-[11px] sm:text-xs' : 'text-[9px] sm:text-[10px]',
-                isOut ? 'text-muted-foreground/60' : 'text-muted-foreground',
-              )}
-            >
-              {displayName(player, viewerId, names)}
-            </div>
+          >
+            {displayName(player, viewerId, names)}
+          </div>
+          <div
+            className={cn(
+              'font-mono font-semibold tabular-nums',
+              hero ? 'text-base' : 'text-xs sm:text-sm',
+              player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
+            )}
+            data-testid={`stack-${player.id}`}
+          >
+            {player.stack.toLocaleString()}
           </div>
         </div>
       </Card>
 
-      <div className="flex h-8 items-center gap-1 sm:h-10">
+      <div
+        className={cn(
+          'flex items-center gap-1',
+          hero ? 'h-7 sm:h-10' : 'h-6 sm:h-10',
+        )}
+      >
         {player.status === 'folded' && (
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
             folded
@@ -197,33 +229,26 @@ export function PlayerSeat({
             'animate-callout pointer-events-none absolute z-10 whitespace-nowrap',
             calloutSide === 'right'
               ? 'top-1/2 left-full ml-2.5 -translate-y-1/2'
-              : calloutSide === 'above'
-                ? 'bottom-full left-1/2 mb-1.5 -translate-x-1/2'
-                : calloutAlign === 'start'
-                  ? 'top-full left-0 mt-1.5'
-                  : calloutAlign === 'end'
-                    ? 'top-full right-0 mt-1.5'
-                    : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
+              : calloutSide === 'left'
+                ? 'top-1/2 right-full mr-2.5 -translate-y-1/2'
+                : calloutSide === 'above'
+                  ? 'bottom-full left-1/2 mb-1.5 -translate-x-1/2'
+                  : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
           )}
           data-testid={`callout-${player.id}`}
         >
-          <span className="relative block rounded-md border border-border bg-[oklch(0.25_0.036_24)] px-2 py-0.5 text-[11px] font-medium text-foreground shadow-lg">
+          <span className="relative block rounded-md border border-border bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground shadow-lg">
             {callout}
             <span
               className={cn(
-                'absolute size-2 rotate-45 bg-[oklch(0.25_0.036_24)]',
+                'absolute size-2 rotate-45 bg-secondary',
                 calloutSide === 'right'
                   ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-border'
-                  : calloutSide === 'above'
-                    ? 'right-auto -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-border'
-                    : cn(
-                        '-top-1 border-t border-l border-border',
-                        calloutAlign === 'start'
-                          ? 'left-5'
-                          : calloutAlign === 'end'
-                            ? 'right-5'
-                            : 'left-1/2 -translate-x-1/2',
-                      ),
+                  : calloutSide === 'left'
+                    ? 'top-1/2 -right-1 -translate-y-1/2 border-t border-r border-border'
+                    : calloutSide === 'above'
+                      ? '-bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-border'
+                      : '-top-1 left-1/2 -translate-x-1/2 border-t border-l border-border',
               )}
             />
           </span>

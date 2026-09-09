@@ -1,28 +1,35 @@
 {
   "name": "Showdown",
   "palette": {
-    "hue": 22,
+    "hue": 150,
     "band": "dark",
     "scheme": "complementary",
-    "sat": 0.55,
-    "bg": "oklch(0.155 0.042 22)",
-    "surface": "oklch(0.205 0.045 22)",
-    "text": "oklch(0.97 0.012 70)",
+    "sat": 0.5,
+    "bg": "oklch(0.155 0.012 152)",
+    "surface": "oklch(0.27 0.008 250)",
+    "text": "oklch(0.98 0.003 250)",
     "accent": "oklch(0.8 0.135 82)",
     "accent2": "oklch(0.58 0.19 25)"
   },
   "table": {
-    "felt": "oklch(0.375 0.13 22)",
-    "feltLit": "oklch(0.44 0.145 24)",
-    "feltDeep": "oklch(0.3 0.105 20)",
-    "rail": "oklch(0.245 0.055 38)",
+    "felt": "oklch(0.5 0.11 150)",
+    "feltLit": "oklch(0.585 0.12 149)",
+    "feltDeep": "oklch(0.355 0.085 152)",
+    "rail": "oklch(0.2 0.006 150)",
     "trim": "brass"
   },
   "play": {
-    "fold": "oklch(0.34 0.014 40)",
-    "pass": "oklch(0.52 0.12 158)",
+    "fold": "oklch(0.34 0.012 250)",
+    "pass": "oklch(0.55 0.13 163)",
     "commit": "oklch(0.8 0.135 82)",
     "principle": "separate by material, not only hue — stone, felt, metal"
+  },
+  "money": {
+    "win": "oklch(0.84 0.115 202)",
+    "healthy": "oklch(0.81 0.095 205)",
+    "medium": "oklch(0.83 0.13 84)",
+    "short": "oklch(0.7 0.185 22)",
+    "principle": "cyan means money, because green is the table"
   },
   "fonts": {
     "heading": {

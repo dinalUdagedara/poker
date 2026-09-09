@@ -90,12 +90,12 @@ function CardFace({
 }) {
   const isRed = card.suit === 'h' || card.suit === 'd'
   const rank = card.rank === 'T' ? '10' : card.rank
-  const suit = SUIT_SYMBOLS[card.suit]
+  const pip = SUIT_SYMBOLS[card.suit]
   const ink = cn(printed, isRed && 'text-suit-red')
   const corner = (
     <span className={cn(ink, 'flex flex-col items-center')}>
       <span className="tracking-tight">{rank}</span>
-      <span className={cn('text-[0.9em]', size === 'xs' && 'text-[0.8em]')}>{suit}</span>
+      <span className={cn('text-[0.9em]', size === 'xs' && 'text-[0.8em]')}>{pip}</span>
     </span>
   )
 
@@ -103,10 +103,11 @@ function CardFace({
     <div
       className={cn(
         className,
-        // Warm paper rather than a cool white. Against an oxblood room a grey
-        // card reads as a hole in the felt; a cream one reads as card stock.
-        'border-black/20 bg-linear-to-b from-[oklch(0.995_0.003_90)] to-[oklch(0.93_0.008_80)]',
-        'text-[oklch(0.2_0.02_30)]',
+        // Cool paper, not cream. The felt is green now, and a warm card on a
+        // green table is the same near-opposite pairing that made the old
+        // plates look pasted on.
+        'border-black/15 bg-linear-to-b from-[oklch(0.99_0.002_90)] to-[oklch(0.955_0.004_90)]',
+        'text-[oklch(0.2_0.01_260)]',
       )}
       style={style}
       data-testid="card-face"
@@ -115,7 +116,7 @@ function CardFace({
       <span className="absolute top-0.5 left-0.5 sm:top-1 sm:left-1">{corner}</span>
       {size !== 'xs' && (
         <span className={cn(ink, 'absolute inset-0 grid place-items-center text-[1.35em] opacity-90')}>
-          {suit}
+          {pip}
         </span>
       )}
       <span className="absolute right-0.5 bottom-0.5 rotate-180 sm:right-1 sm:bottom-1">{corner}</span>
