@@ -332,6 +332,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
 
   const you = table.players.find((p) => p.id === table.viewerId)
   const opponents = table.players.filter((p) => p.id !== table.viewerId)
+  // Four or five opponents put seats on both rails, in the same band as a
+  // five-card board. Those tables keep the board narrower and the seats
+  // smaller so Hen and Yolanthe are not sitting under the ace and the seven.
+  const crowded = opponents.length >= 4
   const callouts = calloutsFor(table)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
@@ -570,7 +574,12 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               </span>
 
               {/* Pot and board */}
-              <div className="absolute top-1/2 left-1/2 z-20 flex w-max max-w-[72%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:max-w-none sm:gap-2">
+              <div
+                className={cn(
+                  'absolute top-1/2 left-1/2 z-20 flex w-max -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:max-w-none sm:gap-2',
+                  crowded ? 'max-w-[52%]' : 'max-w-[72%]',
+                )}
+              >
                 <div className="flex items-end justify-center gap-2">
                   {/*
                     The pot as chips, in the same denominations as everyone's
@@ -615,7 +624,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                       card={card}
                       size="md"
                       dealDelay={i * 70}
-                      className="h-16 w-11 text-xs sm:h-18 sm:w-13 sm:text-sm"
+                      className={cn(
+                        'sm:h-18 sm:w-13 sm:text-sm',
+                        crowded ? 'h-12 w-8 text-[10px]' : 'h-16 w-11 text-xs',
+                      )}
                     />
                   ))}
                 </div>
@@ -713,13 +725,21 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 still the middle of the felt: the chips in flight below are laid
                 out in this same band, and they finish their journey at the pot.
               */}
-              <div className="absolute inset-x-[7%] inset-y-[10%] sm:inset-0">
+              <div
+                className={cn(
+                  'absolute sm:inset-0',
+                  crowded ? 'inset-x-[1%] inset-y-[8%]' : 'inset-x-[7%] inset-y-[10%]',
+                )}
+              >
               {opponents.map((player, i) => {
                 const { left, top } = seatPosition(i, opponents.length)
                 return (
                   <div
                     key={player.id}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 max-sm:scale-90"
+                    className={cn(
+                      'absolute -translate-x-1/2 -translate-y-1/2',
+                      crowded ? 'max-sm:scale-75' : 'max-sm:scale-90',
+                    )}
                     style={{ left: `${left}%`, top: `${top}%` }}
                   >
                     <PlayerSeat
