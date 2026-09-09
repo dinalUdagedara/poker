@@ -14,6 +14,8 @@ const SIZES = {
   lg: 'h-24 w-17 text-sm rounded-xl',
 } as const
 
+const printed = 'font-(family-name:--font-display) leading-none'
+
 /**
  * A single card, face up or face down.
  *
@@ -89,6 +91,13 @@ function CardFace({
   const isRed = card.suit === 'h' || card.suit === 'd'
   const rank = card.rank === 'T' ? '10' : card.rank
   const pip = SUIT_SYMBOLS[card.suit]
+  const ink = cn(printed, isRed && 'text-suit-red')
+  const corner = (
+    <span className={cn(ink, 'flex flex-col items-center')}>
+      <span className="tracking-tight">{rank}</span>
+      <span className={cn('text-[0.9em]', size === 'xs' && 'text-[0.8em]')}>{pip}</span>
+    </span>
+  )
 
   return (
     <div
@@ -96,34 +105,21 @@ function CardFace({
         className,
         // Cool paper, not cream. The felt is green now, and a warm card on a
         // green table is the same near-opposite pairing that made the old
-        // plates look pasted on. ClubGG's face is this drawing, not a recolour
-        // of the house deck: rank and a small pip stacked top-left, one large
-        // pip in the bottom right. The inverted corner is gone, because that
-        // is the printed-card claim and this is the screen-card one.
+        // plates look pasted on.
         'border-black/15 bg-linear-to-b from-[oklch(0.99_0.002_90)] to-[oklch(0.955_0.004_90)]',
-        'font-bold leading-none',
-        isRed ? 'text-suit-red' : 'text-[oklch(0.2_0.01_260)]',
+        'text-[oklch(0.2_0.01_260)]',
       )}
       style={style}
       data-testid="card-face"
       aria-label={`${rank} of ${SUIT_NAMES[card.suit]}`}
     >
-      <span className="absolute top-[3%] left-[10%] flex flex-col items-start leading-[0.9]">
-        <span className={cn('tracking-tighter', size === 'xs' ? 'text-[1.45em]' : 'text-[1.6em]')}>
-          {rank}
-        </span>
-        <span className={cn('leading-none', size === 'xs' ? 'text-[0.85em]' : 'text-[0.95em]')}>
+      <span className="absolute top-0.5 left-0.5 sm:top-1 sm:left-1">{corner}</span>
+      {size !== 'xs' && (
+        <span className={cn(ink, 'absolute inset-0 grid place-items-center text-[1.35em] opacity-90')}>
           {pip}
         </span>
-      </span>
-      <span
-        className={cn(
-          'absolute right-[5%] bottom-[1%] leading-[0.85]',
-          size === 'xs' ? 'text-[1.6em]' : 'text-[2.05em]',
-        )}
-      >
-        {pip}
-      </span>
+      )}
+      <span className="absolute right-0.5 bottom-0.5 rotate-180 sm:right-1 sm:bottom-1">{corner}</span>
     </div>
   )
 }

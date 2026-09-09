@@ -96,7 +96,8 @@ export function PlayerSeat({
       */}
       <div
         className={cn(
-          '-mb-5 flex items-end justify-center sm:-mb-3.5',
+          'flex items-end justify-center',
+          hero ? '-mb-4 sm:-mb-3.5' : '-mb-3 sm:-mb-3.5',
           // Whichever of the two is showing. A folded seat has to recede, and a
           // portrait left at full strength does the opposite of that — the
           // brightest thing on the felt became the people no longer in the hand.
@@ -112,7 +113,7 @@ export function PlayerSeat({
               dealDelay={i * 90}
               className={cn(
                 TILT[i % TILT.length],
-                i > 0 && (hero ? '-ml-2' : '-ml-1'),
+                i > 0 && (hero ? '-ml-2.5 sm:-ml-2' : '-ml-1'),
                 hero && 'h-18 w-13 text-sm sm:h-24 sm:w-17 sm:text-base',
                 'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
               )}
@@ -123,7 +124,7 @@ export function PlayerSeat({
             seed={player.id}
             className={cn(
               'ring-2 ring-black/45',
-              hero ? 'size-14 sm:size-16' : compact ? 'size-9 sm:size-10' : 'size-11 sm:size-12',
+              hero ? 'size-16 sm:size-16' : compact ? 'size-10 sm:size-10' : 'size-11 sm:size-12',
             )}
           />
         )}
@@ -131,8 +132,9 @@ export function PlayerSeat({
 
       <Card
         className={cn(
-          'relative gap-0 rounded-xl border px-2 py-1 transition-all duration-200 sm:px-3 sm:py-1.5',
+          'relative gap-0 rounded-xl border transition-all duration-200',
           'panel-milled overflow-visible backdrop-blur-sm',
+          hero ? 'px-3 py-1.5 sm:px-3 sm:py-1.5' : 'px-2 py-1 sm:px-3 sm:py-1.5',
           isActing && 'animate-turn-ring border-brass/80',
           isWinner && 'animate-winner border-win',
           !isActing && !isWinner && 'border-border',
@@ -170,7 +172,7 @@ export function PlayerSeat({
           <div
             className={cn(
               'truncate font-medium',
-              hero ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-[11px]',
+              hero ? 'text-sm' : 'text-[10px] sm:text-[11px]',
               isOut ? 'text-foreground/45' : 'text-foreground/90',
             )}
           >
@@ -179,7 +181,7 @@ export function PlayerSeat({
           <div
             className={cn(
               'font-mono font-semibold tabular-nums',
-              hero ? 'text-sm sm:text-base' : 'text-xs sm:text-sm',
+              hero ? 'text-base' : 'text-xs sm:text-sm',
               player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
             )}
             data-testid={`stack-${player.id}`}
@@ -189,7 +191,12 @@ export function PlayerSeat({
         </div>
       </Card>
 
-      <div className="flex h-8 items-center gap-1 sm:h-10">
+      <div
+        className={cn(
+          'flex items-center gap-1',
+          hero ? 'h-7 sm:h-10' : 'h-6 sm:h-10',
+        )}
+      >
         {player.status === 'folded' && (
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
             folded

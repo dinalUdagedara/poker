@@ -24,8 +24,11 @@ export type SeatPoint = { left: number; top: number }
  */
 const REACH = {
   landscape: { rx: 41, ry: 42 },
-  portrait: { rx: 39, ry: 45 },
+  portrait: { rx: 39, ry: 44 },
 } as const
+
+/** Extra drop for the viewer on a phone, in percent of the felt. */
+const PORTRAIT_HERO_DROP = 4
 
 /**
  * How much a seat level with the middle is pulled inboard, in percent.
@@ -51,7 +54,15 @@ export function seatRing(count: number, portrait = false): SeatPoint[] {
     const radians = ((90 + (index * 360) / Math.max(count, 1)) * Math.PI) / 180
     const cos = Math.cos(radians)
     const pull = Math.max(0, (Math.abs(cos) - 0.9) / 0.1) * RAIL_PULL
-    return { left: 50 + (rx - pull) * cos, top: 50 + ry * Math.sin(radians) }
+    const top = 50 + ry * Math.sin(radians)
+    return {
+      left: 50 + (rx - pull) * cos,
+      // On a phone the viewer's seat has to sit on the near rail so a five-card
+      // board has somewhere to go. The honest ellipse puts them at the same
+      // reach as the top seat, which is already tight against the header, so
+      // only the bottom is pushed out.
+      top: portrait && index === 0 ? Math.min(96, top + PORTRAIT_HERO_DROP) : top,
+    }
   })
 }
 

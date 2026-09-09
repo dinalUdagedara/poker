@@ -510,7 +510,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   read aloud — it sits below the board, on the apron of felt
                   between the last community card and the near rail. */}
               <span
-                className="felt-mark pointer-events-none absolute top-[79%] left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase select-none"
+                className="felt-mark pointer-events-none absolute top-[68%] left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase select-none sm:top-[79%]"
                 aria-hidden
               >
                 Showdown
@@ -519,11 +519,16 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               {/* Pot and board */}
               <div
                 className={cn(
-                  'absolute top-1/2 left-1/2 z-20 flex w-max -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:max-w-none sm:gap-2',
-                  crowded ? 'max-w-[52%]' : 'max-w-[72%]',
+                  // On a phone the cluster sits in the upper half, so a five-card
+                  // board does not walk into the viewer's hole cards. Desktop keeps
+                  // it on the true middle, which is where the oval is widest.
+                  'absolute left-1/2 z-20 flex w-max -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1',
+                  'top-[42%] max-w-[58%]',
+                  'sm:top-1/2 sm:gap-2',
+                  crowded ? 'sm:max-w-[52%]' : 'sm:max-w-[72%]',
                 )}
               >
-                <div className="flex items-end justify-center gap-2">
+                <div className="flex items-end justify-center gap-1.5 sm:gap-2">
                   {/*
                     The pot as chips, in the same denominations as everyone's
                     stack — which is the point of drawing it at all: a pile in the
@@ -534,17 +539,17 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     out and the award is carrying it to whoever won. Chips cannot
                     be in the middle and on their way to a seat at the same time.
                   */}
-                  <div className="flex h-9 items-end sm:h-11">
+                  <div className="flex h-7 items-end sm:h-11">
                     {!table.result && (
                       <ChipStack look="felt" size="lg" stack={table.pot} testId="pot-chips" />
                     )}
                   </div>
                   <div className="flex flex-col items-start leading-none">
-                    <span className="text-[10px] font-semibold tracking-[0.22em] text-white/65 uppercase">
+                    <span className="text-[9px] font-semibold tracking-[0.22em] text-white/65 uppercase sm:text-[10px]">
                       pot
                     </span>
                     <span
-                      className="font-mono text-2xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
+                      className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
                       data-testid="pot"
                     >
                       {table.pot.toLocaleString()}
@@ -556,9 +561,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   Empty felt until a card is actually there. Drawing five wells
                   preflop made the middle look unfinished; the row still holds
                   a card's height so the flop does not shove the pot.
+
+                  Phone cards stay small even on a short-handed table. A five-card
+                  board is what fills the felt, not the number of opponents, and
+                  the large size used to be reserved for "uncrowded" tables that
+                  still ran out of width the moment the river came.
                 */}
                 <div
-                  className="flex min-h-16 items-end justify-center gap-1 sm:min-h-18 sm:gap-1.5"
+                  className="flex min-h-12 items-end justify-center gap-0.5 sm:min-h-18 sm:gap-1.5"
                   data-testid="board"
                 >
                   {table.communityCards.map((card, i) => (
@@ -567,10 +577,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                       card={card}
                       size="md"
                       dealDelay={i * 70}
-                      className={cn(
-                        'sm:h-18 sm:w-13 sm:text-sm',
-                        crowded ? 'h-12 w-8 text-[10px]' : 'h-16 w-11 text-xs',
-                      )}
+                      className="h-10 w-7 text-[9px] sm:h-18 sm:w-13 sm:text-sm"
                     />
                   ))}
                 </div>
@@ -675,7 +682,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                         'absolute -translate-x-1/2 -translate-y-1/2',
                         // The viewer's seat is the one you read every hand, so
                         // it stays legible on a phone while the rest give way.
-                        isYou ? 'z-30' : crowded ? 'max-sm:scale-75' : 'max-sm:scale-90',
+                        isYou ? 'z-30' : 'max-sm:scale-[0.82]',
                       )}
                       style={{ left: `${point.left}%`, top: `${point.top}%` }}
                     >

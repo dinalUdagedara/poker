@@ -55,6 +55,14 @@ describe('the ring of seats', () => {
     const [wide, tall] = [seatRing(6)[1], seatRing(6, true)[1]]
     expect(tall.top).toBeGreaterThan(wide.top)
   })
+
+  it('drops the viewer onto the near rail on a phone', () => {
+    // A five-card board needs the lower felt. The honest ellipse puts the
+    // viewer at the same reach as the top seat, so only the bottom is pushed.
+    const [desk, phone] = [seatRing(6)[0], seatRing(6, true)[0]]
+    expect(phone.top).toBeGreaterThan(desk.top)
+    expect(phone.top).toBeGreaterThan(90)
+  })
 })
 
 describe('who sits where', () => {

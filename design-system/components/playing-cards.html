@@ -23,37 +23,19 @@
         <p class="muted" style="font-size: 13px; margin-top: 6px">
           The card is still the brightest thing in the room, which is what lets the rest of the
           scheme sit this dark without going murky. It is never tinted, faded or given a coloured
-          face. The drawing is a screen card: rank and a small pip at the top left, one large pip
-          in the bottom right.
+          face. Rank and pip in both corners, a pip in the middle — that printed look is most of
+          what makes a rectangle read as a card.
         </p>
       </div>
 
       <div class="on-felt col" style="gap: var(--space-6)">
         <div class="row" style="gap: var(--space-2)">
-          <div class="card-face card-lg">
-            <span class="card-index">A<span class="suit">&#9824;</span></span>
-            <span class="card-pip">&#9824;</span>
-          </div>
-          <div class="card-face card-lg card-red">
-            <span class="card-index">K<span class="suit">&#9829;</span></span>
-            <span class="card-pip">&#9829;</span>
-          </div>
-          <div class="card-face">
-            <span class="card-index">Q<span class="suit">&#9824;</span></span>
-            <span class="card-pip">&#9824;</span>
-          </div>
-          <div class="card-face card-red">
-            <span class="card-index">10<span class="suit">&#9830;</span></span>
-            <span class="card-pip">&#9830;</span>
-          </div>
-          <div class="card-face card-sm">
-            <span class="card-index">7<span class="suit">&#9827;</span></span>
-            <span class="card-pip">&#9827;</span>
-          </div>
-          <div class="card-face card-xs">
-            <span class="card-index">2<span class="suit">&#9824;</span></span>
-            <span class="card-pip">&#9824;</span>
-          </div>
+          <div class="card-face card-lg">A<span class="suit">&#9824;</span></div>
+          <div class="card-face card-lg card-red">K<span class="suit">&#9829;</span></div>
+          <div class="card-face">Q<span class="suit">&#9824;</span></div>
+          <div class="card-face card-red">10<span class="suit">&#9830;</span></div>
+          <div class="card-face card-sm">7<span class="suit">&#9827;</span></div>
+          <div class="card-face card-xs">2<span class="suit">&#9824;</span></div>
           <div class="card-face card-back"></div>
           <div class="card-face card-back card-sm"></div>
           <div class="card-slot"></div>
@@ -63,18 +45,9 @@
           <div class="col" style="gap: 6px">
             <span class="eyebrow">The board</span>
             <div class="row" style="gap: 6px">
-              <div class="card-face">
-                <span class="card-index">A<span class="suit">&#9824;</span></span>
-                <span class="card-pip">&#9824;</span>
-              </div>
-              <div class="card-face card-red">
-                <span class="card-index">K<span class="suit">&#9830;</span></span>
-                <span class="card-pip">&#9830;</span>
-              </div>
-              <div class="card-face">
-                <span class="card-index">7<span class="suit">&#9827;</span></span>
-                <span class="card-pip">&#9827;</span>
-              </div>
+              <div class="card-face">A<span class="suit">&#9824;</span></div>
+              <div class="card-face card-red">K<span class="suit">&#9830;</span></div>
+              <div class="card-face">7<span class="suit">&#9827;</span></div>
               <div class="card-slot"></div>
               <div class="card-slot"></div>
             </div>
@@ -84,12 +57,10 @@
             <span class="eyebrow">Squared up</span>
             <div class="row" style="gap: 0">
               <div class="card-face card-sm" style="transform: rotate(-6deg)">
-                <span class="card-index">J<span class="suit">&#9824;</span></span>
-                <span class="card-pip">&#9824;</span>
+                J<span class="suit">&#9824;</span>
               </div>
               <div class="card-face card-sm" style="transform: rotate(6deg); margin-left: -4px">
-                <span class="card-index">J<span class="suit">&#9827;</span></span>
-                <span class="card-pip">&#9827;</span>
+                J<span class="suit">&#9827;</span>
               </div>
             </div>
           </div>
@@ -113,16 +84,15 @@
             it has to stay the darkest thing out there.
           </li>
           <li>
-            Ranks are the grotesque, bold, stacked over a small pip at the top left, with one
-            large pip in the bottom right. The inverted corner is gone: that was the printed-card
-            claim, and this is a screen card.
+            Ranks are set in the didone. That printed look is most of what makes a rectangle read
+            as a card.
           </li>
           <li>
             Cards are opaque. Fading is applied to the <em>hand</em> (<code>.hand-folded</code>),
             never to each card &mdash; overlapping translucent cards show through one another and
             double up where they cross.
           </li>
-          <li>Overlap is allowed to bury the large pip. The rank lives in the top left, which is the corner a fan leaves open.</li>
+          <li>Overlap is shallow. These carry their rank in the middle, so a deep fan buries it.</li>
         </ul>
       </div>
     </div>
