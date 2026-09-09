@@ -109,89 +109,60 @@ export function BettingControls({
      * two hundred pixels every time the bots took over and put them back the
      * moment it was your turn, so the table jumped on every single action.
      */
-    <div className="relative flex flex-col gap-4">
-      {idle && (
-        /*
-          Centred over the bar rather than tucked into the label slot: it is the
-          only thing being said, so it belongs in the middle of the panel and
-          not in the corner where a field label would go.
-        */
-        <div
-          className="pointer-events-none absolute inset-0 z-10 grid place-items-center"
-          data-testid="action-status"
-        >
-          <span className="rounded-full bg-black/65 px-3.5 py-1.5 text-sm font-medium text-foreground/85 shadow-lg backdrop-blur-sm">
-            {status}
-          </span>
-        </div>
-      )}
-
+    <div className="relative flex flex-col gap-3">
       <Collapsible
         open={sizingOpen}
         onOpenChange={(open) => onSizingOpenChange(open)}
         className="flex flex-col gap-3"
       >
-        {/* The quick ways to set the stake. The amount itself rides the thumb. */}
         <div className="flex h-7 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          {/*
-            Shaped like the shortcuts across the row rather than left as bare
-            text. It is the one thing here you press that is not a stake, so
-            without a border it read as a stray label — and a disclosure nobody
-            recognises as a control is a panel that never gets opened again once
-            it has been shut.
-
-            Called "Bet size" and not "Raise to": the brass button already says
-            "Raise to 100" a few pixels below, and two controls carrying the
-            same words invite the reader to work out which of them raises.
-
-            Hidden rather than removed between turns, as the label it replaced
-            always was: the status message is centred over the whole bar, and a
-            live disclosure button underneath it would be the one thing still
-            answering the pointer during somebody else's decision.
-          */}
-          <CollapsibleTrigger
-            className={cn(
-              'inline-flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5',
-              'text-xs font-normal text-muted-foreground',
-              'transition-colors hover:border-brass/40 hover:bg-white/5 hover:text-foreground',
-              'focus-visible:ring-2 focus-visible:ring-brass/50 focus-visible:outline-none',
-              idle && 'invisible',
-            )}
-            data-testid="sizing-toggle"
-          >
-            <ChevronDown
-              className={cn(
-                'size-3.5 transition-transform duration-200',
-                !sizingOpen && '-rotate-90',
-              )}
-              aria-hidden
-            />
-            Bet size
-          </CollapsibleTrigger>
-
-          {/*
-            The shortcuts stay out here rather than folding away with the
-            slider. Collapsed, they are the whole of the sizing control — half
-            pot and pot are the sizes most hands actually want, and hiding them
-            too would leave nothing to bet with but the minimum.
-          */}
-          <div className="flex flex-wrap gap-1.5">
-            {shortcuts.map(([label, value]) => (
-              <Button
-                key={label}
-                size="sm"
-                variant="outline"
+          {idle ? (
+            <span
+              className="text-muted-foreground mx-auto text-sm font-medium"
+              data-testid="action-status"
+            >
+              {status}
+            </span>
+          ) : (
+            <>
+              <CollapsibleTrigger
                 className={cn(
-                  'h-7 border-border px-2.5 text-xs font-normal',
-                  amount === value && 'border-brass/60 bg-brass/12 text-brass-lit',
+                  'inline-flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5',
+                  'text-xs font-normal text-muted-foreground',
+                  'transition-colors hover:border-brass/40 hover:bg-white/5 hover:text-foreground',
+                  'focus-visible:ring-2 focus-visible:ring-brass/50 focus-visible:outline-none',
                 )}
-                disabled={busy}
-                onClick={() => setChosen(value)}
+                data-testid="sizing-toggle"
               >
-                {label}
-              </Button>
-            ))}
-          </div>
+                <ChevronDown
+                  className={cn(
+                    'size-3.5 transition-transform duration-200',
+                    !sizingOpen && '-rotate-90',
+                  )}
+                  aria-hidden
+                />
+                Bet size
+              </CollapsibleTrigger>
+
+              <div className="flex flex-wrap gap-1.5">
+                {shortcuts.map(([label, value]) => (
+                  <Button
+                    key={label}
+                    size="sm"
+                    variant="outline"
+                    className={cn(
+                      'h-7 border-border px-2.5 text-xs font-normal',
+                      amount === value && 'border-brass/60 bg-brass/12 text-brass-lit',
+                    )}
+                    disabled={busy}
+                    onClick={() => setChosen(value)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/*

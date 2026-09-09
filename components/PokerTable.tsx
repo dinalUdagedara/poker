@@ -573,8 +573,8 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               </span>
 
               {/* Pot and board */}
-              <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-3">
-                <div className="flex flex-col items-center gap-1">
+              <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-2">
+                <div className="flex items-end justify-center gap-2">
                   {/*
                     The pot as chips, in the same denominations as everyone's
                     stack — which is the point of drawing it at all: a pile in the
@@ -585,40 +585,42 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     out and the award is carrying it to whoever won. Chips cannot
                     be in the middle and on their way to a seat at the same time.
                   */}
-                  <div className="flex h-10 items-end sm:h-12">
+                  <div className="flex h-9 items-end sm:h-11">
                     {!table.result && (
                       <ChipStack look="felt" size="lg" stack={table.pot} testId="pot-chips" />
                     )}
                   </div>
-                  <span className="text-[10px] font-semibold tracking-[0.22em] text-white/65 uppercase">
-                    pot
-                  </span>
-                  <span
-                    className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
-                    data-testid="pot"
-                  >
-                    {table.pot.toLocaleString()}
-                  </span>
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-[10px] font-semibold tracking-[0.22em] text-white/65 uppercase">
+                      pot
+                    </span>
+                    <span
+                      className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
+                      data-testid="pot"
+                    >
+                      {table.pot.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex gap-1.5" data-testid="board">
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const card = table.communityCards[i]
-                    return card ? (
-                      <PlayingCard
-                        key={i}
-                        card={card}
-                        size="md"
-                        dealDelay={i * 70}
-                        className="h-14 w-10 text-base sm:h-18 sm:w-13 sm:text-lg"
-                      />
-                    ) : (
-                      <div
-                        key={i}
-                        className="border-brass/20 h-14 w-10 rounded-lg border border-dashed sm:h-18 sm:w-13"
-                      />
-                    )
-                  })}
+                {/*
+                  Empty felt until a card is actually there. Drawing five wells
+                  preflop made the middle look unfinished; the row still holds
+                  a card's height so the flop does not shove the pot.
+                */}
+                <div
+                  className="flex min-h-14 items-end justify-center gap-1.5 sm:min-h-18"
+                  data-testid="board"
+                >
+                  {table.communityCards.map((card, i) => (
+                    <PlayingCard
+                      key={`${table.handNumber}-${i}`}
+                      card={card}
+                      size="md"
+                      dealDelay={i * 70}
+                      className="h-14 w-10 text-xs sm:h-18 sm:w-13 sm:text-sm"
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -784,8 +786,8 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 is the same height as the others. */}
             <Card
               className={cn(
-                'panel-milled border-border w-full min-w-0 justify-center gap-0 p-4 backdrop-blur',
-                sizingOpen ? 'min-h-52' : 'min-h-36',
+                'panel-milled border-border w-full min-w-0 justify-center gap-0 p-3 backdrop-blur',
+                sizingOpen ? 'min-h-44' : 'min-h-32',
               )}
             >
               {finished ? (
