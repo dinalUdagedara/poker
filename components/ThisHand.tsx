@@ -13,11 +13,24 @@ const CHIP =
 /**
  * The current hand, as columns, and a door into the archive.
  *
- * Two chips on the felt, left and right of the viewer — not a pair of text
- * links under the controls, which on a phone sat in the same band as the
- * hole cards. The log opens upward so it never covers the action dock.
+ * Two chips. On a phone they sit left and right of the viewer on the felt; on
+ * a desktop they sit under the console, next to the decision, not in the
+ * corners of the room.
  */
-export function ThisHand({ table, className }: { table: TableView; className?: string }) {
+export function ThisHand({
+  table,
+  className,
+  historyTestId = true,
+}: {
+  table: TableView
+  className?: string
+  /**
+   * The live log is only tagged on the copy the tests can see. A phone and a
+   * desktop each mount one of these, and two `history` ids would make a query
+   * for the log answer twice.
+   */
+  historyTestId?: boolean
+}) {
   const past = table.handNumber > 1 || table.result !== null
 
   return (
@@ -37,8 +50,15 @@ export function ThisHand({ table, className }: { table: TableView; className?: s
         </summary>
 
         <div
-          className="absolute bottom-full left-0 z-40 mb-2 w-[min(18.5rem,calc(100vw-1.5rem))] rounded-xl border border-white/15 bg-black/40 px-2 pt-2 pb-0.5 shadow-lg backdrop-blur-md sm:px-2.5 sm:pt-2.5"
-          data-testid="history"
+          className={cn(
+            // Always opens up from the chip. Opening down put the log under
+            // the console, off the bottom of a desktop window.
+            'absolute bottom-full left-0 z-50 mb-2',
+            'w-[min(20rem,calc(100vw-1.5rem))] sm:left-1/2 sm:w-[min(36rem,calc(100vw-3rem))] sm:-translate-x-1/2',
+            'max-h-[min(18rem,42vh)] overflow-auto',
+            'rounded-xl border border-white/15 bg-black/70 px-2 pt-2 pb-1 shadow-lg backdrop-blur-md sm:px-2.5 sm:pt-2.5',
+          )}
+          {...(historyTestId ? { 'data-testid': 'history' } : {})}
         >
           {table.handHistory.length === 0 ? (
             <p className="text-muted-foreground px-1 py-2 text-center text-xs">

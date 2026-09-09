@@ -472,7 +472,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
         The header is left out: it is chrome, and chrome does not get bigger
         because the monitor did.
       */}
-      <div className="table-scale flex min-h-0 flex-1 flex-col">
+      <div className="table-scale flex min-h-0 flex-1 flex-col sm:gap-10">
         {/*
           On a phone the leftover height is the table, not a hole above the
           controls. The oval fills this stage; the board stays in the middle of
@@ -698,11 +698,12 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
 
           <ThisHand
             table={table}
-            className="pointer-events-none absolute inset-x-2 bottom-1 z-35 sm:inset-x-6 sm:bottom-3"
+            historyTestId={false}
+            className="pointer-events-none absolute inset-x-2 bottom-1 z-35 sm:hidden"
           />
         </div>
 
-        <div className="flex w-full flex-col items-center sm:px-4 sm:pb-5">
+        <div className="flex w-full flex-col items-center sm:gap-5 sm:px-4 sm:pb-8">
           {error && (
             <p className="text-destructive px-3 pb-2 text-sm sm:px-0" role="alert" data-testid="error">
               {error}
@@ -825,6 +826,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 />
               )}
             </div>
+            <ThisHand
+              table={table}
+              className="hidden w-full max-w-2xl justify-center gap-3 sm:flex sm:pt-1"
+            />
           </div>
       </div>
     </main>
