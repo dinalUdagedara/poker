@@ -628,7 +628,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     // The felt dims flat rather than through a gradient. A soft
                     // one left the middle barely darker than the table, and the
                     // pot read straight through the word sitting on top of it.
-                    'rounded-[46%/54%] bg-[oklch(0.13_0.04_20/0.82)] backdrop-blur-[2px]',
+                    'rounded-[46%/54%] bg-[oklch(0.13_0.015_150/0.82)] backdrop-blur-[2px]',
                   )}
                   data-testid="win-banner"
                 >

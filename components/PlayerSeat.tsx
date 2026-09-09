@@ -113,7 +113,7 @@ export function PlayerSeat({
       >
         {isButton && (
           <span
-            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-linear-to-b from-white to-[oklch(0.88_0.01_80)] font-(family-name:--font-display) text-[11px] font-bold text-[oklch(0.2_0.02_30)] ring-2 ring-[oklch(0.145_0.035_32)]/80 shadow-md"
+            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-linear-to-b from-white to-[oklch(0.88_0.01_80)] font-(family-name:--font-display) text-[11px] font-bold text-[oklch(0.2_0.02_30)] ring-2 ring-[var(--rail-deep)]/80 shadow-md"
             title="dealer button"
             data-testid="dealer-button"
           >
@@ -207,11 +207,11 @@ export function PlayerSeat({
           )}
           data-testid={`callout-${player.id}`}
         >
-          <span className="relative block rounded-md border border-border bg-[oklch(0.25_0.036_24)] px-2 py-0.5 text-[11px] font-medium text-foreground shadow-lg">
+          <span className="relative block rounded-md border border-border bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground shadow-lg">
             {callout}
             <span
               className={cn(
-                'absolute size-2 rotate-45 bg-[oklch(0.25_0.036_24)]',
+                'absolute size-2 rotate-45 bg-secondary',
                 calloutSide === 'right'
                   ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-border'
                   : calloutSide === 'above'
