@@ -1,79 +1,108 @@
+import type { CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
-import { chipColumns, type Denomination } from '@/lib/poker/chips'
-
-/**
- * Chip colours by value, following the casino convention players already read:
- * white ones, red fives, green twenty-fives, black hundreds, purple five
- * hundreds, yellow thousands. The face is a lighter inlay, as a real chip has.
- */
-const CHIP: Record<Denomination, { rim: string; face: string }> = {
-  1000: { rim: 'from-yellow-300 to-yellow-500 border-yellow-800', face: 'bg-yellow-50' },
-  500: { rim: 'from-violet-400 to-violet-600 border-violet-900', face: 'bg-violet-50' },
-  100: { rim: 'from-neutral-700 to-neutral-900 border-black', face: 'bg-neutral-300' },
-  25: { rim: 'from-sky-400 to-sky-600 border-sky-900', face: 'bg-sky-50' },
-  5: { rim: 'from-red-500 to-red-700 border-red-900', face: 'bg-red-50' },
-  1: { rim: 'from-white to-neutral-300 border-neutral-500', face: 'bg-white' },
-}
+import { chipColumns } from '@/lib/poker/chips'
 
 /** Chips drawn per column, however many the player actually holds of it. */
-const COLUMN_HEIGHT = 5
-/** How much of a chip stays visible once the chip above it overlaps. */
-const RIM = 4
-const CHIP_HEIGHT = 9
+const STACK_HEIGHT = 5
+/** How much of an edge-on chip stays visible once the one above it overlaps. */
+const STACK_RIM = 4
+const STACK_CHIP = 11
+
+/** Face-on piles stay shorter: the top disc is the whole story. */
+const FELT_HEIGHT = 3
 
 /**
- * A player's chips, beside their seat.
+ * A player's chips.
  *
- * Purely decorative: the exact number sits next to it on the nameplate, so a
- * screen reader gains nothing from the discs and is spared them.
+ * `stack` is the edge-on pile beside a nameplate, where height is how deep
+ * someone is sitting. `felt` is the same denominations seen from above — clay
+ * discs with spots and a short wall — which is how chips read once they are
+ * pushed out as a wager or sitting in the pot.
+ *
+ * Purely decorative: the exact number sits next to it, so a screen reader
+ * gains nothing from the discs and is spared them.
  */
 export function ChipStack({
   stack,
   testId,
   className,
+  look = 'stack',
+  size = 'sm',
 }: {
   stack: number
   testId?: string
   className?: string
+  look?: 'stack' | 'felt'
+  /** Felt piles in the pot are a size up from a wager at a seat. */
+  size?: 'sm' | 'lg'
 }) {
   const columns = chipColumns(stack)
   if (columns.length === 0) return null
 
+  if (look === 'felt') {
+    return (
+      <span
+        className={cn('chip-pile flex items-end gap-0.5', size === 'lg' && 'chip-pile-lg', className)}
+        data-testid={testId}
+        aria-hidden
+      >
+        {columns.map(({ value, count }) => {
+          const drawn = Math.min(count, FELT_HEIGHT)
+          return (
+            <span
+              key={value}
+              className="relative block"
+              style={
+                {
+                  width: `calc(var(--chip-size) + ${drawn > 1 ? 3 : 0}px)`,
+                  height: `calc(var(--chip-size) + ${drawn - 1} * var(--chip-rise) + var(--chip-thick))`,
+                } as CSSProperties
+              }
+            >
+              {Array.from({ length: drawn }).map((_, i) => (
+                <span
+                  key={i}
+                  className="clay-chip"
+                  style={{
+                    bottom: `calc(${i} * var(--chip-rise))`,
+                    left: i ? 3 : 0,
+                    zIndex: i,
+                  }}
+                  data-chip={value}
+                />
+              ))}
+            </span>
+          )
+        })}
+      </span>
+    )
+  }
+
   return (
-    // Columns sit on a shared baseline, so a short one reads as a smaller pile
-    // beside a tall one rather than as a stack floating off the felt.
     <span className={cn('flex items-end gap-0.75', className)} data-testid={testId} aria-hidden>
       {columns.map(({ value, count }) => {
-        const drawn = Math.min(count, COLUMN_HEIGHT)
-        const { rim, face } = CHIP[value]
+        const drawn = Math.min(count, STACK_HEIGHT)
 
         return (
           <span
             key={value}
             className="relative block w-4.5"
-            style={{ height: (drawn - 1) * RIM + CHIP_HEIGHT }}
+            style={{ height: (drawn - 1) * STACK_RIM + STACK_CHIP + 2 }}
           >
             {Array.from({ length: drawn }).map((_, i) => (
               /*
                * Stacked by hand rather than by margins, because paint order is
-               * the whole illusion: each chip sits RIM higher than the one below
-               * and comes later in the DOM, so it covers all but that chip's
-               * rim. What is left is a run of rims under one full face on top,
-               * which is what a stack of chips looks like.
+               * the whole illusion: each chip sits a rim higher than the one
+               * below and comes later in the DOM, so it covers all but that
+               * chip's wall. What is left is a run of rims under one full
+               * face, which is what a stack of chips looks like from the side.
                */
               <span
                 key={i}
-                className={cn(
-                  'absolute inset-x-0 rounded-full border bg-linear-to-b shadow-sm',
-                  rim,
-                )}
-                style={{ bottom: i * RIM, height: CHIP_HEIGHT }}
+                className="chip-edge"
+                style={{ bottom: i * STACK_RIM, zIndex: i }}
                 data-chip={value}
-              >
-                <span
-                  className={cn('absolute inset-x-0.75 top-[1.5px] h-0.75 rounded-full opacity-80', face)}
-                />
-              </span>
+              />
             ))}
           </span>
         )
