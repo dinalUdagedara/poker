@@ -8,11 +8,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { seatName } from '@/lib/names'
-import { positionsOf, potOf, sectionsOf, type HandView } from '@/lib/poker/archive'
-import { calloutText } from '@/lib/poker/callouts'
+import { potOf, type HandView } from '@/lib/poker/archive'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
-import { PlayerAvatar } from './PlayerAvatar'
 import { PlayingCard } from './PlayingCard'
+import { HandStreets } from './HandStreets'
 
 /** The label above a group of things, in the voice the guide uses. */
 const LABEL = 'text-[10px] font-medium tracking-wide text-white/45 uppercase'
@@ -199,56 +198,10 @@ function ShownHands({ hand, winners }: { hand: HandView; winners: Set<string> })
  * stretched across the whole panel.
  */
 function Streets({ hand }: { hand: HandView }) {
-  const sections = sectionsOf(hand.handHistory, hand.communityCards.length)
-  const positions = positionsOf(hand)
-
   return (
     <Card className="panel-milled border-border backdrop-blur">
       <CardContent>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {sections.map((section, i) => (
-            <div
-              key={`${section.street}-${i}`}
-              className="panel-well border-border flex w-36 shrink-0 flex-col rounded-lg border sm:w-auto sm:max-w-48 sm:min-w-0 sm:flex-1"
-            >
-              <div className="border-border flex flex-col items-center gap-0.5 border-b px-2 py-2">
-                <span className={LABEL}>{section.label}</span>
-                <span className="font-mono text-xs tabular-nums text-white/70">
-                  {section.potBefore.toLocaleString()}
-                </span>
-              </div>
-
-              <ol className="flex flex-col gap-1.5 p-1.5">
-                {section.entries.map((entry, j) => (
-                  <li
-                    key={j}
-                    className="panel-milled flex items-center gap-1.5 rounded-md px-1.5 py-1"
-                  >
-                    <PlayerAvatar seed={entry.playerId} className="size-5" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-1">
-                        <span className="truncate text-[10px] text-white/45">
-                          {seatName(entry.playerId, hand.names, hand.viewerId)}
-                        </span>
-                        {positions.has(entry.playerId) && (
-                          <span className="text-[9px] font-medium tracking-wide text-white/30">
-                            {positions.get(entry.playerId)}
-                          </span>
-                        )}
-                      </div>
-                      {/* The same phrasing the live table puts in the bubble at
-                          a seat, so a hand reads the same way afterwards as it
-                          did at the time. */}
-                      <p className="truncate text-[11px] leading-tight text-white">
-                        {calloutText(entry, hand.smallBlind, hand.bigBlind)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
+        <HandStreets hand={hand} />
       </CardContent>
     </Card>
   )

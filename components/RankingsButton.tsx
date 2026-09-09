@@ -3,6 +3,7 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { Layers, X } from 'lucide-react'
 import { HandRankings } from '@/components/HandRankings'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 /**
  * What beats what, without leaving the hand.
@@ -53,9 +54,14 @@ export function RankingsButton() {
             </Dialog.Close>
           </div>
 
-          <div className="overflow-y-auto px-4 py-2">
-            <HandRankings compact />
-          </div>
+          {/* `min-h-0` so the scroll area gives way to the popup's max height
+              rather than pushing past it: without it a flex child refuses to
+              shrink below its content. */}
+          <ScrollArea className="min-h-0 **:data-[slot=scroll-area-thumb]:bg-white/25">
+            <div className="px-4 py-2 pr-3.5">
+              <HandRankings compact />
+            </div>
+          </ScrollArea>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

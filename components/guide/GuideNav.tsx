@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { GUIDE_PAGES } from '@/components/guide/pages'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
 /**
@@ -16,13 +17,13 @@ export function GuideNav() {
   const pathname = usePathname()
 
   return (
-    <nav
-      aria-label="Guide sections"
-      // Scrolls rather than wraps: five pills wrapping to two rows on a phone
-      // reads as two different navigations.
-      className="-mx-4 overflow-x-auto px-4 pb-1"
+    // Scrolls rather than wraps: five pills wrapping to two rows on a phone
+    // reads as two different navigations.
+    <ScrollArea
+      render={<nav aria-label="Guide sections" />}
+      className="-mx-4 **:data-[slot=scroll-area-thumb]:bg-white/25"
     >
-      <ul className="flex w-max gap-1.5">
+      <ul className="flex w-max gap-1.5 px-4 pb-2.5">
         {GUIDE_PAGES.map((page) => {
           const active = pathname === page.href
           return (
@@ -43,6 +44,6 @@ export function GuideNav() {
           )
         })}
       </ul>
-    </nav>
+    </ScrollArea>
   )
 }

@@ -195,7 +195,7 @@ test.describe('seat callouts', () => {
     // the street turns over and callouts clear, which is intended but makes the
     // bubble a race. The history is the permanent record of the same number.
     await expect(page.getByTestId('history')).toContainText(
-      new RegExp(`You (raises to|bets) ${level}`),
+      new RegExp(`(Bet|Raise to) ${level}`),
     )
   })
 
@@ -520,7 +520,7 @@ test('offers a raise amount the server will accept', async ({ page }) => {
 
   await expect(page.getByTestId('error')).toHaveCount(0)
   // The wager landed, so it shows up in the hand history.
-  await expect(page.getByTestId('history')).toContainText(/You (raises to|bets)/)
+  await expect(page.getByTestId('history')).toContainText(/Bet|Raise to/)
   expect(label).toMatch(/\d/)
 })
 
