@@ -92,3 +92,21 @@ export function sanitiseName(raw: unknown): string | null {
 export function nameFor(playerId: string, chosen: unknown): string {
   return sanitiseName(chosen) ?? generatedName(playerId)
 }
+
+/**
+ * What to call a seat on screen.
+ *
+ * The viewer is "You" wherever they appear: a table that named them from the
+ * outside would read as a report on somebody else's game. Bots are numbered
+ * from the ids the engine gave them, and an id matching neither is shown as it
+ * is — a table dealt before names existed looks ugly that way, which is a great
+ * deal better than looking broken.
+ */
+export function seatName(
+  id: string,
+  names: Record<string, string>,
+  viewerId: string | null,
+): string {
+  if (id === viewerId) return 'You'
+  return names[id] ?? id.replace(/^bot(\d+)$/, 'Bot $1')
+}

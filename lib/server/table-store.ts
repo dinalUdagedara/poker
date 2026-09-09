@@ -24,6 +24,7 @@ import {
 } from '../poker/lifecycle'
 import { generatedName, nameFor } from '../names'
 import { botNames } from './bot-names'
+import type { HandView } from '../poker/archive'
 import { redactFor } from '../poker/redact'
 import { applyAction, legalActions, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
@@ -39,7 +40,7 @@ import {
 // The outcome travels with the state so the interface never offers an action
 // the server would refuse. The type lives in lib/poker/lifecycle so client
 // components can name it without importing this server-only module.
-export type { AnyTableView, RoomSummary, RoomView, TableUpdate, TableView }
+export type { AnyTableView, HandView, RoomSummary, RoomView, TableUpdate, TableView }
 
 export const HUMAN_ID = 'you'
 
@@ -475,6 +476,47 @@ const MAX_ATTEMPTS = 4
 type Change<T> = { table: StoredTable | null; result: T }
 
 /**
+ * File the hand this write just finished, if it finished one.
+ *
+ * Here rather than in the handful of callers that can end a hand, because a
+ * hand does not only end when somebody acts: a player who runs their clock out
+ * is folded by whichever request happened to look at the table next, and that
+ * request is nobody's idea of a place to remember about history. Every change
+ * lands here, so this is the one place that sees them all.
+ *
+ * After the write, never before it. A write can lose its version check and be
+ * retried, and a hand filed on the attempt that lost would be a hand recorded
+ * from a state the table never actually reached.
+ */
+async function fileFinishedHand(tableId: string, before: StoredTable, after: StoredTable) {
+  if (after.stage !== 'playing' || !after.state.result) return
+
+  // Only the write that ends a hand files it. A finished hand sits on the table
+  // until somebody deals the next one, and everything that happens meanwhile —
+  // a rematch room being claimed, a seat being renewed — writes the table again
+  // with the same settled hand still on it.
+  const settledAlready =
+    before.stage === 'playing' &&
+    before.state.handNumber === after.state.handNumber &&
+    before.state.result !== null
+  if (settledAlready) return
+
+  try {
+    await storage.archive(tableId, {
+      endedAt: Date.now(),
+      names: after.names,
+      // What is left of the deck is of no interest to a hand that is over, and
+      // an archive is a copy that outlives the moment anyone was watching it.
+      state: { ...after.state, deck: [], burned: [] },
+    })
+  } catch {
+    // History is a convenience; the hand is not. A player whose action cannot
+    // be filed has still played it, and failing their request to say so would
+    // trade the game for the record of it.
+  }
+}
+
+/**
  * Change a table, safely, against everyone else trying to do the same.
  *
  * Read, decide, write only if nothing moved underneath — and if it did, read
@@ -510,6 +552,7 @@ async function mutate<T>(
     if (table === null) return result
 
     if (await storage.write(tableId, table, lifetimeOf(table), record.version, options.announce)) {
+      await fileFinishedHand(tableId, current, table)
       return result
     }
   }
@@ -783,6 +826,33 @@ export async function findTable(
   }
 
   return anyViewOf(tableId, record.table, playerId)
+}
+
+/**
+ * The hands this table has already played, oldest first.
+ *
+ * Redacted per hand and per viewer, exactly as a live table is. A hand won
+ * without a showdown showed nobody anything at the time and shows nobody
+ * anything now — `redactFor` reads that from the result it is handed, so the
+ * history inherits the rule rather than restating it.
+ *
+ * The seat comes from the live table and not from the archived hand: it answers
+ * "who is asking", and that is only knowable from the table they still hold a
+ * seat at. Somebody who followed the link without a seat reads the history as a
+ * spectator, which is the same view they get of the table itself.
+ */
+export async function listHands(tableId: string, playerId: string | null): Promise<HandView[]> {
+  const record = await storage.read(tableId)
+  if (!record) throw new TableError('No such table', 404)
+
+  const seat = record.table.stage === 'playing' ? seatOf(record.table, playerId) : null
+  const hands = await storage.archived(tableId)
+
+  return hands.map((hand) => ({
+    ...redactFor(hand.state, seat),
+    endedAt: hand.endedAt,
+    names: hand.names,
+  }))
 }
 
 /**

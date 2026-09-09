@@ -20,6 +20,7 @@ import { SoundToggle } from './SoundToggle'
 import { getAudio } from '@/lib/audio'
 import { useTableStream } from '@/lib/use-table-stream'
 import { useTableSounds } from '@/lib/use-table-sounds'
+import { seatName } from '@/lib/names'
 import { annotateHistory, calloutsFor } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import {
@@ -36,18 +37,6 @@ import {
  * round of five opponents does not become a wait. Real rooms sit in this range.
  */
 const STEP_MS = 900
-
-/**
- * What to call a seat.
- *
- * People are named; bots are numbered from their id. Falling back to the raw id
- * matters for a table dealt before names existed, where showing `seat1` is ugly
- * but showing nothing would be broken.
- */
-function seatName(id: string, names: Record<string, string>, viewerId: string | null): string {
-  if (id === viewerId) return 'You'
-  return names[id] ?? id.replace(/^bot(\d+)$/, 'Bot $1')
-}
 
 const ACTION_VERBS: Record<string, string> = {
   'post-blind': 'posts',
@@ -922,29 +911,45 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             </Card>
           </div>
 
-          {/* Action log */}
-          <details className="w-full max-w-2xl">
-            <summary className="text-muted-foreground cursor-pointer text-xs select-none">
-              Hand history
-            </summary>
-            <ol
-              className="panel-well border-border text-muted-foreground mt-2 max-h-36 overflow-y-auto rounded-lg border p-3 font-mono text-[11px] leading-relaxed"
-              data-testid="history"
-            >
-              {annotateHistory(table.handHistory).map((entry, i) => (
-                <li key={i}>
-                  <span className="text-neutral-600">{entry.street}</span>{' '}
-                  <span className="text-neutral-300">
-                    {seatName(entry.playerId, table.names, table.viewerId)}
-                  </span>{' '}
-                  {ACTION_VERBS[entry.type] ?? entry.type}
-                  {/* The level, not the chips added: "raises to 300" was reading
-                      as the 250 that left the stack. */}
-                  {entry.level !== null && ` ${entry.level.toLocaleString()}`}
-                </li>
-              ))}
-            </ol>
-          </details>
+          {/* Action log, and the way back to the ones already played */}
+          <div className="flex w-full max-w-2xl items-start justify-between gap-3">
+            <details className="min-w-0 flex-1">
+              <summary className="text-muted-foreground cursor-pointer text-xs select-none">
+                This hand
+              </summary>
+              <ol
+                className="panel-well border-border text-muted-foreground mt-2 max-h-36 overflow-y-auto rounded-lg border p-3 font-mono text-[11px] leading-relaxed"
+                data-testid="history"
+              >
+                {annotateHistory(table.handHistory).map((entry, i) => (
+                  <li key={i}>
+                    <span className="text-neutral-600">{entry.street}</span>{' '}
+                    <span className="text-neutral-300">
+                      {seatName(entry.playerId, table.names, table.viewerId)}
+                    </span>{' '}
+                    {ACTION_VERBS[entry.type] ?? entry.type}
+                    {/* The level, not the chips added: "raises to 300" was reading
+                        as the 250 that left the stack. */}
+                    {entry.level !== null && ` ${entry.level.toLocaleString()}`}
+                  </li>
+                ))}
+              </ol>
+            </details>
+
+            {/*
+              Only once there is something behind us. On the first hand of a
+              table this link goes to an empty page, and an affordance that
+              leads nowhere is worse than no affordance at all.
+            */}
+            {(table.handNumber > 1 || table.result !== null) && (
+              <Link
+                href={`/table/${tableId}/hands`}
+                className="text-muted-foreground shrink-0 text-xs underline-offset-4 hover:text-white hover:underline"
+              >
+                Past hands
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </main>

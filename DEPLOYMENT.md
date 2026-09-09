@@ -68,13 +68,25 @@ backends implement this: Redis with `SET … EX` and an `EXPIRE` refresh on read
 the in-memory map with an expiry check on read and a sweep on write. Reads count
 as use, because someone sitting on the table page without acting is still there.
 
-Two other keys exist. `rooms:<environment>` is a set holding the ids of rooms
+Three other keys exist. `rooms:<environment>` is a set holding the ids of rooms
 that asked to be listed publicly — ids only, because seat counts kept beside
 them would be a second copy of the truth and would drift. It is pruned as it is
 read, so nothing sweeps it. And `changes:<environment>` is a pub/sub channel,
 not a stored key: every write publishes the id of the table that changed, and
 the open streams on every instance hear it. Nothing is persisted there and
 nothing needs clearing.
+
+`hands:<environment>:<uuid>` is a hash holding the finished hands at one table,
+a field per hand number, which is what the hand history page reads. It expires
+on the table's own clock and is refreshed the same way, so a table's history
+lives exactly as long as the table does and there is nothing extra to collect.
+At most `ARCHIVE_LIMIT` hands are kept — the oldest field is deleted as the
+newest is written, so it cannot grow without bound however long a game runs.
+Roughly 1 KB per hand, so a long session is tens of kilobytes.
+
+Keeping history past the table it belongs to would be a different feature: the
+entry point is the table page, there are no accounts to hang a hand on, and
+nothing here is written anywhere that outlives a Redis key.
 
 That channel is why a second Redis connection is opened — a connection in
 subscriber mode can run no other commands. It is created on first use and held
