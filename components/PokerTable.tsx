@@ -91,8 +91,11 @@ function seatPosition(index: number, count: number): { left: number; top: number
  * centre, whose bubble would drop straight onto the pot; those get pushed out
  * to the side instead. Only odd-numbered fields put anyone there.
  */
-function calloutSide(left: number): 'right' | 'below' {
-  return Math.abs(left - 50) < 18 ? 'right' : 'below'
+function calloutSide(left: number): 'right' | 'below' | 'above' {
+  // Centre of the arc: a bubble underneath lands on the pot.
+  if (Math.abs(left - 50) < 18) return 'right'
+  // Left and right rails: underneath is the board. Hang it over the hole cards.
+  return 'above'
 }
 
 /**
@@ -329,6 +332,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
 
   const you = table.players.find((p) => p.id === table.viewerId)
   const opponents = table.players.filter((p) => p.id !== table.viewerId)
+  // Four or five opponents put seats on both rails, in the same band as a
+  // five-card board. Those tables keep the board narrower and the seats
+  // smaller so Hen and Yolanthe are not sitting under the ace and the seven.
+  const crowded = opponents.length >= 4
   const callouts = calloutsFor(table)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
@@ -547,20 +554,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
         The header is left out: it is chrome, and chrome does not get bigger
         because the monitor did.
       */}
-      <div className="table-scale flex flex-1 flex-col">
-        <div className="flex flex-1 items-center justify-center px-2 pb-1 sm:px-4">
-          {/*
-            Shallower than it is wide, like a real table seen from the near
-            edge. A taller ellipse leaves a large empty apron below the board.
-
-            Except on a phone, where 2:1 is what breaks the table. The felt is
-            only as tall as half its width, so at 390px it is 159px from rail to
-            rail — and six seats, each a stack of cards over a plate over a
-            wager row, cannot be spread across that without running into each
-            other. The ellipse gets deeper as the screen gets narrower, which is
-            the one dimension there is any room in.
-          */}
-          <div className="table-rail relative aspect-[1.05/1] w-full max-w-3xl rounded-[46%/54%] p-2 sm:aspect-2/1 sm:p-3.5">
+      <div className="table-scale flex min-h-0 flex-1 flex-col">
+        {/*
+          On a phone the leftover height is the table, not a hole above the
+          controls. The oval fills this stage; the board stays in the middle of
+          it. Desktop keeps the shallow 2:1 felt.
+        */}
+        <div className="relative min-h-0 flex-1 sm:flex sm:flex-col sm:items-center sm:justify-center sm:px-4">
+          <div className="table-rail absolute inset-x-1.5 top-0 bottom-[6.75rem] rounded-[46%/54%] p-2 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:w-full sm:max-w-3xl sm:p-3.5">
             <div className="table-felt border-brass/15 relative size-full rounded-[46%/54%] border">
               {/* The house mark printed on the cloth. Barely there, and never
                   read aloud — it sits below the board, on the apron of felt
@@ -573,8 +574,13 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               </span>
 
               {/* Pot and board */}
-              <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-3">
-                <div className="flex flex-col items-center gap-1">
+              <div
+                className={cn(
+                  'absolute top-1/2 left-1/2 z-20 flex w-max -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:max-w-none sm:gap-2',
+                  crowded ? 'max-w-[52%]' : 'max-w-[72%]',
+                )}
+              >
+                <div className="flex items-end justify-center gap-2">
                   {/*
                     The pot as chips, in the same denominations as everyone's
                     stack — which is the point of drawing it at all: a pile in the
@@ -585,40 +591,45 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     out and the award is carrying it to whoever won. Chips cannot
                     be in the middle and on their way to a seat at the same time.
                   */}
-                  <div className="flex h-10 items-end sm:h-12">
+                  <div className="flex h-9 items-end sm:h-11">
                     {!table.result && (
                       <ChipStack look="felt" size="lg" stack={table.pot} testId="pot-chips" />
                     )}
                   </div>
-                  <span className="text-[10px] font-semibold tracking-[0.22em] text-white/65 uppercase">
-                    pot
-                  </span>
-                  <span
-                    className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
-                    data-testid="pot"
-                  >
-                    {table.pot.toLocaleString()}
-                  </span>
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-[10px] font-semibold tracking-[0.22em] text-white/65 uppercase">
+                      pot
+                    </span>
+                    <span
+                      className="font-mono text-2xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
+                      data-testid="pot"
+                    >
+                      {table.pot.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex gap-1.5" data-testid="board">
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const card = table.communityCards[i]
-                    return card ? (
-                      <PlayingCard
-                        key={i}
-                        card={card}
-                        size="md"
-                        dealDelay={i * 70}
-                        className="h-14 w-10 text-base sm:h-18 sm:w-13 sm:text-lg"
-                      />
-                    ) : (
-                      <div
-                        key={i}
-                        className="border-brass/20 h-14 w-10 rounded-lg border border-dashed sm:h-18 sm:w-13"
-                      />
-                    )
-                  })}
+                {/*
+                  Empty felt until a card is actually there. Drawing five wells
+                  preflop made the middle look unfinished; the row still holds
+                  a card's height so the flop does not shove the pot.
+                */}
+                <div
+                  className="flex min-h-16 items-end justify-center gap-1 sm:min-h-18 sm:gap-1.5"
+                  data-testid="board"
+                >
+                  {table.communityCards.map((card, i) => (
+                    <PlayingCard
+                      key={`${table.handNumber}-${i}`}
+                      card={card}
+                      size="md"
+                      dealDelay={i * 70}
+                      className={cn(
+                        'sm:h-18 sm:w-13 sm:text-sm',
+                        crowded ? 'h-12 w-8 text-[10px]' : 'h-16 w-11 text-xs',
+                      )}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -714,13 +725,21 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 still the middle of the felt: the chips in flight below are laid
                 out in this same band, and they finish their journey at the pot.
               */}
-              <div className="absolute inset-x-[7%] inset-y-[10%] sm:inset-0">
+              <div
+                className={cn(
+                  'absolute sm:inset-0',
+                  crowded ? 'inset-x-[1%] inset-y-[8%]' : 'inset-x-[7%] inset-y-[10%]',
+                )}
+              >
               {opponents.map((player, i) => {
                 const { left, top } = seatPosition(i, opponents.length)
                 return (
                   <div
                     key={player.id}
-                    className="absolute -translate-x-1/2 -translate-y-1/2"
+                    className={cn(
+                      'absolute -translate-x-1/2 -translate-y-1/2',
+                      crowded ? 'max-sm:scale-75' : 'max-sm:scale-90',
+                    )}
                     style={{ left: `${left}%`, top: `${top}%` }}
                   >
                     <PlayerSeat
@@ -731,7 +750,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                       isButton={table.buttonSeat === player.seat}
                       isWinner={winners.has(player.id)}
                       handOver={Boolean(table.result)}
-                      compact={opponents.length >= 4}
+                      compact
                       callout={callouts.get(player.id)}
                       calloutSide={calloutSide(left)}
                       calloutAlign={calloutAlign(left)}
@@ -744,11 +763,9 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               </div>
             </div>
           </div>
-        </div>
 
-        {/* The viewer sits at the near edge, with the action bar directly below */}
-        <div className="flex flex-col items-center gap-3 px-4 pb-5">
-          {you && (
+        {you && (
+          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center sm:relative sm:bottom-auto sm:mt-1">
             <PlayerSeat
               player={you}
               viewerId={table.viewerId}
@@ -757,13 +774,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               isButton={table.buttonSeat === you.seat}
               isWinner={winners.has(you.id)}
               handOver={Boolean(table.result)}
-              callout={callouts.get(you.id)}
-              calloutSide="right"
               bigBlind={table.bigBlind}
               hero
             />
-          )}
+          </div>
+        )}
+        </div>
 
+        <div className="flex w-full flex-col items-center gap-2 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:gap-3 sm:px-4 sm:pb-5">
           {error && (
             <p className="text-destructive text-sm" role="alert" data-testid="error">
               {error}
@@ -784,8 +802,8 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 is the same height as the others. */}
             <Card
               className={cn(
-                'panel-milled border-border w-full min-w-0 justify-center gap-0 p-4 backdrop-blur',
-                sizingOpen ? 'min-h-52' : 'min-h-36',
+                'panel-milled border-border w-full min-w-0 justify-center gap-0 p-2 backdrop-blur sm:p-3',
+                sizingOpen ? 'min-h-40 sm:min-h-44' : 'min-h-[6.5rem] sm:min-h-32',
               )}
             >
               {finished ? (
