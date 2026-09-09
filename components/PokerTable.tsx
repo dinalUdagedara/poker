@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { Badge } from '@/components/ui/badge'
 import { ChipStack } from './ChipStack'
 import { Logo } from './Logo'
+import { TableBody } from './TableBody'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -492,8 +493,9 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             width it is given and then gives it back if the stage is too short
             to hold the matching height.
           */}
-          <div className="table-rail absolute inset-x-1.5 top-1 bottom-2 max-sm:bottom-23 rounded-[46%/54%] p-2 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-5xl sm:p-3.5">
-            <div className="table-felt border-brass/15 relative size-full rounded-[46%/54%] border">
+          <div className="table-stage absolute inset-x-1.5 top-1 bottom-2 max-sm:bottom-23 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-5xl">
+            <TableBody />
+            <div className="table-felt">
               {/* The house mark printed on the cloth. Barely there, and never
                   read aloud — it sits below the board, on the apron of felt
                   between the last community card and the near rail. */}

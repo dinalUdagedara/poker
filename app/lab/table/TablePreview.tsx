@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ChipStack } from '@/components/ChipStack'
+import { TableBody } from '@/components/TableBody'
 import { cn } from '@/lib/utils'
 import {
   arcSeats,
@@ -122,16 +123,9 @@ export function TablePreview() {
           it. Desktop keeps the shallow landscape ellipse.
         */}
         <div className="relative min-h-0 flex-1 sm:flex sm:flex-col sm:items-center sm:justify-center sm:px-4">
-          <div
-            className={cn(
-              'absolute inset-x-1.5 top-2 bottom-2 rounded-[46%/54%] p-3',
-              // Capped on height as well as width, so a short window shrinks
-              // the felt instead of running it off the bottom of the screen.
-              'sm:relative sm:inset-auto sm:my-8 sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-6xl sm:p-4',
-              styles.rail,
-            )}
-          >
-            <div className={cn('relative size-full rounded-[46%/54%]', styles.felt)}>
+          <div className="table-stage absolute inset-x-1.5 top-2 bottom-2 sm:relative sm:inset-auto sm:my-8 sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-6xl">
+            <TableBody />
+            <div className="table-felt">
               {/* Pot and board, dead centre. */}
               <div className="absolute top-1/2 left-1/2 z-20 flex w-max -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:gap-2">
                 {o.potPill ? (
