@@ -363,7 +363,9 @@
 }
 
 .table-body,
-.table-body img {
+.table-body img,
+.table-win-veil,
+.table-win-veil img {
   position: absolute;
   inset: 0;
   display: block;
@@ -373,8 +375,12 @@
   pointer-events: none;
 }
 
-.table-body img {
+.table-body img,
+.table-win-veil img {
   object-fit: fill;
+}
+
+.table-body img {
   /* The still's floor shadow went with the JPEG fill. Drop-shadow follows
      the cut-out oval, so the table still sits on the room. */
   filter: drop-shadow(0 18px 28px oklch(0 0 0 / 0.55));
@@ -390,6 +396,16 @@
   .table-felt {
     inset: 8.5% 6%;
   }
+}
+
+/*
+ * Winning dims the same bitmap as the table, flattened to black. Masking a
+ * PNG of a dark rail treated luminance as the cut and left a green fringe
+ * around the oval; painting this copy in the same box cannot miss.
+ */
+.table-win-veil img {
+  filter: brightness(0);
+  opacity: 0.72;
 }
 
 /*
