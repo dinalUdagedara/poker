@@ -60,7 +60,7 @@ function seatPosition(index: number, count: number): { left: number; top: number
      * all of the room between them is vertical — shrinking this to keep the top
      * seat clear of the header closed that gap and overlapped them instead.
      */
-    top: 50 + 44 * Math.sin(radians),
+    top: 50 + 46 * Math.sin(radians),
   }
 }
 
@@ -756,6 +756,11 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               isWinner={winners.has(you.id)}
               handOver={Boolean(table.result)}
               bigBlind={table.bigBlind}
+              callout={callouts.get(you.id)}
+              // Upward is the only direction with room: the console is directly
+              // beneath the hero, and on a phone the seat is already on the
+              // bottom edge of the screen.
+              calloutSide="above"
               hero
             />
           </div>
