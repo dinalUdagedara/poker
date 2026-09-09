@@ -632,40 +632,81 @@ p {
  * match a screen.
  */
 .chip {
+  --chip-clay: oklch(0.96 0.012 85);
+  --chip-clay-deep: oklch(0.78 0.02 80);
+  --chip-spot: oklch(0.52 0.18 25);
   display: inline-block;
   width: 22px;
   height: 22px;
   border-radius: var(--radius-full);
-  border: 1px solid oklch(0 0 0 / 0.55);
-  box-shadow: var(--shadow-sm);
   position: relative;
+  background:
+    radial-gradient(circle at 32% 28%, oklch(1 0 0 / 0.38), transparent 42%),
+    var(--chip-clay);
+  border: 1px solid color-mix(in oklch, var(--chip-clay-deep) 75%, black);
+  box-shadow:
+    0 1px 0 var(--chip-clay-deep),
+    0 2px 0 color-mix(in oklch, var(--chip-clay-deep) 70%, black),
+    0 3px 5px oklch(0 0 0 / 0.45);
+}
+
+.chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-conic-gradient(
+    from 11.25deg,
+    var(--chip-spot) 0deg 15deg,
+    transparent 15deg 45deg
+  );
+  -webkit-mask-image: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3.5px),
+    #000 calc(100% - 2.5px)
+  );
+  mask-image: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 2.5px));
+  pointer-events: none;
 }
 
 .chip::after {
   content: '';
   position: absolute;
-  inset: 4px;
-  border-radius: var(--radius-full);
-  border: 1px dashed oklch(1 0 0 / 0.5);
+  inset: 22%;
+  border-radius: inherit;
+  border: 1px solid color-mix(in oklch, var(--chip-spot) 55%, transparent);
+  pointer-events: none;
 }
 
 .chip-1 {
-  background: linear-gradient(180deg, oklch(1 0 0), oklch(0.86 0 0));
+  --chip-clay: oklch(0.96 0.012 85);
+  --chip-clay-deep: oklch(0.78 0.02 80);
+  --chip-spot: oklch(0.52 0.18 25);
 }
 .chip-5 {
-  background: linear-gradient(180deg, oklch(0.6 0.2 25), oklch(0.46 0.17 25));
+  --chip-clay: oklch(0.55 0.2 25);
+  --chip-clay-deep: oklch(0.38 0.16 25);
+  --chip-spot: oklch(0.97 0.02 90);
 }
 .chip-25 {
-  background: linear-gradient(180deg, oklch(0.66 0.15 240), oklch(0.5 0.14 245));
+  --chip-clay: oklch(0.62 0.14 240);
+  --chip-clay-deep: oklch(0.42 0.12 245);
+  --chip-spot: oklch(0.97 0.02 90);
 }
 .chip-100 {
-  background: linear-gradient(180deg, oklch(0.34 0.01 30), oklch(0.19 0.008 30));
+  --chip-clay: oklch(0.28 0.012 30);
+  --chip-clay-deep: oklch(0.14 0.01 30);
+  --chip-spot: oklch(0.92 0.03 90);
 }
 .chip-500 {
-  background: linear-gradient(180deg, oklch(0.62 0.19 300), oklch(0.46 0.17 300));
+  --chip-clay: oklch(0.55 0.18 300);
+  --chip-clay-deep: oklch(0.38 0.15 300);
+  --chip-spot: oklch(0.97 0.02 90);
 }
 .chip-1000 {
-  background: linear-gradient(180deg, oklch(0.88 0.15 92), oklch(0.72 0.15 88));
+  --chip-clay: oklch(0.82 0.15 90);
+  --chip-clay-deep: oklch(0.62 0.14 85);
+  --chip-spot: oklch(0.98 0.04 95);
 }
 
 /* ---------------------------------------------------------------------------

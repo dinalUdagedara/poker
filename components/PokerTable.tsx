@@ -585,8 +585,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     out and the award is carrying it to whoever won. Chips cannot
                     be in the middle and on their way to a seat at the same time.
                   */}
-                  <div className="flex h-8 items-end">
-                    {!table.result && <ChipStack stack={table.pot} testId="pot-chips" />}
+                  <div className="flex h-10 items-end sm:h-12">
+                    {!table.result && (
+                      <ChipStack look="felt" size="lg" stack={table.pot} testId="pot-chips" />
+                    )}
                   </div>
                   <span className="text-[10px] font-semibold tracking-[0.22em] text-white/65 uppercase">
                     pot
@@ -668,7 +670,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   }
                   data-testid={`sweep-${sweep.key}`}
                 >
-                  <ChipStack stack={sweep.amount} />
+                  <ChipStack look="felt" stack={sweep.amount} />
                 </span>
               ))}
 
@@ -689,7 +691,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   }
                   data-testid="pot-award"
                 >
-                  <ChipStack stack={award.amount} />
+                  <ChipStack look="felt" size="lg" stack={award.amount} />
                   <span className="text-brass-lit rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-bold tabular-nums shadow-lg">
                     +{award.amount.toLocaleString()}
                   </span>
