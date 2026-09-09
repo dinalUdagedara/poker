@@ -92,6 +92,38 @@ export type PlayingTable = {
 export type StoredTable = WaitingTable | PlayingTable
 
 /**
+ * A hand that has been played out, kept so it can be read back.
+ *
+ * The state is the finished one the engine settled on, with the deck stripped:
+ * a hand that is over has no use for the cards it did not deal, and the archive
+ * is the one place a table's secrets would sit around for hours after the fact.
+ * `redactFor` would hide them from a client either way — this makes sure there
+ * is nothing to hide.
+ *
+ * Names travel with the hand rather than being looked up on the live table when
+ * it is read. A hand is a record of who did what, and that record should not
+ * change because somebody renamed themselves two hands later.
+ */
+export type ArchivedHand = {
+  /** When the hand finished, as a timestamp. */
+  endedAt: number
+  /** What to call each seat, by engine seat id, as it was at the time. */
+  names: Record<string, string>
+  state: TableState
+}
+
+/**
+ * How many finished hands a table keeps.
+ *
+ * A table is collected two hours after anybody last touched it, and a long
+ * session inside that window is tens of hands rather than thousands — but the
+ * bound has to exist, because nothing else stops one very long game from
+ * growing a single record without limit. The oldest is dropped as the newest
+ * arrives, so what is kept is always the recent past.
+ */
+export const ARCHIVE_LIMIT = 100
+
+/**
  * How long a dealt table survives without being touched.
  *
  * A table is only ever created, never closed — a player who shuts the tab says
@@ -162,6 +194,16 @@ export interface TableStorage {
    * is the exact shape of the bug `redactFor` exists to prevent.
    */
   watch(tableId: string, onChange: () => void): () => void
+  /**
+   * Keep a finished hand, and forget the oldest once the limit is reached.
+   *
+   * Filing the same hand twice is harmless and does nothing: a hand is stored
+   * under its own number rather than appended to a list, so a retried write
+   * cannot leave the same hand in the history twice.
+   */
+  archive(tableId: string, hand: ArchivedHand): Promise<void>
+  /** The hands this table has finished, oldest first. Reading counts as using it. */
+  archived(tableId: string): Promise<ArchivedHand[]>
 }
 
 /**
@@ -256,8 +298,52 @@ export function redisStorage(redis: Redis): TableStorage {
     async listed() {
       return redis.smembers(directoryKey())
     },
+
+    /**
+     * A hash keyed by hand number rather than a list.
+     *
+     * A list would be appended to, and an append is not safe to repeat: the
+     * write that files a hand happens after the table write it followed, so a
+     * retry that got that far would file the hand a second time. Keyed by its
+     * own number, filing a hand twice writes the same field twice and the
+     * history is the same either way.
+     */
+    async archive(tableId, hand) {
+      const number = hand.state.handNumber
+      await redis
+        .multi()
+        .hset(handsKey(tableId), String(number), JSON.stringify(hand))
+        // One in, one out. Hand numbers count up by one from the first deal, so
+        // the hand that falls off the back is always this one less the limit —
+        // no scan, and nothing to sweep. Deleting a field that was never there
+        // is a no-op, which covers every table shorter than the limit.
+        .hdel(handsKey(tableId), String(number - ARCHIVE_LIMIT))
+        .pexpire(handsKey(tableId), TABLE_TTL_MS)
+        .exec()
+    },
+
+    async archived(tableId) {
+      const stored = await redis.hgetall(handsKey(tableId))
+      // The history outlives nothing: it is collected on the same clock as the
+      // table it belongs to, and reading it counts as using it for the same
+      // reason reading a table does.
+      await redis.pexpire(handsKey(tableId), TABLE_TTL_MS)
+      return Object.values(stored)
+        .map((raw) => JSON.parse(raw) as ArchivedHand)
+        .sort((a, b) => a.state.handNumber - b.state.handNumber)
+    },
   }
 }
+
+/**
+ * Where a table's finished hands live, namespaced like everything else.
+ *
+ * A key of its own rather than a field on the table, because it is written by a
+ * different rule and read by a different page: rolling the history into the
+ * table record would put every hand ever played on the wire for every action
+ * anybody takes.
+ */
+const handsKey = (tableId: string) => `hands:${process.env.VERCEL_ENV ?? 'local'}:${tableId}`
 
 /** The set of publicly listed rooms, namespaced like everything else. */
 const directoryKey = () => `rooms:${process.env.VERCEL_ENV ?? 'local'}`
@@ -373,6 +459,21 @@ const directory: Set<string> = ((
   globalThis as unknown as { __pokerRooms?: Set<string> }
 ).__pokerRooms ??= new Set())
 
+/** A table's finished hands, and when the lot of them may be forgotten. */
+type Archive = { hands: Map<number, ArchivedHand>; expiresAt: number }
+
+/**
+ * Finished hands per table, on globalThis for the same reason the tables are.
+ *
+ * Keyed by hand number inside each table so that filing one twice is the same
+ * as filing it once, which is the property the Redis backend gets from writing
+ * a hash field. The two backends have to agree about that, or a bug in it would
+ * only ever appear in production.
+ */
+const archives: Map<string, Archive> = ((
+  globalThis as unknown as { __pokerHands?: Map<string, Archive> }
+).__pokerHands ??= new Map())
+
 /**
  * The single-process stand-in for Redis.
  *
@@ -433,6 +534,31 @@ function memoryStorage(): TableStorage {
 
     async listed() {
       return [...directory]
+    },
+
+    async archive(tableId, hand) {
+      const now = Date.now()
+      for (const [id, entry] of archives) {
+        if (entry.expiresAt <= now) archives.delete(id)
+      }
+
+      const entry = archives.get(tableId) ?? { hands: new Map(), expiresAt: 0 }
+      entry.hands.set(hand.state.handNumber, hand)
+      entry.hands.delete(hand.state.handNumber - ARCHIVE_LIMIT)
+      entry.expiresAt = now + TABLE_TTL_MS
+      archives.set(tableId, entry)
+    },
+
+    async archived(tableId) {
+      const entry = archives.get(tableId)
+      if (!entry) return []
+      if (entry.expiresAt <= Date.now()) {
+        archives.delete(tableId)
+        return []
+      }
+
+      entry.expiresAt = Date.now() + TABLE_TTL_MS
+      return [...entry.hands.values()].sort((a, b) => a.state.handNumber - b.state.handNumber)
     },
   }
 }

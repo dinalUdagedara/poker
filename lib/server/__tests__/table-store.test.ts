@@ -9,6 +9,7 @@ import {
   joinTable,
   keepSeat,
   leaveTable,
+  listHands,
   publicRooms,
   rematch,
   SEAT_IDLE_MS,
@@ -703,5 +704,79 @@ describe('forgetting abandoned tables', () => {
     vi.advanceTimersByTime(TABLE_TTL_MS - 1000)
 
     expect(await findTable(table.tableId, OWNER)).not.toBeNull()
+  })
+})
+
+/**
+ * Fold the seat this player holds until the hand is over.
+ *
+ * One fold is normally enough — everyone left is a bot, and the bots play the
+ * rest out inside the same request — but the loop covers a hand that comes back
+ * round to them, and stops rather than spinning if it does not.
+ */
+const foldOut = async (tableId: string, playerId = OWNER) => {
+  let view = asTable(await findTable(tableId, playerId))
+  for (let guard = 0; view.result === null && guard < 20; guard++) {
+    if (view.actingPlayerId !== view.viewerId) break
+    view = await submitAction(tableId, playerId, { type: 'fold' })
+  }
+  return view
+}
+
+describe('reading back the hands already played', () => {
+  it('files a hand once it has settled', async () => {
+    const { tableId } = await dealtTable()
+
+    await foldOut(tableId)
+
+    const hands = await listHands(tableId, OWNER)
+    expect(hands).toHaveLength(1)
+    expect(hands[0].handNumber).toBe(1)
+    expect(hands[0].result).not.toBeNull()
+  })
+
+  it('keeps them in the order they were played, once each', async () => {
+    const { tableId } = await dealtTable()
+    await foldOut(tableId)
+    await startNextHand(tableId, OWNER)
+    await foldOut(tableId)
+
+    expect((await listHands(tableId, OWNER)).map((hand) => hand.handNumber)).toEqual([1, 2])
+  })
+
+  it('has nothing at all before a hand has finished', async () => {
+    const { tableId } = await dealtTable()
+
+    expect(await listHands(tableId, OWNER)).toEqual([])
+  })
+
+  it('still shows a player their own cards afterwards', async () => {
+    const { tableId } = await dealtTable()
+    await foldOut(tableId)
+
+    const [hand] = await listHands(tableId, OWNER)
+    const me = hand.players.find((player) => player.id === hand.viewerId)
+
+    expect(me?.holeCards).toHaveLength(2)
+  })
+
+  it('shows a stranger only the cards that were actually shown', async () => {
+    // The rule the live table is built around, restated for a hand being read
+    // an hour later: history is where a leak would be quietest, because nobody
+    // is watching the screen it appears on.
+    const { tableId } = await dealtTable()
+    await foldOut(tableId)
+
+    const [hand] = await listHands(tableId, STRANGER)
+
+    expect(hand.viewerId).toBeNull()
+    for (const player of hand.players) {
+      if (player.holeCards === null) continue
+      expect(hand.result?.shownHands[player.id]).toBeDefined()
+    }
+  })
+
+  it('has nothing to show for a table that never existed', async () => {
+    await expect(listHands('not-a-table', OWNER)).rejects.toMatchObject({ status: 404 })
   })
 })
