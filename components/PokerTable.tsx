@@ -91,8 +91,11 @@ function seatPosition(index: number, count: number): { left: number; top: number
  * centre, whose bubble would drop straight onto the pot; those get pushed out
  * to the side instead. Only odd-numbered fields put anyone there.
  */
-function calloutSide(left: number): 'right' | 'below' {
-  return Math.abs(left - 50) < 18 ? 'right' : 'below'
+function calloutSide(left: number): 'right' | 'below' | 'above' {
+  // Centre of the arc: a bubble underneath lands on the pot.
+  if (Math.abs(left - 50) < 18) return 'right'
+  // Left and right rails: underneath is the board. Hang it over the hole cards.
+  return 'above'
 }
 
 /**
@@ -567,7 +570,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               </span>
 
               {/* Pot and board */}
-              <div className="absolute top-1/2 left-1/2 flex w-max max-w-[72%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:max-w-none sm:gap-2">
+              <div className="absolute top-1/2 left-1/2 z-20 flex w-max max-w-[72%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:max-w-none sm:gap-2">
                 <div className="flex items-end justify-center gap-2">
                   {/*
                     The pot as chips, in the same denominations as everyone's

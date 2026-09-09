@@ -73,7 +73,7 @@ export function PlayerSeat({
   compact?: boolean
   bigBlind: number
   callout?: string | null
-  calloutSide?: 'right' | 'below'
+  calloutSide?: 'right' | 'below' | 'above'
   calloutAlign?: 'start' | 'center' | 'end'
   chipSide?: 'left' | 'right'
   hero?: boolean
@@ -194,14 +194,16 @@ export function PlayerSeat({
         <div
           key={callout}
           className={cn(
-            'animate-callout pointer-events-none absolute z-20 whitespace-nowrap',
+            'animate-callout pointer-events-none absolute z-10 whitespace-nowrap',
             calloutSide === 'right'
               ? 'top-1/2 left-full ml-2.5 -translate-y-1/2'
-              : calloutAlign === 'start'
-                ? 'top-full left-0 mt-1.5'
-                : calloutAlign === 'end'
-                  ? 'top-full right-0 mt-1.5'
-                  : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
+              : calloutSide === 'above'
+                ? 'bottom-full left-1/2 mb-1.5 -translate-x-1/2'
+                : calloutAlign === 'start'
+                  ? 'top-full left-0 mt-1.5'
+                  : calloutAlign === 'end'
+                    ? 'top-full right-0 mt-1.5'
+                    : 'top-full left-1/2 mt-1.5 -translate-x-1/2',
           )}
           data-testid={`callout-${player.id}`}
         >
@@ -212,14 +214,16 @@ export function PlayerSeat({
                 'absolute size-2 rotate-45 bg-[oklch(0.25_0.036_24)]',
                 calloutSide === 'right'
                   ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-border'
-                  : cn(
-                      '-top-1 border-t border-l border-border',
-                      calloutAlign === 'start'
-                        ? 'left-5'
-                        : calloutAlign === 'end'
-                          ? 'right-5'
-                          : 'left-1/2 -translate-x-1/2',
-                    ),
+                  : calloutSide === 'above'
+                    ? 'right-auto -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-border'
+                    : cn(
+                        '-top-1 border-t border-l border-border',
+                        calloutAlign === 'start'
+                          ? 'left-5'
+                          : calloutAlign === 'end'
+                            ? 'right-5'
+                            : 'left-1/2 -translate-x-1/2',
+                      ),
               )}
             />
           </span>
