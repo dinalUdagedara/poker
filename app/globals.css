@@ -455,6 +455,76 @@
 }
 
 /*
+ * The action dock. On a phone it is just the controls on the room — no sheet,
+ * no hairline, no extra padding. Above sm it is a milled console again.
+ */
+.action-dock {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+  background: transparent;
+  padding: 6px 12px max(8px, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+  .action-dock {
+    gap: 0.75rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow:
+      0 6px 18px -6px oklch(0 0 0 / 0.6),
+      var(--edge);
+    padding: 14px;
+  }
+}
+
+.action-presets {
+  display: flex;
+  height: 28px;
+  gap: 6px;
+  background: transparent;
+}
+
+@media (min-width: 640px) {
+  .action-presets {
+    height: 32px;
+  }
+}
+
+.action-preset {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.06);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 640px) {
+  .action-preset {
+    font-size: 11px;
+  }
+}
+
+.action-preset.is-on {
+  background: oklch(0.8 0.135 82 / 0.22);
+  color: var(--brass-lit);
+}
+
+.action-preset:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/*
  * Next-hand countdown: the fill sweeps the whole brass face. The unfilled
  * portion is the wait left; when it covers the button, the hand deals.
  */

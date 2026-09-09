@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { ChipStack } from './ChipStack'
 import { Logo } from './Logo'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
@@ -53,18 +52,6 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
    * offering is a fresh table.
    */
   const [gone, setGone] = useState(false)
-  /**
-   * Whether the bet-sizing slider is showing.
-   *
-   * Kept here rather than in the action bar because that bar is unmounted every
-   * time a hand settles — the result panel takes its place — so a preference
-   * held inside it would be forgotten and spring back open on the next hand.
-   *
-   * Shut to begin with: most hands are folded, checked or called, and the pot
-   * shortcuts stay out on the row either way, so the slider only earns its
-   * two hundred pixels once you have actually decided to size something.
-   */
-  const [sizingOpen, setSizingOpen] = useState(false)
   const router = useRouter()
 
   /** Pending replay steps, cancelled if another update lands or we unmount. */
@@ -493,8 +480,9 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
 
           The bottom of the stage used to be reserved for the viewer's seat,
           which stood off the felt below the rail. It sits on the felt now, so
-          the oval takes that height back — which is most of why a phone can
-          carry a full ring at all.
+          the oval takes most of that height back — but a phone still needs a
+          gutter under the near rail. The hole cards hang off the seat, and
+          without that gutter they land in the action dock.
         */}
         <div className="relative min-h-0 flex-1 sm:flex sm:flex-col sm:items-center sm:justify-center sm:px-4">
           {/*
@@ -504,7 +492,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             width it is given and then gives it back if the stage is too short
             to hold the matching height.
           */}
-          <div className="table-rail absolute inset-x-1.5 top-1 bottom-2 rounded-[46%/54%] p-2 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-5xl sm:p-3.5">
+          <div className="table-rail absolute inset-x-1.5 top-1 bottom-2 max-sm:bottom-23 rounded-[46%/54%] p-2 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-5xl sm:p-3.5">
             <div className="table-felt border-brass/15 relative size-full rounded-[46%/54%] border">
               {/* The house mark printed on the cloth. Barely there, and never
                   read aloud — it sits below the board, on the apron of felt
@@ -707,33 +695,24 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               </div>
             </div>
           </div>
+
+          <ThisHand
+            table={table}
+            className="pointer-events-none absolute inset-x-2 bottom-1 z-35 sm:inset-x-6 sm:bottom-3"
+          />
         </div>
 
-        <div className="flex w-full flex-col items-center gap-2 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:gap-3 sm:px-4 sm:pb-5">
+        <div className="flex w-full flex-col items-center sm:px-4 sm:pb-5">
           {error && (
-            <p className="text-destructive text-sm" role="alert" data-testid="error">
+            <p className="text-destructive px-3 pb-2 text-sm sm:px-0" role="alert" data-testid="error">
               {error}
             </p>
           )}
 
-          <div className="flex w-full max-w-2xl flex-col items-center gap-3">
-            {/* A dark console resting on the felt: the controls need their own
-                ground to read against now that the page is bright. */}
-            {/* Floored at the height of the betting controls, the tallest thing
-                it ever holds, so the result and game-over panels do not shrink
-                the console the moment a hand ends.
-
-                The floor follows the slider: left at its full height it would
-                simply backfill whatever folding the slider away had freed, and
-                collapsing would reclaim nothing. Both floors keep the promise
-                above — whichever one is in force, every panel the console holds
-                is the same height as the others. */}
-            <Card
-              className={cn(
-                'panel-milled border-border w-full min-w-0 justify-center gap-0 p-2 backdrop-blur sm:p-3',
-                sizingOpen ? 'min-h-40 sm:min-h-44' : 'min-h-[6.5rem] sm:min-h-32',
-              )}
-            >
+          <div
+            data-testid="action-console"
+            className="action-dock relative z-40 min-h-24 w-full max-w-2xl sm:min-h-36"
+          >
               {finished ? (
                 /*
                  * The table is over: busted, won outright, or lost to a server
@@ -842,16 +821,11 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   pot={table.pot}
                   busy={busy}
                   status={busy ? 'Thinking…' : 'Waiting for the other players…'}
-                  sizingOpen={sizingOpen}
-                  onSizingOpenChange={setSizingOpen}
                   onAction={(action) => void send(`/api/table/${tableId}/action`, action)}
                 />
               )}
-            </Card>
+            </div>
           </div>
-
-          <ThisHand table={table} />
-        </div>
       </div>
     </main>
   )

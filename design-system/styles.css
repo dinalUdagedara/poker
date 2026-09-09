@@ -521,6 +521,55 @@ p {
   opacity: 0.75;
 }
 
+.action-dock {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  padding: 6px 12px max(8px, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+  .action-dock {
+    gap: var(--space-3);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-divider);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md), var(--edge);
+    padding: 14px;
+  }
+}
+
+.action-presets {
+  display: flex;
+  height: 28px;
+  gap: 6px;
+  background: transparent;
+}
+
+.action-preset {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.06);
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.action-preset.is-on {
+  background: oklch(0.8 0.135 82 / 0.22);
+  color: var(--color-accent-200);
+}
+
 /* ---------------------------------------------------------------------------
    Tags
    --------------------------------------------------------------------------- */

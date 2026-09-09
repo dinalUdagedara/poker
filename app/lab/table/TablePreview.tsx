@@ -318,19 +318,26 @@ export function TablePreview() {
           </div>
         </div>
 
-        {/* The console, so the palette can be judged with the chrome present. */}
-        <div className="flex w-full shrink-0 justify-center px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-8">
-          <div className="flex w-full max-w-2xl gap-2">
-            <span className="grid h-12 flex-1 place-items-center rounded-xl border border-white/8 bg-play-fold text-xs font-bold tracking-wide text-white uppercase sm:text-sm">
-              Fold
-            </span>
-            <span className="grid h-12 flex-1 place-items-center rounded-xl bg-play-pass text-xs font-bold tracking-wide text-white uppercase sm:text-sm">
-              Call 24
-            </span>
-            <span className="brass-button grid h-12 flex-1 place-items-center rounded-xl text-xs font-bold tracking-wide uppercase sm:text-sm">
-              Raise to 72
-            </span>
+        {/* The action dock, so the palette can be judged with the chrome present. */}
+        <div className="action-dock relative z-40 mx-auto w-full max-w-2xl shrink-0 sm:mb-8">
+          <div className="action-presets">
+            {['Min', '½', '¾', 'Pot', 'Max'].map((label) => (
+              <span key={label} className="action-preset">
+                {label}
+              </span>
+            ))}
           </div>
+            <div className="flex justify-center gap-2">
+              <span className="grid h-8 min-w-16 place-items-center rounded-full border border-white/8 bg-play-fold px-3.5 text-[11px] font-semibold text-white">
+                Fold
+              </span>
+              <span className="grid h-8 min-w-16 place-items-center rounded-full bg-play-pass px-3.5 text-[11px] font-semibold text-white">
+                Call 24
+              </span>
+              <span className="brass-button grid h-8 min-w-16 place-items-center rounded-full px-3.5 text-[11px] font-semibold">
+                Raise 72
+              </span>
+            </div>
         </div>
       </div>
     </div>
