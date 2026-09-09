@@ -147,7 +147,7 @@ export default function RoomsPage() {
 
       <div className="flex flex-col items-center gap-3 py-4">
         <Link
-          href="/?play=people"
+          href="/rooms"
           className={cn(
             buttonVariants(),
             'brass-button h-14 w-full max-w-sm rounded-xl text-base font-bold tracking-wide uppercase',
