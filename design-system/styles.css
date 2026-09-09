@@ -565,6 +565,32 @@ p {
   text-transform: uppercase;
 }
 
+.action-preset-num {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.landing-dock {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md), var(--edge);
+  padding: 14px;
+}
+
+.landing-dock .action-presets {
+  height: 40px;
+}
+
 .action-preset.is-on {
   background: oklch(0.8 0.135 82 / 0.22);
   color: var(--color-accent-200);

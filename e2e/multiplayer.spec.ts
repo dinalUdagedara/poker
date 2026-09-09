@@ -42,6 +42,7 @@ async function whatTheyCanSee(page: Page, tableId: string) {
 async function openRoomForTwo(page: Page): Promise<string> {
   await page.goto('/')
   await page.getByTestId('tab-people').click()
+  await expect(page).toHaveURL(/\/rooms/)
   await page.getByTestId('seats-2').click()
   await page.getByTestId('open-public-room').click()
   await page.waitForURL(/\/table\/[0-9a-f-]+/)
@@ -124,8 +125,6 @@ test('tells somebody who followed a link to a full table that they are watching'
 
   try {
     await owner.goto('/')
-    // The lobby opens on the fork between the two ways to play.
-    await owner.getByTestId('tab-practice').click()
     await owner.getByTestId('deal').click()
     await owner.waitForURL(/\/table\/[0-9a-f-]+/)
     await expect(owner.getByTestId('pot')).toBeVisible()
