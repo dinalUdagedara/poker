@@ -26,8 +26,8 @@ export type SubmitAction = (action: { type: string; amount?: number }) => void
  * staying in is felt green; committing chips is the one thing that gleams.
  */
 const ACTION_BUTTON =
-  'h-14 min-w-0 flex-1 rounded-xl text-sm font-bold tracking-normal text-white uppercase' +
-  ' sm:text-base sm:tracking-wide' +
+  'h-10 min-w-0 flex-1 rounded-lg text-xs font-bold tracking-normal text-white uppercase' +
+  ' sm:h-14 sm:rounded-xl sm:text-base sm:tracking-wide' +
   ' border border-transparent shadow-[0_6px_18px_-6px_oklch(0_0_0/0.6),var(--edge)]' +
   ' transition-colors active:translate-y-px'
 
@@ -109,11 +109,11 @@ export function BettingControls({
      * two hundred pixels every time the bots took over and put them back the
      * moment it was your turn, so the table jumped on every single action.
      */
-    <div className="relative flex flex-col gap-3">
+    <div className="relative flex flex-col gap-1.5 sm:gap-3">
       <Collapsible
         open={sizingOpen}
         onOpenChange={(open) => onSizingOpenChange(open)}
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-1.5 sm:gap-3"
       >
         <div className="flex h-7 flex-wrap items-center justify-between gap-x-4 gap-y-2">
           {idle ? (

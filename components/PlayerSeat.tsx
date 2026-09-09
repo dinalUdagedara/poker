@@ -126,6 +126,7 @@ export function PlayerSeat({
           testId={`chips-${player.id}`}
           className={cn(
             'absolute top-1/2 -translate-y-1/2',
+            !hero && 'max-sm:hidden',
             chipSide === 'left' ? 'right-full mr-1.5' : 'left-full ml-1.5',
             isOut && 'opacity-60',
           )}
