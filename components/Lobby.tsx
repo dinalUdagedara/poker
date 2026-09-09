@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { SoundToggle } from '@/components/SoundToggle'
+import { LandingShell, PlayerNameField, SizePicker } from '@/components/LandingShell'
 import { cn } from '@/lib/utils'
 import { getAudio } from '@/lib/audio'
+import { requestTable } from '@/lib/request-table'
 import type { RoomSummary } from '@/lib/poker/lifecycle'
 
 /**
@@ -19,17 +19,22 @@ import type { RoomSummary } from '@/lib/poker/lifecycle'
  */
 const REFRESH_MS = 5000
 
+/** Room sizes worth offering. Nine is the table's limit, five is the sensible top. */
+const ROOM_SIZES = [2, 3, 4, 5, 6] as const
+
 /**
- * Rooms waiting for people, and a way into one.
+ * Rooms waiting for people, and a way to open one.
  *
- * Every row is a hint rather than a promise. Seats fill while the list is being
- * read, so taking one can fail — and when it does, the answer is a refreshed
- * list rather than an apology.
+ * Same room as home: rail, dock, pills. The join list is glass rows on the
+ * felt, not a second stack of milled cards.
  */
 export function Lobby({ initial }: { initial: RoomSummary[] }) {
   const [rooms, setRooms] = useState(initial)
   const [busy, setBusy] = useState<string | null>(null)
+  const [opening, setOpening] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [seatCount, setSeatCount] = useState(4)
+  const [isPublic, setIsPublic] = useState(true)
   const router = useRouter()
 
   const refresh = useCallback(async () => {
@@ -43,11 +48,19 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
     return () => clearInterval(timer)
   }, [refresh])
 
-  useEffect(() => {
-    const audio = getAudio()
-    audio.playMusic('lobby')
-    return () => audio.stopMusic()
-  }, [])
+  async function openRoom() {
+    setOpening(true)
+    setError(null)
+    getAudio().unlock()
+    try {
+      const tableId = await requestTable({ botCount: 0, seatCount, isPublic })
+      router.push(`/table/${tableId}`)
+    } catch (e) {
+      getAudio().play('error')
+      setError((e as Error).message)
+      setOpening(false)
+    }
+  }
 
   const join = useCallback(
     async (tableId: string) => {
@@ -61,8 +74,6 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
         if (!response.ok) throw new Error(payload.error ?? 'Could not join that room')
         router.push(`/table/${tableId}`)
       } catch (e) {
-        // The room filled while it was being read. Ordinary, so it is handled
-        // rather than guarded against: say so, refresh, let them pick again.
         getAudio().play('error')
         setError((e as Error).message)
         await refresh()
@@ -72,106 +83,128 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
     [refresh, router],
   )
 
+  const locked = opening || busy !== null
+
   return (
-    <main className="table-room relative flex flex-1 justify-center p-6">
-      <div className="absolute top-4 right-4 sm:top-5 sm:right-5">
-        <SoundToggle />
-      </div>
-      <div className="flex w-full max-w-md flex-col gap-5 pt-10">
-        <div className="flex flex-col gap-1">
-          <h1 className="wordmark text-4xl font-bold tracking-tight">Open rooms</h1>
-          <p className="text-muted-foreground text-sm">
-            Rooms waiting for players. The cards come out the moment every seat is taken.
+    <LandingShell
+      width="md"
+      title="Open rooms"
+      subtitle="Sit with people. Open a table, or take a seat at one that is waiting."
+    >
+      <div className="landing-dock">
+        <PlayerNameField />
+        <SizePicker
+          label="Seats"
+          hint={seatCount === 2 ? 'heads up' : `${seatCount} seats`}
+          values={ROOM_SIZES}
+          value={seatCount}
+          onChange={setSeatCount}
+          testIdPrefix="seats"
+          ariaLabel="Seats"
+          disabled={locked}
+        />
+        <div className="flex flex-col gap-1.5">
+          <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">Listing</span>
+          <div role="radiogroup" aria-label="Listing" className="action-presets h-10">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isPublic}
+              disabled={locked}
+              onClick={() => setIsPublic(true)}
+              data-testid="list-publicly"
+              className={cn('action-preset', isPublic && 'is-on')}
+            >
+              Public
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!isPublic}
+              disabled={locked}
+              onClick={() => setIsPublic(false)}
+              className={cn('action-preset', !isPublic && 'is-on')}
+            >
+              Private
+            </button>
+          </div>
+          <p className="text-muted-foreground/70 text-xs">
+            {isPublic
+              ? 'Anyone can find this room and sit down.'
+              : 'Only people you send the link to can join.'}
           </p>
         </div>
-
-        {error && (
-          <p className="text-destructive text-sm" role="alert">
-            {error}
-          </p>
-        )}
-
-        {rooms.length === 0 ? (
-          <Card className="panel-milled border-border backdrop-blur">
-            <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm font-medium text-white">Nobody is waiting right now</p>
-              <p className="text-muted-foreground max-w-xs text-sm">
-                Open one yourself and it will show up here for other players.
-              </p>
-              <Link
-                href="/?play=people"
-                className="brass-button mt-1 flex h-11 items-center justify-center rounded-lg px-5 text-sm font-bold tracking-wide uppercase"
-                data-testid="no-rooms"
-              >
-                Open a room
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <ul className="flex flex-col gap-2" data-testid="room-list">
-            {rooms.map((room) => {
-              const open = room.seatCount - room.taken
-              return (
-                <li key={room.tableId}>
-                  <Card
-                    className="panel-milled border-border backdrop-blur transition-colors hover:border-brass/28"
-                    data-testid="room"
-                    // The id is already in the payload this row was built from,
-                    // so putting it on the row publishes nothing new — and it
-                    // lets a test pick out its own room rather than the first
-                    // one a shared lobby happens to be showing.
-                    data-table-id={room.tableId}
-                  >
-                    <CardContent className="flex items-center gap-4 py-1">
-                      {/*
-                        The seats drawn rather than counted. "3 of 5" is a fact
-                        to read; five pips with three filled is one to glance at.
-                      */}
-                      <div className="flex gap-1" aria-hidden>
-                        {Array.from({ length: room.seatCount }, (_, i) => (
-                          <span
-                            key={i}
-                            className={cn(
-                              'size-2.5 rounded-full',
-                              i < room.taken ? "bg-brass" : "bg-white/15",
-                            )}
-                          />
-                        ))}
-                      </div>
-
-                      <div className="flex flex-1 flex-col">
-                        <span className="text-sm font-medium text-white">
-                          {room.taken} of {room.seatCount} seated
-                        </span>
-                        <span className="text-muted-foreground/70 text-xs">
-                          {open} seat{open === 1 ? '' : 's'} open
-                          {room.botCount > 0 &&
-                            ` · ${room.botCount} bot${room.botCount === 1 ? '' : 's'}`}
-                        </span>
-                      </div>
-
-                      <Button
-                        className="ring-border h-10 bg-white/10 px-5 text-sm font-semibold text-white ring-1 ring-inset hover:bg-white/20"
-                        disabled={busy !== null}
-                        onClick={() => void join(room.tableId)}
-                      >
-                        {busy === room.tableId ? 'Joining…' : 'Join'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-
-        <Link
-          href="/"
-          className="text-muted-foreground text-center text-sm underline-offset-4 hover:text-white hover:underline"
+        <Button
+          className="brass-button h-12 w-full rounded-xl text-sm font-bold tracking-wide uppercase"
+          disabled={locked}
+          onClick={() => void openRoom()}
+          data-testid="open-public-room"
         >
-          Back to the lobby
-        </Link>
+          {opening ? 'Opening…' : 'Open a room'}
+        </Button>
       </div>
-    </main>
+
+      {error && (
+        <p className="text-destructive mt-4 text-sm" role="alert">
+          {error}
+        </p>
+      )}
+
+      {rooms.length === 0 ? (
+        <p className="text-muted-foreground mt-6 text-center text-sm" data-testid="no-rooms">
+          Nobody is waiting right now. Open one above and it will show up here.
+        </p>
+      ) : (
+        <ul className="mt-6 flex w-full flex-col gap-2" data-testid="room-list">
+          {rooms.map((room) => {
+            const open = room.seatCount - room.taken
+            return (
+              <li
+                key={room.tableId}
+                className="flex items-center gap-3 rounded-xl bg-black/30 px-3 py-2.5 ring-1 ring-white/10"
+                data-testid="room"
+                data-table-id={room.tableId}
+              >
+                <div className="flex gap-1" aria-hidden>
+                  {Array.from({ length: room.seatCount }, (_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'size-2 rounded-full',
+                        i < room.taken ? 'bg-brass' : 'bg-white/15',
+                      )}
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-1 flex-col">
+                  <span className="text-sm font-medium text-white">
+                    {room.taken} of {room.seatCount} seated
+                  </span>
+                  <span className="text-muted-foreground/70 text-xs">
+                    {open} seat{open === 1 ? '' : 's'} open
+                    {room.botCount > 0 &&
+                      ` · ${room.botCount} bot${room.botCount === 1 ? '' : 's'}`}
+                  </span>
+                </div>
+                <Button
+                  className="h-8 rounded-full bg-white/10 px-4 text-xs font-semibold text-white hover:bg-white/16"
+                  disabled={locked}
+                  onClick={() => void join(room.tableId)}
+                >
+                  {busy === room.tableId ? 'Joining…' : 'Join'}
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <Link
+        href="/"
+        className="text-muted-foreground mt-6 text-center text-sm underline-offset-4 hover:text-white hover:underline"
+      >
+        Back to play
+      </Link>
+    </LandingShell>
   )
 }
