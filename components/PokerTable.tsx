@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CircleQuestionMark, Eye } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ChipStack } from './ChipStack'
 import { Logo } from './Logo'
@@ -23,6 +23,8 @@ import { useTableStream } from '@/lib/use-table-stream'
 import { useTableSounds } from '@/lib/use-table-sounds'
 import { seatName } from '@/lib/names'
 import { calloutsFor } from '@/lib/poker/callouts'
+import { usePortrait } from '@/lib/use-portrait'
+import { calloutPlacement, chipSide, seatOrder, seatRing } from '@/lib/table-seating'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import {
   isGameOver,
@@ -39,73 +41,6 @@ import {
  */
 const STEP_MS = 900
 
-/**
- * Where each opponent sits, as percentages of the felt.
- *
- * Seats are spread along the top arc of the ellipse, leaving the near edge for
- * the viewer. Angles run clockwise from upper-left to upper-right, so seat
- * order round the table matches the order actions happen in.
- */
-function seatPosition(index: number, count: number): { left: number; top: number } {
-  // Wider spread for a bigger field, so five opponents do not bunch up at the
-  // top while two sit awkwardly far apart.
-  const spread = count <= 2 ? 110 : count === 3 ? 160 : 200
-  const angle = count === 1 ? 270 : 270 - spread / 2 + (index * spread) / (count - 1)
-  const radians = (angle * Math.PI) / 180
-  return {
-    left: 50 + 43 * Math.cos(radians),
-    /*
-     * The vertical reach is what keeps neighbours apart. Near the left and
-     * right extremes two seats are only a few percent apart horizontally, so
-     * all of the room between them is vertical — shrinking this to keep the top
-     * seat clear of the header closed that gap and overlapped them instead.
-     */
-    top: 50 + 46 * Math.sin(radians),
-  }
-}
-
-/**
- * Which way a seat's callout bubble should hang.
- *
- * Below, normally — it is the only direction with room, since a seat on the top
- * arc has the rail immediately above it. The exception is a seat sitting dead
- * centre, whose bubble would drop straight onto the pot; those get pushed out
- * to the side instead. Only odd-numbered fields put anyone there.
- */
-function calloutSide(left: number): 'right' | 'below' | 'above' {
-  // Centre of the arc: a bubble underneath lands on the pot.
-  if (Math.abs(left - 50) < 18) return 'right'
-  // Left and right rails: underneath is the board. Hang it over the hole cards.
-  return 'above'
-}
-
-/**
- * Which end of a seat its callout hangs from.
- *
- * Centred under the seat, normally. But a bubble saying "Small blind 25" is
- * wider than the seat it belongs to, and a seat out at the left or right of the
- * arc has no felt to spare on its outboard side — so centring one there threw
- * half of it off the table and into the room. The seats nearest each edge hang
- * their bubble from the inboard end instead, which is the only direction with
- * anywhere to put it.
- */
-function calloutAlign(left: number): 'start' | 'center' | 'end' {
-  if (left < 30) return 'start'
-  if (left > 70) return 'end'
-  return 'center'
-}
-
-/**
- * Which side of a seat its chips sit on.
- *
- * Always the one facing the middle of the table. A seat out on the left rail
- * with its chips further left pushes them over the edge and off the felt, which
- * is where they were landing. Inward there is always room. A seat dead centre
- * takes the left, since its callout has the right.
- */
-function chipSide(left: number): 'left' | 'right' {
-  return left < 50 ? 'right' : 'left'
-}
 
 export function PokerTable({ tableId, initial }: { tableId: string; initial: TableView }) {
   const [table, setTable] = useState(initial)
@@ -312,11 +247,22 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
   }, [router, tableId])
 
   const you = table.players.find((p) => p.id === table.viewerId)
-  const opponents = table.players.filter((p) => p.id !== table.viewerId)
-  // Four or five opponents put seats on both rails, in the same band as a
-  // five-card board. Those tables keep the board narrower and the seats
-  // smaller so Hen and Yolanthe are not sitting under the ace and the seven.
-  const crowded = opponents.length >= 4
+  // A crowded table keeps the board narrower, so the seats on the two rails are
+  // not sitting under the ace and the seven.
+  const crowded = table.players.length >= 5
+  /*
+   * Everyone round one ring, the viewer at the bottom of it.
+   *
+   * The ring is rebuilt per render rather than memoised: it is a handful of
+   * cosines, and it depends on the orientation as well as the field, so a stale
+   * one would seat a phone like a desktop for a frame after a rotation.
+   */
+  const portrait = usePortrait()
+  const seated = useMemo(
+    () => seatOrder(table.players, table.viewerId),
+    [table.players, table.viewerId],
+  )
+  const ring = useMemo(() => seatRing(seated.length, portrait), [seated.length, portrait])
   const callouts = calloutsFor(table)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
@@ -377,7 +323,6 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
       <p
         className={cn(
           'text-center text-xl font-semibold sm:text-2xl',
-          // Green, and only here: in this room green is money and nothing else.
           youWon > 0 ? 'text-win' : 'text-white',
         )}
       >
@@ -396,14 +341,19 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
     </div>
   )
 
-  /** Where a player sits, in felt percentages. The viewer is off it entirely. */
+  /**
+   * Where a player sits, in felt percentages.
+   *
+   * The viewer included, now that they are on the felt rather than standing off
+   * the bottom of it: their chips leave their seat like everybody else's, so
+   * this no longer has to invent a point below the table to fly them from.
+   */
   const seatPoint = useCallback(
     (playerId: string) => {
-      if (playerId === table.viewerId) return { left: 50, top: 116 }
-      const seat = opponents.findIndex((p) => p.id === playerId)
-      return seat < 0 ? null : seatPosition(seat, opponents.length)
+      const seat = seated.findIndex((p) => p.id === playerId)
+      return seat < 0 ? null : (ring[seat] ?? null)
     },
-    [opponents, table.viewerId],
+    [seated, ring],
   )
 
   /**
@@ -540,9 +490,21 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
           On a phone the leftover height is the table, not a hole above the
           controls. The oval fills this stage; the board stays in the middle of
           it. Desktop keeps the shallow 2:1 felt.
+
+          The bottom of the stage used to be reserved for the viewer's seat,
+          which stood off the felt below the rail. It sits on the felt now, so
+          the oval takes that height back — which is most of why a phone can
+          carry a full ring at all.
         */}
         <div className="relative min-h-0 flex-1 sm:flex sm:flex-col sm:items-center sm:justify-center sm:px-4">
-          <div className="table-rail absolute inset-x-1.5 top-0 bottom-[6.75rem] rounded-[46%/54%] p-2 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:w-full sm:max-w-3xl sm:p-3.5">
+          {/*
+            Capped on height as well as width. A full ring needs more felt than
+            an arc did — every seat that used to be off the table is now on it,
+            and the viewer's is the tallest of them — so the oval takes the
+            width it is given and then gives it back if the stage is too short
+            to hold the matching height.
+          */}
+          <div className="table-rail absolute inset-x-1.5 top-1 bottom-2 rounded-[46%/54%] p-2 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-5xl sm:p-3.5">
             <div className="table-felt border-brass/15 relative size-full rounded-[46%/54%] border">
               {/* The house mark printed on the cloth. Barely there, and never
                   read aloud — it sits below the board, on the apron of felt
@@ -690,81 +652,54 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 </div>
               )}
 
-              {/* Opponents around the top arc */}
               {/*
-                The seats sit in a band inset from the rail, not across the full
-                width of the felt.
+                Everyone, round the whole felt.
 
-                Seat positions are percentages of whatever box holds them, and
-                at the left and right extremes of the arc a seat is only a few
-                percent from the edge — which on a wide table is still tens of
-                pixels of felt, and on a phone is nine pixels short of the rail,
-                so the plate hung off the table. Narrowing the band pulls those
-                two seats inboard without touching the arc they are placed on.
-
-                Inset symmetrically, and only horizontally, so that 50%/50% is
-                still the middle of the felt: the chips in flight below are laid
-                out in this same band, and they finish their journey at the pot.
+                The band is the felt itself rather than a box inset from it. The
+                arc this replaced needed an inset because it placed seats by
+                trigonometry and then had to claw back the two that landed on
+                the rail; the ring already knows where the rail is and pulls
+                those seats in itself. Keeping 50%/50% the true middle of the
+                felt is what lets the chips in flight share these coordinates
+                and still land on the pot.
               */}
-              <div
-                className={cn(
-                  'absolute sm:inset-0',
-                  crowded ? 'inset-x-[1%] inset-y-[8%]' : 'inset-x-[7%] inset-y-[10%]',
-                )}
-              >
-              {opponents.map((player, i) => {
-                const { left, top } = seatPosition(i, opponents.length)
-                return (
-                  <div
-                    key={player.id}
-                    className={cn(
-                      'absolute -translate-x-1/2 -translate-y-1/2',
-                      crowded ? 'max-sm:scale-75' : 'max-sm:scale-90',
-                    )}
-                    style={{ left: `${left}%`, top: `${top}%` }}
-                  >
-                    <PlayerSeat
-                      player={player}
-                      viewerId={table.viewerId}
-                      names={table.names}
-                      isActing={table.actingPlayerId === player.id}
-                      isButton={table.buttonSeat === player.seat}
-                      isWinner={winners.has(player.id)}
-                      handOver={Boolean(table.result)}
-                      compact
-                      callout={callouts.get(player.id)}
-                      calloutSide={calloutSide(left)}
-                      calloutAlign={calloutAlign(left)}
-                      chipSide={chipSide(left)}
-                      bigBlind={table.bigBlind}
-                    />
-                  </div>
-                )
-              })}
+              <div className="absolute inset-0">
+                {seated.map((player, i) => {
+                  const point = ring[i]
+                  if (!point) return null
+                  const isYou = player.id === table.viewerId
+                  return (
+                    <div
+                      key={player.id}
+                      className={cn(
+                        'absolute -translate-x-1/2 -translate-y-1/2',
+                        // The viewer's seat is the one you read every hand, so
+                        // it stays legible on a phone while the rest give way.
+                        isYou ? 'z-30' : crowded ? 'max-sm:scale-75' : 'max-sm:scale-90',
+                      )}
+                      style={{ left: `${point.left}%`, top: `${point.top}%` }}
+                    >
+                      <PlayerSeat
+                        player={player}
+                        viewerId={table.viewerId}
+                        names={table.names}
+                        isActing={table.actingPlayerId === player.id}
+                        isButton={table.buttonSeat === player.seat}
+                        isWinner={winners.has(player.id)}
+                        handOver={Boolean(table.result)}
+                        compact={!isYou}
+                        hero={isYou}
+                        callout={callouts.get(player.id)}
+                        calloutSide={calloutPlacement(point)}
+                        chipSide={chipSide(point)}
+                        bigBlind={table.bigBlind}
+                      />
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
-
-        {you && (
-          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center sm:relative sm:bottom-auto sm:mt-1">
-            <PlayerSeat
-              player={you}
-              viewerId={table.viewerId}
-              names={table.names}
-              isActing={table.actingPlayerId === you.id}
-              isButton={table.buttonSeat === you.seat}
-              isWinner={winners.has(you.id)}
-              handOver={Boolean(table.result)}
-              bigBlind={table.bigBlind}
-              callout={callouts.get(you.id)}
-              // Upward is the only direction with room: the console is directly
-              // beneath the hero, and on a phone the seat is already on the
-              // bottom edge of the screen.
-              calloutSide="above"
-              hero
-            />
-          </div>
-        )}
         </div>
 
         <div className="flex w-full flex-col items-center gap-2 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:gap-3 sm:px-4 sm:pb-5">

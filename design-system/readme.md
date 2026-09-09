@@ -37,7 +37,7 @@ The primary button elsewhere in the system is the same brass, for the same reaso
 
 ## Type
 
-Playfair Display for the house lettering, Geist for anything read while deciding, Geist Mono for every figure that is money. The three never trade jobs. Card ranks take the didone — that printed look is most of what makes a rectangle read as a card. Money is always `.money`: mono, tabular, 600, so figures do not dance as chips move. The wordmark is `.wordmark`: a brass gradient clipped to the letterforms, struck rather than printed.
+Playfair Display for the house lettering, Geist for anything read while deciding, Geist Mono for every figure that is money. The three never trade jobs. Card ranks take the grotesque, bold — this is a screen card, not a printed one, and the didone was the printed-card claim. Money is always `.money`: mono, tabular, 600, so figures do not dance as chips move. The wordmark is `.wordmark`: a brass gradient clipped to the letterforms, struck rather than printed.
 
 ## Motion
 

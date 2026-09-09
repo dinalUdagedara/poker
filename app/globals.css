@@ -60,7 +60,7 @@
    */
   --color-suit-red: var(--suit-red);
 
-  /* Money, read off a stack at a glance. Green here only ever means money. */
+  /* Money, read off a stack at a glance. Cyan, because green is the table. */
   --color-win: var(--state-win);
   --color-stack-healthy: var(--state-healthy);
   --color-stack-medium: var(--state-medium);
