@@ -229,10 +229,10 @@ export function PlayerSeat({
       </Card>
 
       {/* Height reserved whether or not anything is wagered: seats are centred
-          on their own box, so a growing row would nudge the seat as chips land.
-          Shorter on a phone — the reservation is dead space at every seat that
-          is not currently betting, and six of them is most of a felt. */}
-      <div className="flex h-5 items-center gap-1 sm:h-8">
+          on their own box, so a growing pile would nudge the seat as chips land.
+          Sized for a face-on clay disc, not a pill — the reservation is still
+          dead space at empty seats, so it stays as short as those discs allow. */}
+      <div className="flex h-8 items-center gap-1 sm:h-10">
         {player.status === 'folded' && (
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
             folded
@@ -259,12 +259,12 @@ export function PlayerSeat({
            */
           <span
             key={player.currentBet}
-            className="animate-wager flex items-center gap-1.5 rounded-full border border-black/30 bg-black/45 py-0.5 pr-2 pl-1.5 backdrop-blur-sm"
+            className="animate-wager flex items-end gap-1"
             style={{ '--wager-from': hero ? '30px' : '-30px' } as CSSProperties}
             data-testid={`bet-${player.id}`}
           >
-            <ChipStack stack={player.currentBet} />
-            <span className="font-mono text-[11px] font-semibold tabular-nums text-brass-lit">
+            <ChipStack look="felt" stack={player.currentBet} />
+            <span className="text-brass-lit pb-0.5 font-mono text-[11px] font-semibold tabular-nums drop-shadow-[0_1px_2px_oklch(0_0_0/0.75)]">
               {player.currentBet.toLocaleString()}
             </span>
           </span>

@@ -683,6 +683,166 @@
   animation: pot-to-winner 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+/*
+ * Clay chips. Colours are denominations — white ones, red fives, blue
+ * twenty-fives, black hundreds, violet five hundreds, yellow thousands —
+ * never re-tinted to match a screen.
+ *
+ * Face-on (`clay-chip`) is a wager or the pot: eight edge spots, an inner
+ * inlay, and a short wall of shadow so the disc sits on the felt. Edge-on
+ * (`chip-edge`) is the pile beside a nameplate, where height is depth.
+ */
+.chip-pile {
+  --chip-size: 1.25rem;
+  --chip-rise: 4px;
+  --chip-thick: 4px;
+}
+
+.chip-pile-lg {
+  --chip-size: 1.5rem;
+  --chip-rise: 4.5px;
+  --chip-thick: 4px;
+}
+
+@media (min-width: 640px) {
+  .chip-pile:not(.chip-pile-lg) {
+    --chip-size: 1.375rem;
+  }
+}
+
+.clay-chip[data-chip='1'],
+.chip-edge[data-chip='1'] {
+  --chip-clay: oklch(0.96 0.012 85);
+  --chip-clay-deep: oklch(0.78 0.02 80);
+  --chip-spot: oklch(0.52 0.18 25);
+}
+
+.clay-chip[data-chip='5'],
+.chip-edge[data-chip='5'] {
+  --chip-clay: oklch(0.55 0.2 25);
+  --chip-clay-deep: oklch(0.38 0.16 25);
+  --chip-spot: oklch(0.97 0.02 90);
+}
+
+.clay-chip[data-chip='25'],
+.chip-edge[data-chip='25'] {
+  --chip-clay: oklch(0.62 0.14 240);
+  --chip-clay-deep: oklch(0.42 0.12 245);
+  --chip-spot: oklch(0.97 0.02 90);
+}
+
+.clay-chip[data-chip='100'],
+.chip-edge[data-chip='100'] {
+  --chip-clay: oklch(0.28 0.012 30);
+  --chip-clay-deep: oklch(0.14 0.01 30);
+  --chip-spot: oklch(0.92 0.03 90);
+}
+
+.clay-chip[data-chip='500'],
+.chip-edge[data-chip='500'] {
+  --chip-clay: oklch(0.55 0.18 300);
+  --chip-clay-deep: oklch(0.38 0.15 300);
+  --chip-spot: oklch(0.97 0.02 90);
+}
+
+.clay-chip[data-chip='1000'],
+.chip-edge[data-chip='1000'] {
+  --chip-clay: oklch(0.82 0.15 90);
+  --chip-clay-deep: oklch(0.62 0.14 85);
+  --chip-spot: oklch(0.98 0.04 95);
+}
+
+.clay-chip {
+  position: absolute;
+  inset-inline: 0;
+  width: var(--chip-size);
+  height: var(--chip-size);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, oklch(1 0 0 / 0.38), transparent 42%),
+    var(--chip-clay);
+  border: 1px solid color-mix(in oklch, var(--chip-clay-deep) 75%, black);
+  box-shadow:
+    0 1px 0 var(--chip-clay-deep),
+    0 2px 0 color-mix(in oklch, var(--chip-clay-deep) 70%, black),
+    0 3px 5px oklch(0 0 0 / 0.45);
+}
+
+.clay-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 11.25deg,
+    var(--chip-spot) 0deg 15deg,
+    transparent 15deg 45deg
+  );
+  -webkit-mask-image: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3.5px),
+    #000 calc(100% - 2.5px)
+  );
+  mask-image: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 2.5px));
+  pointer-events: none;
+}
+
+.clay-chip::after {
+  content: '';
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklch, var(--chip-spot) 55%, transparent);
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.22),
+    0 0 0 1px color-mix(in oklch, var(--chip-clay-deep) 30%, transparent);
+  pointer-events: none;
+}
+
+.chip-edge {
+  position: absolute;
+  inset-inline: 0;
+  height: 11px;
+  border-radius: 50%;
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 0.32), transparent 50%),
+    var(--chip-clay);
+  border: 1px solid color-mix(in oklch, var(--chip-clay-deep) 80%, black);
+  box-shadow:
+    0 1px 0 var(--chip-clay-deep),
+    0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+.chip-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 11.25deg,
+    var(--chip-spot) 0deg 14deg,
+    transparent 14deg 45deg
+  );
+  -webkit-mask-image: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 2.5px),
+    #000 calc(100% - 1.5px)
+  );
+  mask-image: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 1.5px));
+  pointer-events: none;
+}
+
+.chip-edge::after {
+  content: '';
+  position: absolute;
+  inset-inline: 3px;
+  top: 2px;
+  height: 3px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--chip-spot) 45%, transparent);
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-deal,
   .animate-callout,
