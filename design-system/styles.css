@@ -263,39 +263,67 @@ p {
     );
 }
 
-/* The rail: near-black, with a brass hairline where the light lands. It is the
-   darkest thing on the screen, which is what makes the felt read as lit. */
+/*
+ * The rail is a padded bumper, painted — not a mesh. Light on the inner lip,
+ * the far edge falling off, and a shadow on the floor so the oval reads as an
+ * object in the room. Cards and seats stay flat on top of it.
+ */
 .rail {
-  padding: var(--space-3);
+  position: relative;
+  padding: var(--space-3) var(--space-3) var(--space-4);
   border-radius: 46% / 54%;
-  background: linear-gradient(
-    180deg,
-    var(--rail-lit) 0%,
-    var(--rail) 52%,
-    var(--rail-deep) 100%
-  );
+  background:
+    radial-gradient(90% 42% at 50% -8%, oklch(0.42 0.014 80 / 0.4) 0%, transparent 58%),
+    linear-gradient(
+      180deg,
+      var(--rail-lit) 0%,
+      var(--rail) 48%,
+      var(--rail-deep) 100%
+    );
   box-shadow:
     var(--shadow-lg),
-    var(--edge-strong);
+    0 18px 28px oklch(0 0 0 / 0.42),
+    inset 0 1.5px 1px oklch(0.85 0.04 80 / 0.2),
+    inset 0 -4px 8px oklch(0 0 0 / 0.55);
+}
+
+.rail::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(80% 50% at 50% 0%, oklch(0.62 0.04 80 / 0.38) 0%, transparent 55%),
+    linear-gradient(
+      180deg,
+      oklch(0.55 0.03 80 / 0.42) 0%,
+      oklch(0.35 0.01 80 / 0.08) 40%,
+      oklch(0 0 0 / 0.42) 100%
+    );
 }
 
 /*
  * The felt, brighter than the room so it still reads as a table. The weave is
  * two crossed hatches at a whisper of opacity — enough that the surface has a
- * nap under the cards instead of being a flat fill.
+ * nap under the cards instead of being a flat fill. z-index keeps the cloth
+ * above the rail's lip.
  */
 .felt {
   position: relative;
+  z-index: 1;
   height: 100%;
   border-radius: 46% / 54%;
-  border: 1px solid oklch(0.95 0.02 150 / 0.12);
   background-image:
     repeating-linear-gradient(45deg, oklch(1 0 0 / 0.014) 0 2px, transparent 2px 4px),
     repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.022) 0 2px, transparent 2px 4px),
-    radial-gradient(86% 72% at 50% 30%, var(--felt-lit) 0%, var(--felt) 52%, var(--felt-deep) 100%);
+    radial-gradient(42% 34% at 50% 40%, oklch(0.66 0.13 148 / 0.45) 0%, transparent 72%),
+    radial-gradient(72% 58% at 50% 36%, var(--felt-lit) 0%, var(--felt) 48%, var(--felt-deep) 100%);
   box-shadow:
-    inset 0 0 80px oklch(0.12 0.03 152 / 0.5),
-    var(--edge);
+    0 0 0 1px oklch(0.58 0.03 80 / 0.35),
+    inset 0 0 70px oklch(0.14 0.04 152 / 0.55),
+    inset 0 0 0 1px oklch(0 0 0 / 0.28);
 }
 
 /*
