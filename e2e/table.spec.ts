@@ -385,7 +385,7 @@ test.describe('while the bots are deciding', () => {
 
   test('holds the action bar at one height whoever is deciding', async ({ page }) => {
     await dealIn(page)
-    const panel = page.locator('[data-slot=card]').last()
+    const panel = page.getByTestId('action-console')
     const height = async () => Math.round((await panel.boundingBox())!.height)
 
     await expect(page.getByTestId('action-fold')).toBeVisible()

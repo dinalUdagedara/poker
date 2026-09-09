@@ -1,6 +1,6 @@
 # Showdown design system
 
-Showdown is a room, not a page. A dark oxblood house lit from over the table, a deep red felt inside a mahogany rail with a brass hairline, and exactly one accent — brass — reserved for the things that cost you something. The only light surfaces in the entire system are the faces of playing cards, which is what lets the scheme sit this dark without going murky.
+Showdown is a room, not a page. A near-black house lit from over the table, a green felt inside a near-black rail with a brass hairline, and exactly one accent — brass — reserved for the things that cost you something. The felt is the brightest surface in the room after the faces of the playing cards, which is what lets the scheme sit this dark without going murky.
 
 ## How to use this
 
@@ -15,9 +15,13 @@ One lit stage with the chrome pushed to its edges. The room runs to every edge o
 
 ## Color
 
-An oxblood ground (`--color-bg`) with brass (`--color-accent`) as the only accent and a signal red (`--color-accent-2`) that is deliberately *not* the room — it is reserved for danger states and the red suits, so it never blends into the felt. Each role carries a 100–900 ramp built in OKLCH on a shared perceptual lightness scale, so the same step of any ramp has the same visual weight. Use the light steps (100–300) for text on tinted fills and for gleams, 500 as the base, and the dark steps (700–900) for fills, pressed states and recesses.
+A near-black ground (`--color-bg`) carrying the faintest green, so the surround belongs to the cloth rather than sitting behind it as a neutral. Brass (`--color-accent`) is the only accent, and a signal red (`--color-accent-2`) is reserved for danger states. Each role carries a 100–900 ramp built in OKLCH on a shared perceptual lightness scale, so the same step of any ramp has the same visual weight. Use the light steps (100–300) for text on tinted fills and for gleams, 500 as the base, and the dark steps (700–900) for fills, pressed states and recesses.
 
-Green appears in exactly two places and means money both times: the pass action (`--play-pass`) and winning (`--state-win`). Never use it decoratively.
+The neutral ramp is cool and barely tinted, and it has to stay that way. A warm neutral is the near-opposite hue to the felt at a similar lightness, so a panel built from one reads as a patch stuck onto the green rather than an object resting on it.
+
+**Cyan means money** (`--state-win`, `--state-healthy`) — never green, and never decoratively. Green used to carry money here, which worked while the room was red; on a green table a healthy stack printed in felt green says nothing at all. Cyan is the only hue left that is not the cloth, not the brass and not the red suits. The warning steps keep amber (`--state-medium`) and red (`--state-short`): neither was ever the felt, and a short stack has to shout in a hue nothing else on the table owns.
+
+The red suits take `--suit-red`, not the signal red. It is deeper and slightly warmer, and it has the room to be, now that the cloth it lies on is green.
 
 ## Play semantics
 
@@ -48,7 +52,7 @@ Every duration is a physical claim: dealing is quick and light (`--dur-deal`), c
 | `.tag` with `.tag-accent`, `.tag-danger`, `.tag-mono` | Small labels — blinds, street, status | components/buttons.html |
 | `.card-face` with `.card-red`, `.card-back`, `.card-xs/-sm/-lg`, `.card-slot`, `.hand-folded` | Playing cards — paper, the only light surface | components/playing-cards.html |
 | `.chip` with `.chip-1/-5/-25/-100/-500/-1000` | Chips — denominations, never decoration | components/chips.html |
-| `.seat` + `.seat-cards`, `.seat-plate` (`.seat-acting`, `.seat-winner`), `.seat-avatar`, `.seat-stack`, `.seat-name`, `.dealer-button`, `.callout` | One seat at the table, as one object | components/seat.html |
+| `.seat` (`.seat-out`) + `.seat-cards`, `.seat-plate` (`.seat-acting`, `.seat-winner`), `.seat-avatar`, `.seat-stack`, `.seat-name`, `.dealer-button`, `.callout` | One seat at the table, as one object. `.seat-cards` is a slot holding **either** the cards or the player's face, never both | components/seat.html |
 | `.stack-healthy`, `.stack-medium`, `.stack-short` | What a stack is worth, read at a glance | components/seat.html |
 | `.panel`, `.panel-lg`, `.panel-row`, `.well` | Milled slabs, and the recesses set into them | components/panels.html |
 | `.field` + `.input`, `.seg` + `.seg-opt`, `.slider` + `.slider-range/-thumb/-bubble` | Native form elements, themed states, no script | components/forms.html |

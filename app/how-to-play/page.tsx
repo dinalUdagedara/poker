@@ -72,8 +72,8 @@ const STREETS: Array<{ name: string; detail: string; board?: string }> = [
  * unlit stone, the two ways of staying in without new chips are felt green, and
  * the only action that commits money is brass. Explaining a control in a
  * different colour from the control itself would be worse than not colouring it
- * at all — which is also why fold is a swatch of stone and not of red: on this
- * table red is the room, and the fold button is the one thing that is not.
+ * at all — which is also why fold is a swatch of stone and not of red: red is
+ * already the suits, and the fold button is the one cold surface in the room.
  */
 const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
   {
