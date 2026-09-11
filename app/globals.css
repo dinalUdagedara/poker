@@ -812,24 +812,39 @@
 @keyframes win-banner {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.94);
   }
   10% {
     opacity: 1;
-    transform: none;
   }
   70% {
     opacity: 1;
-    transform: none;
   }
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes win-copy {
+  0% {
+    transform: translateY(10px) scale(0.94);
+  }
+  10% {
+    transform: none;
+  }
+  70% {
+    transform: none;
+  }
+  100% {
     transform: scale(1.04);
   }
 }
 
 .animate-win {
   animation: win-banner 3s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+.animate-win-copy {
+  animation: win-copy 3s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }
 
 /* The winning seat breathes rather than just sitting in a static ring, so the
@@ -1071,6 +1086,7 @@
    */
   .animate-award,
   .animate-win,
+  .animate-win-copy,
   .animate-sweep {
     display: none;
   }

@@ -822,15 +822,15 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
          */
         <div
           key={`win-${table.handNumber}`}
-          className="pointer-events-none fixed inset-0 z-50"
+          className="animate-win pointer-events-none fixed inset-0 z-50"
           data-testid="win-banner"
         >
           <div
             className="absolute inset-0 bg-[oklch(0.13_0.015_150/0.72)] backdrop-blur-[3px]"
             aria-hidden
           />
-          <div className="animate-win absolute inset-0 grid place-items-center">
-            <div className="flex flex-col items-center gap-1 px-4">
+          <div className="absolute inset-0 grid place-items-center">
+            <div className="animate-win-copy flex flex-col items-center gap-1 px-4">
               {/* The one moment the house lettering is allowed to be the
                   loudest thing on the table. */}
               <span className="wordmark text-5xl font-bold tracking-tight drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-7xl">
