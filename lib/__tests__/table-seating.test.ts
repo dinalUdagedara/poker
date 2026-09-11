@@ -31,10 +31,23 @@ describe('the ring of seats', () => {
 
   it('pulls the seats level with the middle in off the rail', () => {
     // The honest ellipse is right everywhere except its two widest points,
-    // where a plate centred on the true point overhangs the wood.
+    // where a plate centred on the true point overhangs the wood. Landscape
+    // only: a phone leaves that waist empty for the board.
     const level = seatRing(4)[1]
     expect(level.top).toBeCloseTo(50)
     expect(level.left).toBeGreaterThan(50 - 41)
+  })
+
+  it('leaves the waist of a phone table empty for the board', () => {
+    // ClubGG does not sit anyone at 9 o'clock on a standing oval. Those seats
+    // are where the community cards are, and a plate there covers them.
+    for (const count of [3, 4, 6, 8]) {
+      const sides = seatRing(count, true).filter((seat) => Math.abs(seat.left - 50) > 15)
+      expect(sides.length).toBeGreaterThan(0)
+      for (const seat of sides) {
+        expect(seat.top < 38 || seat.top > 62).toBe(true)
+      }
+    }
   })
 
   it('spreads a crowded table without standing two people in one place', () => {
@@ -49,11 +62,12 @@ describe('the ring of seats', () => {
     }
   })
 
-  it('stands the ring up for a phone', () => {
-    // A portrait felt has height to spare and almost no width, so the same
-    // field has to reach further down and sit closer to the sides.
+  it('runs a phone’s seats down the long sides, not across the middle', () => {
+    // A portrait felt has almost no width. The same field has to sit closer
+    // to the rails and keep the waist clear, which is what ClubGG's phone
+    // client does for the same reason.
     const [wide, tall] = [seatRing(6)[1], seatRing(6, true)[1]]
-    expect(tall.top).toBeGreaterThan(wide.top)
+    expect(tall.left).toBeLessThan(wide.left)
   })
 
   it('drops the viewer onto the near rail on a phone', () => {

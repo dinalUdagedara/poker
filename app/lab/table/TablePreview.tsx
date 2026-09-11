@@ -167,9 +167,9 @@ export function TablePreview() {
                   </div>
                 )}
 
-                <div className="flex items-end justify-center gap-1 sm:gap-1.5">
+                <div className="flex items-end justify-center gap-1.5 sm:gap-2">
                   {BOARD.map((card, i) => (
-                    <PreviewCard key={i} card={card} size={portrait ? 'sm' : 'md'} face={face} />
+                    <PreviewCard key={i} card={card} size={portrait ? 'md' : 'lg'} face={face} />
                   ))}
                 </div>
 

@@ -250,7 +250,9 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
     () => seatOrder(table.players, table.viewerId),
     [table.players, table.viewerId],
   )
-  const ring = useMemo(() => seatRing(seated.length, portrait), [seated.length, portrait])
+  const deskRing = useMemo(() => seatRing(seated.length, false), [seated.length])
+  const phoneRing = useMemo(() => seatRing(seated.length, true), [seated.length])
+  const ring = portrait ? phoneRing : deskRing
   const callouts = calloutsFor(table)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
   const youWon = table.result?.payouts[table.viewerId ?? ''] ?? 0
@@ -509,13 +511,12 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               {/* Pot and board */}
               <div
                 className={cn(
-                  // On a phone the cluster sits in the upper half, so a five-card
-                  // board does not walk into the viewer's hole cards. Desktop keeps
-                  // it on the true middle, which is where the oval is widest.
-                  'absolute left-1/2 z-20 flex w-max -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1',
-                  'top-[42%] max-w-[58%]',
-                  'sm:top-1/2 sm:gap-2',
-                  crowded ? 'sm:max-w-[52%]' : 'sm:max-w-[72%]',
+                  // Dead centre, like ClubGG. Side seats sit on the rail above
+                  // or below this band, so the board can keep the waist.
+                  'absolute left-1/2 z-20 flex w-max -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5',
+                  'top-1/2 max-w-[64%]',
+                  'sm:gap-2.5',
+                  crowded ? 'sm:max-w-[56%]' : 'sm:max-w-[68%]',
                 )}
               >
                 <div className="flex items-end justify-center gap-1.5 sm:gap-2">
@@ -552,13 +553,12 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   preflop made the middle look unfinished; the row still holds
                   a card's height so the flop does not shove the pot.
 
-                  Phone cards stay small even on a short-handed table. A five-card
-                  board is what fills the felt, not the number of opponents, and
-                  the large size used to be reserved for "uncrowded" tables that
-                  still ran out of width the moment the river came.
+                  Taller than they are wide, with air between them — ClubGG's
+                  board — so five cards stay in the middle instead of reaching
+                  the seats on the rail.
                 */}
                 <div
-                  className="flex min-h-12 items-end justify-center gap-0.5 sm:min-h-18 sm:gap-1.5"
+                  className="flex min-h-18 items-end justify-center gap-1.5 sm:min-h-24 sm:gap-2.5"
                   data-testid="board"
                 >
                   {table.communityCards.map((card, i) => (
@@ -567,7 +567,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                       card={card}
                       size="md"
                       dealDelay={i * 70}
-                      className="h-10 w-7 text-[9px] sm:h-18 sm:w-13 sm:text-sm"
+                      className="w-10 sm:w-16"
                     />
                   ))}
                 </div>
@@ -629,18 +629,30 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               <div className="absolute inset-0">
                 {seated.map((player, i) => {
                   const point = ring[i]
-                  if (!point) return null
+                  const desk = deskRing[i]
+                  const phone = phoneRing[i]
+                  if (!point || !desk || !phone) return null
                   const isYou = player.id === table.viewerId
+                  const showing = player.holeCards != null
                   return (
                     <div
                       key={player.id}
                       className={cn(
-                        'absolute -translate-x-1/2 -translate-y-1/2',
+                        'table-seat',
                         // The viewer's seat is the one you read every hand, so
-                        // it stays legible on a phone while the rest give way.
-                        isYou ? 'z-30' : 'max-sm:scale-[0.82]',
+                        // it stays legible on a phone while the rest give way
+                        // — unless they have just turned their cards over.
+                        // A revealed hand is the point of the street.
+                        isYou ? 'z-30' : showing ? 'z-20' : 'max-sm:scale-[0.82]',
                       )}
-                      style={{ left: `${point.left}%`, top: `${point.top}%` }}
+                      style={
+                        {
+                          '--seat-d-l': `${desk.left}%`,
+                          '--seat-d-t': `${desk.top}%`,
+                          '--seat-p-l': `${phone.left}%`,
+                          '--seat-p-t': `${phone.top}%`,
+                        } as CSSProperties
+                      }
                     >
                       <PlayerSeat
                         player={player}

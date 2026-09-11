@@ -80,6 +80,9 @@ export function PlayerSeat({
   const tone = stackTone(player.stack, bigBlind)
   // Cards or a face, never both. See the slot below.
   const holds = player.cardCount > 0 && player.status !== 'folded'
+  // A back can be a speck on the rail. A face is the reason the hand ended,
+  // so it takes the same size as the board the moment it turns over.
+  const shown = player.holeCards != null
 
   return (
     <div className="relative flex flex-col items-center gap-1 sm:gap-1.5" data-testid={`seat-${player.id}`}>
@@ -97,7 +100,7 @@ export function PlayerSeat({
       <div
         className={cn(
           'flex items-end justify-center',
-          hero ? '-mb-4 sm:-mb-3.5' : '-mb-3 sm:-mb-3.5',
+          hero ? '-mb-5 sm:-mb-4' : shown ? '-mb-6 sm:-mb-5' : '-mb-4 sm:-mb-4',
           // Whichever of the two is showing. A folded seat has to recede, and a
           // portrait left at full strength does the opposite of that — the
           // brightest thing on the felt became the people no longer in the hand.
@@ -109,13 +112,16 @@ export function PlayerSeat({
             <PlayingCard
               key={i}
               card={player.holeCards?.[i] ?? null}
-              size={hero ? 'lg' : compact ? 'xs' : 'sm'}
+              size={hero ? 'lg' : shown ? 'md' : 'xs'}
               dealDelay={i * 90}
               className={cn(
-                TILT[i % TILT.length],
-                i > 0 && (hero ? '-ml-2.5 sm:-ml-2' : '-ml-1'),
-                hero && 'h-18 w-13 text-sm sm:h-24 sm:w-17 sm:text-base',
-                'transition-transform duration-150 hover:z-10 hover:-translate-y-1 hover:rotate-0',
+                shown ? (i % 2 === 0 ? '-rotate-3' : 'rotate-3') : TILT[i % TILT.length],
+                i > 0 && (hero ? '-ml-3 sm:-ml-2.5' : shown ? '-ml-1' : '-ml-2'),
+                hero && 'w-14 sm:w-16',
+                !hero && shown && 'w-12 sm:w-14',
+                !hero && !shown && 'sm:w-10',
+                'origin-bottom transition-[width,transform] duration-500',
+                'hover:z-10 hover:-translate-y-1 hover:rotate-0',
               )}
             />
           ))

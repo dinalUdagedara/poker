@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 
 /**
  * Whether the felt is standing up.
@@ -10,13 +10,13 @@ import { useEffect, useState } from 'react'
  * JavaScript rather than only from CSS. This is the same 640px Tailwind's `sm:`
  * uses, so the ring and the classes around it always change together.
  *
- * Starts false and corrects on mount. Server-rendering cannot know the width,
- * and guessing portrait would flash a phone layout onto every desktop.
+ * Starts false and corrects before paint. Server-rendering cannot know the
+ * width, and guessing portrait would flash a phone layout onto every desktop.
  */
 export function usePortrait(): boolean {
   const [portrait, setPortrait] = useState(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const query = window.matchMedia('(max-width: 639px)')
     const sync = () => setPortrait(query.matches)
     sync()
