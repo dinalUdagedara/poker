@@ -674,40 +674,6 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 })}
               </div>
             </div>
-
-            {youWon > 0 && (
-              /*
-               * Winning gets its own moment on the table rather than only a line
-               * in the panel below. Keyed on the hand so it plays once, inert so
-               * it cannot intercept a click, and it fades itself out — the panel
-               * keeps the same facts, so there is nothing to dismiss.
-               *
-               * The veil is the same still as the table, flattened to a dim, so
-               * it follows the painted oval instead of a CSS ellipse.
-               */
-              <div
-                key={`win-${table.handNumber}`}
-                className="animate-win pointer-events-none absolute inset-0 z-40"
-                data-testid="win-banner"
-              >
-                <TableBody className="table-win-veil" />
-                <div className="absolute inset-0 grid place-items-center">
-                  <div className="flex flex-col items-center gap-1">
-                    {/* The one moment the house lettering is allowed to be the
-                        loudest thing on the table. */}
-                    <span className="wordmark text-4xl font-bold tracking-tight drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-5xl">
-                      You win
-                    </span>
-                    <span className="font-mono text-3xl font-bold tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)]">
-                      {youWon.toLocaleString()}
-                    </span>
-                    {winningHand && (
-                      <span className="text-brass-lit/80 text-base font-medium">{winningHand}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <ThisHand
@@ -846,6 +812,40 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             />
           </div>
       </div>
+
+      {youWon > 0 && (
+        /*
+         * Winning takes the whole screen, not just the oval. Keyed on the hand
+         * so it plays once, inert so it cannot intercept a click, and it fades
+         * itself out — the panel keeps the same facts, so there is nothing to
+         * dismiss.
+         */
+        <div
+          key={`win-${table.handNumber}`}
+          className="pointer-events-none fixed inset-0 z-50"
+          data-testid="win-banner"
+        >
+          <div
+            className="absolute inset-0 bg-[oklch(0.13_0.015_150/0.72)] backdrop-blur-[3px]"
+            aria-hidden
+          />
+          <div className="animate-win absolute inset-0 grid place-items-center">
+            <div className="flex flex-col items-center gap-1 px-4">
+              {/* The one moment the house lettering is allowed to be the
+                  loudest thing on the table. */}
+              <span className="wordmark text-5xl font-bold tracking-tight drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-7xl">
+                You win
+              </span>
+              <span className="font-mono text-4xl font-bold tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)] sm:text-6xl">
+                {youWon.toLocaleString()}
+              </span>
+              {winningHand && (
+                <span className="text-brass-lit/80 text-lg font-medium sm:text-xl">{winningHand}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
