@@ -7,14 +7,16 @@ import type { Card, Suit } from '@/lib/poker/cards'
 const SUIT_SYMBOLS: Record<Suit, string> = { h: '♥', d: '♦', c: '♣', s: '♠' }
 const SUIT_NAMES = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' } as const
 
+/**
+ * Widths only. Height follows from 2:3, which is the proportion ClubGG draws —
+ * taller than a printed card, so a rank that large still has somewhere to sit.
+ */
 const SIZES = {
-  xs: 'h-11 w-8 text-[9px] rounded-[4px]',
-  sm: 'h-14 w-10 text-[11px] rounded-md',
-  md: 'h-18 w-13 text-xs rounded-lg',
-  lg: 'h-24 w-17 text-sm rounded-xl',
+  xs: 'w-8 text-[10px] rounded-[4px]',
+  sm: 'w-10 text-[13px] rounded-[5px]',
+  md: 'w-12 text-[16px] rounded-md',
+  lg: 'w-16 text-[19px] rounded-lg',
 } as const
-
-const printed = 'font-(family-name:--font-display) leading-none'
 
 /**
  * A single card, face up or face down.
@@ -45,16 +47,18 @@ export function PlayingCard({
   const style = dealDelay !== undefined ? { animationDelay: `${dealDelay}ms` } : undefined
   const shell = cn(
     SIZES[size],
-    'card-stock relative shrink-0 border select-none',
+    'card-stock relative aspect-2/3 shrink-0 select-none',
     dealDelay !== undefined && 'animate-deal',
     className,
   )
 
-  const back = <div className={cn(shell, 'card-back')} style={style} aria-label="face-down card" />
+  const back = (
+    <div className={cn(shell, 'card-back border')} style={style} aria-label="face-down card" />
+  )
 
   if (!card && !revealed) return back
 
-  const face = card ? <CardFace card={card} size={size} className={shell} style={style} /> : back
+  const face = card ? <CardFace card={card} className={shell} style={style} /> : back
 
   if (!startedFacedown.current || !card) return face
 
@@ -64,13 +68,18 @@ export function PlayingCard({
    */
   return (
     <div
-      className={cn('card-flip', revealed && 'is-face', SIZES[size], className)}
+      className={cn(
+        'card-flip card-stock aspect-2/3',
+        revealed && 'is-face',
+        SIZES[size],
+        className,
+      )}
       style={style}
     >
       <div className="card-flip-inner">
-        <div className="card-stock card-back card-flip-back border" aria-hidden />
+        <div className="card-back card-flip-back border" aria-hidden />
         <div className="card-flip-face">
-          <CardFace card={card} size={size} className="card-stock size-full border" />
+          <CardFace card={card} className="size-full rounded-[inherit]" />
         </div>
       </div>
     </div>
@@ -79,47 +88,35 @@ export function PlayingCard({
 
 function CardFace({
   card,
-  size,
   className,
   style,
 }: {
   card: Card
-  size: keyof typeof SIZES
   className?: string
   style?: { animationDelay: string }
 }) {
   const isRed = card.suit === 'h' || card.suit === 'd'
   const rank = card.rank === 'T' ? '10' : card.rank
   const pip = SUIT_SYMBOLS[card.suit]
-  const ink = cn(printed, isRed && 'text-suit-red')
-  const corner = (
-    <span className={cn(ink, 'flex flex-col items-center')}>
-      <span className="tracking-tight">{rank}</span>
-      <span className={cn('text-[0.9em]', size === 'xs' && 'text-[0.8em]')}>{pip}</span>
-    </span>
-  )
+  const ink = cn('leading-none', isRed ? 'text-suit-red' : 'text-[oklch(0.2_0.01_260)]')
 
   return (
     <div
       className={cn(
         className,
-        // Cool paper, not cream. The felt is green now, and a warm card on a
-        // green table is the same near-opposite pairing that made the old
-        // plates look pasted on.
-        'border-black/15 bg-linear-to-b from-[oklch(0.99_0.002_90)] to-[oklch(0.955_0.004_90)]',
-        'text-[oklch(0.2_0.01_260)]',
+        // ClubGG's face, not a printed card: rank in the suit's colour at the
+        // top left, one large pip in the bottom right, no inverted corner.
+        'bg-linear-to-b from-[oklch(0.99_0.002_90)] to-[oklch(0.97_0.004_90)]',
       )}
       style={style}
       data-testid="card-face"
       aria-label={`${rank} of ${SUIT_NAMES[card.suit]}`}
     >
-      <span className="absolute top-0.5 left-0.5 sm:top-1 sm:left-1">{corner}</span>
-      {size !== 'xs' && (
-        <span className={cn(ink, 'absolute inset-0 grid place-items-center text-[1.35em] opacity-90')}>
-          {pip}
-        </span>
-      )}
-      <span className="absolute right-0.5 bottom-0.5 rotate-180 sm:right-1 sm:bottom-1">{corner}</span>
+      <span className={cn(ink, 'absolute top-[1%] left-[10%] flex flex-col items-start leading-[0.85]')}>
+        <span className="text-[1.7em] font-bold tracking-tighter">{rank}</span>
+        <span className="text-[0.95em] leading-none">{pip}</span>
+      </span>
+      <span className={cn(ink, 'absolute right-[5%] bottom-[1%] text-[2.15em] leading-[0.85]')}>{pip}</span>
     </div>
   )
 }

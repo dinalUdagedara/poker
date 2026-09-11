@@ -10,10 +10,10 @@ const PIPS: Record<Suit, string> = { h: '♥', d: '♦', c: '♣', s: '♠' }
  * ClubGG draws — noticeably taller than the house deck.
  */
 const SIZES = {
-  xs: 'w-7 rounded-[3px] text-[9px]',
-  sm: 'w-9 rounded-[4px] text-[11px]',
-  md: 'w-11 rounded-[5px] text-[13px]',
-  lg: 'w-14 rounded-md text-[17px]',
+  xs: 'w-8 rounded-[3px] text-[10px]',
+  sm: 'w-11 rounded-[4px] text-[13px]',
+  md: 'w-14 rounded-md text-[16px]',
+  lg: 'w-16 rounded-md text-[19px]',
 } as const
 
 export type CardSize = keyof typeof SIZES

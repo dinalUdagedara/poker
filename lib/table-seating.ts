@@ -13,22 +13,12 @@
 export type SeatPoint = { left: number; top: number }
 
 /**
- * How far the ring reaches, per orientation.
+ * How far the landscape ring reaches.
  *
- * Two shapes, because the felt is two shapes. A landscape oval is wide and
- * shallow, so the ring is very nearly circular in percentage terms. A phone
- * stands the oval up, and the room a crowded table needs is then down the two
- * long sides rather than across the top — so the portrait ring reaches further
- * vertically and sits its side seats closer to the edge, which is what ClubGG's
- * phone client does for the same reason.
+ * A wide oval is very nearly circular in percentage terms. Seats level with
+ * the middle are eased in off the rail so a plate does not hang over the wood.
  */
-const REACH = {
-  landscape: { rx: 41, ry: 42 },
-  portrait: { rx: 39, ry: 44 },
-} as const
-
-/** Extra drop for the viewer on a phone, in percent of the felt. */
-const PORTRAIT_HERO_DROP = 4
+const LANDSCAPE = { rx: 41, ry: 42 } as const
 
 /**
  * How much a seat level with the middle is pulled inboard, in percent.
@@ -42,6 +32,78 @@ const PORTRAIT_HERO_DROP = 4
 const RAIL_PULL = 4
 
 /**
+ * Phone rings, hero first, then clockwise — the same order the action goes.
+ *
+ * A table rather than trigonometry. An even spread around a standing oval puts
+ * someone at 9 o'clock and someone at 3, which is exactly where the board is.
+ * ClubGG leaves that waist empty: seats run in pairs down the two long sides
+ * and the community cards keep the middle. These numbers are that layout.
+ */
+const PORTRAIT: Record<number, SeatPoint[]> = {
+  1: [{ left: 50, top: 93 }],
+  2: [
+    { left: 50, top: 93 },
+    { left: 50, top: 7 },
+  ],
+  3: [
+    { left: 50, top: 93 },
+    { left: 13, top: 25 },
+    { left: 87, top: 25 },
+  ],
+  4: [
+    { left: 50, top: 93 },
+    { left: 12, top: 76 },
+    { left: 50, top: 7 },
+    { left: 88, top: 76 },
+  ],
+  5: [
+    { left: 50, top: 93 },
+    { left: 13, top: 70 },
+    { left: 13, top: 27 },
+    { left: 50, top: 7 },
+    { left: 87, top: 27 },
+  ],
+  6: [
+    { left: 50, top: 93 },
+    { left: 13, top: 70 },
+    { left: 13, top: 27 },
+    { left: 50, top: 6 },
+    { left: 87, top: 27 },
+    { left: 87, top: 70 },
+  ],
+  7: [
+    { left: 50, top: 93 },
+    { left: 16, top: 82 },
+    { left: 10, top: 64 },
+    { left: 13, top: 26 },
+    { left: 50, top: 6 },
+    { left: 87, top: 26 },
+    { left: 84, top: 82 },
+  ],
+  8: [
+    { left: 50, top: 93 },
+    { left: 16, top: 82 },
+    { left: 10, top: 64 },
+    { left: 13, top: 26 },
+    { left: 50, top: 6 },
+    { left: 87, top: 26 },
+    { left: 90, top: 64 },
+    { left: 84, top: 82 },
+  ],
+  9: [
+    { left: 50, top: 95 },
+    { left: 17, top: 84 },
+    { left: 9, top: 64 },
+    { left: 12, top: 32 },
+    { left: 32, top: 8 },
+    { left: 68, top: 8 },
+    { left: 88, top: 32 },
+    { left: 91, top: 64 },
+    { left: 83, top: 84 },
+  ],
+}
+
+/**
  * The ring for a table of `count`, viewer first.
  *
  * Index 0 is bottom centre and the rest run round to the viewer's left, which
@@ -49,19 +111,17 @@ const RAIL_PULL = 4
  * place in the hand.
  */
 export function seatRing(count: number, portrait = false): SeatPoint[] {
-  const { rx, ry } = portrait ? REACH.portrait : REACH.landscape
-  return Array.from({ length: Math.max(count, 1) }, (_, index) => {
-    const radians = ((90 + (index * 360) / Math.max(count, 1)) * Math.PI) / 180
+  const n = Math.max(count, 1)
+  if (portrait) return PORTRAIT[Math.min(n, 9)] ?? PORTRAIT[6]
+
+  const { rx, ry } = LANDSCAPE
+  return Array.from({ length: n }, (_, index) => {
+    const radians = ((90 + (index * 360) / n) * Math.PI) / 180
     const cos = Math.cos(radians)
     const pull = Math.max(0, (Math.abs(cos) - 0.9) / 0.1) * RAIL_PULL
-    const top = 50 + ry * Math.sin(radians)
     return {
       left: 50 + (rx - pull) * cos,
-      // On a phone the viewer's seat has to sit on the near rail so a five-card
-      // board has somewhere to go. The honest ellipse puts them at the same
-      // reach as the top seat, which is already tight against the header, so
-      // only the bottom is pushed out.
-      top: portrait && index === 0 ? Math.min(96, top + PORTRAIT_HERO_DROP) : top,
+      top: 50 + ry * Math.sin(radians),
     }
   })
 }

@@ -230,7 +230,9 @@
  */
 .cardFace {
   background: oklch(0.985 0.002 90);
-  box-shadow: 0 2px 5px oklch(0 0 0 / 0.4);
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 0.35),
+    0 4px 14px oklch(0 0 0 / 0.5);
 }
 
 .cardRed {
@@ -248,7 +250,7 @@
     repeating-linear-gradient(45deg, oklch(1 0 0 / 0.22) 0 1px, transparent 1px 4px),
     repeating-linear-gradient(-45deg, oklch(0 0 0 / 0.22) 0 1px, transparent 1px 4px);
   box-shadow:
-    0 2px 5px oklch(0 0 0 / 0.4),
+    0 4px 14px oklch(0 0 0 / 0.5),
     inset 0 0 0 1.5px oklch(0.98 0.002 90 / 0.85);
 }
 
