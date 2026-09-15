@@ -60,6 +60,20 @@ const showing = (page: Page, testId: string) =>
     .isVisible()
     .catch(() => false)
 
+/**
+ * Open the hand drawer on the hand in play, and hand back its log.
+ *
+ * The log only exists while the drawer is open — it comes over the table
+ * rather than sitting collapsed on it — so reading it means opening it first.
+ */
+async function openHistory(page: Page) {
+  const log = page.getByTestId('history')
+  if (!(await log.isVisible().catch(() => false))) {
+    await page.getByTestId('open-this-hand').click()
+  }
+  return log
+}
+
 /** Play passively until `isDone` holds, sitting out the bots' turns. */
 async function playUntil(page: Page, isDone: () => Promise<boolean>, steps = 40) {
   for (let step = 0; step < steps; step++) {
@@ -190,7 +204,7 @@ test.describe('seat callouts', () => {
     // Asserted against the history, not the bubble: once the bots finish acting
     // the street turns over and callouts clear, which is intended but makes the
     // bubble a race. The history is the permanent record of the same number.
-    await expect(page.getByTestId('history')).toContainText(
+    await expect(await openHistory(page)).toContainText(
       new RegExp(`(Bet|Raise to) ${level}`),
     )
   })
@@ -272,34 +286,30 @@ test.describe('chip stacks', () => {
   })
 })
 
-test('sizes a bet with the slider and stakes what the label showed', async ({ page }) => {
+test('sizes a bet with the stepper and stakes what it showed', async ({ page }) => {
   await dealIn(page)
 
-  // The sizing panel starts shut, so it has to be opened before there is a
-  // track to drag — without this the test would skip itself and pass silently.
-  const toggle = page.getByTestId('sizing-toggle')
-  if (await toggle.isVisible().catch(() => false)) await toggle.click()
+  // A forced all-in has one legal amount, so there is nothing to step through.
+  const more = page.getByTestId('bet-more')
+  if (!(await page.getByTestId('action-bet').isVisible().catch(() => false))) test.skip()
+  if (!(await more.isEnabled())) test.skip()
 
-  const slider = page.getByTestId('bet-slider')
-  if (!(await slider.isVisible().catch(() => false))) test.skip()
+  // Step up twice, so the amount is nothing like the opening one.
+  const opening = (await page.getByTestId('bet-amount').textContent())!.trim()
+  await more.click()
+  await more.click()
 
-  // Drag well along the track, so the amount is nothing like the opening one.
-  const track = (await slider.boundingBox())!
-  await page.mouse.move(track.x + 4, track.y + track.height / 2)
-  await page.mouse.down()
-  await page.mouse.move(track.x + track.width * 0.6, track.y + track.height / 2)
-  await page.mouse.up()
-
-  // The bubble on the thumb and the button have to agree: one is what you are
-  // reading while you size, the other is what actually gets staked.
+  // The stepper and the button have to agree: one is what you are reading
+  // while you size, the other is what actually gets staked.
   const shown = (await page.getByTestId('bet-amount').textContent())!.trim()
+  expect(shown).not.toBe(opening)
   await expect(page.getByTestId('action-bet')).toContainText(shown)
 
   await page.getByTestId('action-bet').click()
   await expect(page.getByTestId('error')).toHaveCount(0)
   // The history rather than the bubble, which clears as soon as the street
   // turns over — intended, but a race for anything asserted after the click.
-  await expect(page.getByTestId('history')).toContainText(shown)
+  await expect(await openHistory(page)).toContainText(shown)
 })
 
 test('puts chips on the felt for a wager and clears them when the hand ends', async ({ page }) => {
@@ -393,9 +403,10 @@ test.describe('while the bots are deciding', () => {
     await expect(page.getByTestId('action-idle')).toBeVisible()
     expect(await height()).toBe(onOurTurn)
 
-    // And the result panel does not shrink it either.
+    // And the result panel does not shrink it either. It may stand taller than
+    // one row of pills: that happens once, as the hand ends, not per decision.
     await playUntil(page, handSettled(page))
-    expect(await height()).toBe(onOurTurn)
+    expect(await height()).toBeGreaterThanOrEqual(onOurTurn)
   })
 
   /**
@@ -486,6 +497,115 @@ test('lays every seat out without anything running into anything else', async ({
   expect(clashes).toEqual([])
 })
 
+/**
+ * Every rectangle in the hand drawer that could run into another: the replay's
+ * seats against each other and the board, anything hanging under a seat against
+ * the columns below the table, and the scrubber against the edges of the panel
+ * it has to stay inside.
+ */
+async function replayLayout(page: Page) {
+  return page.evaluate(() => {
+    const panel = document.querySelector('[data-testid="history-drawer"]')
+    if (!panel) return { seats: 0, clashes: ['no drawer'] }
+
+    type Box = { id: string; left: number; right: number; top: number; bottom: number }
+    const box = (element: Element | null, id: string): Box | null => {
+      if (!element) return null
+      const b = element.getBoundingClientRect()
+      return { id, left: b.left, right: b.right, top: b.top, bottom: b.bottom }
+    }
+    const overlapping = (a: Box, b: Box) =>
+      !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)
+
+    const seats = [...panel.querySelectorAll('[data-testid^="seat-"]')].map(
+      (element) => box(element, (element as HTMLElement).dataset.testid ?? 'seat')!,
+    )
+    const fixed = [
+      box(panel.querySelector('[data-testid="replay-pot"]'), 'pot'),
+      box(panel.querySelector('[data-testid="replay-board"]'), 'board'),
+    ].filter((b): b is Box => b !== null)
+    const table = box(panel.querySelector('[data-testid="replay-table"]'), 'table')
+    const streets = box(panel.querySelector('[data-testid="replay-streets"]'), 'streets')
+    const scrubber = box(panel.querySelector('[data-testid="replay-caption"]'), 'scrubber')
+    const edges = box(panel, 'panel')!
+
+    const clashes: string[] = []
+    for (const seat of seats) {
+      for (const other of seats) {
+        if (other.id < seat.id && overlapping(seat, other)) clashes.push(`${seat.id} / ${other.id}`)
+      }
+      for (const target of fixed) {
+        if (overlapping(seat, target)) clashes.push(`${seat.id} / ${target.id}`)
+      }
+      // Wagers and badges hang under a seat on the near rail; none may reach
+      // the columns underneath the table.
+      if (streets && seat.bottom > streets.top + 1) clashes.push(`${seat.id} / streets`)
+    }
+    if (table && streets && table.bottom > streets.top + 1) clashes.push('table / streets')
+
+    // On a desktop the columns share the panel's width; anything that pushes
+    // them wider than it has run off the edge of its column.
+    const columns = panel.querySelector('[data-testid="street-columns"]')
+    if (window.innerWidth >= 640 && columns && columns.scrollWidth > columns.clientWidth + 1) {
+      clashes.push('columns / panel width')
+    }
+    // A showdown's five cards have to stay inside the bubble they are shown in.
+    for (const row of panel.querySelectorAll('[data-testid="shown-cards"]')) {
+      const bubble = row.parentElement!.getBoundingClientRect()
+      const last = row.lastElementChild?.getBoundingClientRect()
+      if (last && last.right > bubble.right + 1) clashes.push('shown cards / bubble')
+    }
+    if (!scrubber) clashes.push('no scrubber')
+    else if (scrubber.top < edges.top - 1 || scrubber.bottom > edges.bottom + 1) {
+      clashes.push('scrubber / panel edge')
+    }
+
+    return { seats: seats.length, clashes }
+  })
+}
+
+/**
+ * The replay draws the live table's seats at the live table's size and scales
+ * the whole of it to fit, so it should never collide where the live table does
+ * not. Measured on the screens that squeeze it hardest, at a full table, both
+ * mid-hand and on a result — which adds the shown cards and the winner badge.
+ */
+test.describe('the hand drawer', () => {
+  const screens = [
+    ['a wide desktop', { width: 1920, height: 1080 }],
+    ['a laptop', { width: 1366, height: 768 }],
+    ['a phone', { width: 390, height: 844 }],
+    ['a small phone', { width: 320, height: 568 }],
+  ] as const
+
+  for (const [screen, viewport] of screens) {
+    test(`replays a full table with nothing running into anything on ${screen}`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await dealIn(page, '5')
+
+      // Mid-hand: the hand in play, at its latest action. The phone's chips and
+      // the desktop's icons are both labelled, and only one set is ever shown.
+      await page.locator('button:visible', { hasText: 'This hand' }).first().click()
+      await expect(page.getByTestId('replay-table')).toBeVisible()
+      await page.waitForTimeout(400) // the panel's entrance
+      const live = await replayLayout(page)
+      expect(live.seats).toBe(6)
+      expect(live.clashes).toEqual([])
+
+      // And a result, read back from the finished hands.
+      await page.keyboard.press('Escape')
+      await expect(page.getByTestId('history-drawer')).toHaveCount(0)
+      await playUntil(page, handSettled(page))
+      await page.locator('button:visible', { hasText: 'Past hands' }).first().click()
+      await expect(page.getByTestId('replay-winner')).toBeVisible()
+      await page.waitForTimeout(400)
+      const settled = await replayLayout(page)
+      expect(settled.seats).toBe(6)
+      expect(settled.clashes).toEqual([])
+    })
+  }
+})
+
 test('marks the dealer with exactly one button', async ({ page }) => {
   await dealIn(page)
 
@@ -516,7 +636,7 @@ test('offers a raise amount the server will accept', async ({ page }) => {
 
   await expect(page.getByTestId('error')).toHaveCount(0)
   // The wager landed, so it shows up in the hand history.
-  await expect(page.getByTestId('history')).toContainText(/Bet|Raise to/)
+  await expect(await openHistory(page)).toContainText(/Bet|Raise to/)
   expect(label).toMatch(/\d/)
 })
 
