@@ -313,25 +313,24 @@ export function TablePreview() {
         </div>
 
         {/* The action dock, so the palette can be judged with the chrome present. */}
-        <div className="action-dock relative z-40 mx-auto w-full max-w-2xl shrink-0 sm:mb-8">
-          <div className="action-presets">
-            {['Min', '½', '¾', 'Pot', 'Max'].map((label) => (
-              <span key={label} className="action-preset">
-                {label}
+        <div className="action-dock relative z-40 mx-auto w-full shrink-0 sm:mb-8 sm:w-138">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="grid h-12 w-[62px] place-items-center rounded-full border border-white/8 bg-play-fold text-[13px] font-semibold text-white sm:w-26 sm:text-sm">
+              Fold
+            </span>
+            <span className="grid h-12 min-w-0 flex-1 place-items-center rounded-full bg-play-pass text-[13px] font-semibold text-white sm:w-32 sm:flex-none sm:text-sm">
+              Call 24
+            </span>
+            <span className="bet-stepper flex h-12 w-32 shrink-0 flex-col items-center justify-center rounded-full sm:w-42">
+              <span className="text-brass-lit font-mono text-[15px] leading-4.5 font-semibold tabular-nums">72</span>
+              <span className="text-muted-foreground text-[9px] leading-2.75 font-semibold tracking-[0.08em] uppercase">
+                Min
               </span>
-            ))}
+            </span>
+            <span className="brass-button grid h-12 w-[78px] place-items-center rounded-full text-[13px] font-semibold sm:w-32 sm:text-sm">
+              Raise
+            </span>
           </div>
-            <div className="flex justify-center gap-2">
-              <span className="grid h-8 min-w-16 place-items-center rounded-full border border-white/8 bg-play-fold px-3.5 text-[11px] font-semibold text-white">
-                Fold
-              </span>
-              <span className="grid h-8 min-w-16 place-items-center rounded-full bg-play-pass px-3.5 text-[11px] font-semibold text-white">
-                Call 24
-              </span>
-              <span className="brass-button grid h-8 min-w-16 place-items-center rounded-full px-3.5 text-[11px] font-semibold">
-                Raise 72
-              </span>
-            </div>
         </div>
       </div>
     </div>

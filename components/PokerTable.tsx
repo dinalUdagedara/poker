@@ -690,9 +690,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             </p>
           )}
 
+          {/*
+           * On a desktop the hand log and the archive are icons at either end
+           * of the row; on a phone they stay on the felt beside the viewer.
+           */}
+          <ThisHand table={table} iconOnly className="items-center justify-center sm:w-auto">
           <div
             data-testid="action-console"
-            className="action-dock relative z-40 min-h-24 w-full max-w-2xl sm:min-h-36"
+            className="action-dock relative z-40 w-full sm:w-138"
           >
               {finished ? (
                 /*
@@ -800,16 +805,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 <BettingControls
                   legal={table.legalActions}
                   pot={table.pot}
+                  bigBlind={table.bigBlind}
                   busy={busy}
                   status={busy ? 'Thinking…' : 'Waiting for the other players…'}
                   onAction={(action) => void send(`/api/table/${tableId}/action`, action)}
                 />
               )}
             </div>
-            <ThisHand
-              table={table}
-              className="hidden w-full max-w-2xl justify-center gap-3 sm:flex sm:pt-1"
-            />
+          </ThisHand>
           </div>
       </div>
 

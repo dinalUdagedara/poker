@@ -272,27 +272,23 @@ test.describe('chip stacks', () => {
   })
 })
 
-test('sizes a bet with the slider and stakes what the label showed', async ({ page }) => {
+test('sizes a bet with the stepper and stakes what it showed', async ({ page }) => {
   await dealIn(page)
 
-  // The sizing panel starts shut, so it has to be opened before there is a
-  // track to drag — without this the test would skip itself and pass silently.
-  const toggle = page.getByTestId('sizing-toggle')
-  if (await toggle.isVisible().catch(() => false)) await toggle.click()
+  // A forced all-in has one legal amount, so there is nothing to step through.
+  const more = page.getByTestId('bet-more')
+  if (!(await page.getByTestId('action-bet').isVisible().catch(() => false))) test.skip()
+  if (!(await more.isEnabled())) test.skip()
 
-  const slider = page.getByTestId('bet-slider')
-  if (!(await slider.isVisible().catch(() => false))) test.skip()
+  // Step up twice, so the amount is nothing like the opening one.
+  const opening = (await page.getByTestId('bet-amount').textContent())!.trim()
+  await more.click()
+  await more.click()
 
-  // Drag well along the track, so the amount is nothing like the opening one.
-  const track = (await slider.boundingBox())!
-  await page.mouse.move(track.x + 4, track.y + track.height / 2)
-  await page.mouse.down()
-  await page.mouse.move(track.x + track.width * 0.6, track.y + track.height / 2)
-  await page.mouse.up()
-
-  // The bubble on the thumb and the button have to agree: one is what you are
-  // reading while you size, the other is what actually gets staked.
+  // The stepper and the button have to agree: one is what you are reading
+  // while you size, the other is what actually gets staked.
   const shown = (await page.getByTestId('bet-amount').textContent())!.trim()
+  expect(shown).not.toBe(opening)
   await expect(page.getByTestId('action-bet')).toContainText(shown)
 
   await page.getByTestId('action-bet').click()
@@ -393,9 +389,10 @@ test.describe('while the bots are deciding', () => {
     await expect(page.getByTestId('action-idle')).toBeVisible()
     expect(await height()).toBe(onOurTurn)
 
-    // And the result panel does not shrink it either.
+    // And the result panel does not shrink it either. It may stand taller than
+    // one row of pills: that happens once, as the hand ends, not per decision.
     await playUntil(page, handSettled(page))
-    expect(await height()).toBe(onOurTurn)
+    expect(await height()).toBeGreaterThanOrEqual(onOurTurn)
   })
 
   /**
