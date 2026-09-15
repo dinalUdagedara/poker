@@ -82,7 +82,7 @@ export function ThisHand({
               Nothing played yet.
             </p>
           ) : (
-            <HandStreets hand={table} compact />
+            <HandStreets hand={table} />
           )}
         </div>
       </details>
