@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { seatName } from '@/lib/names'
 import { positionsOf, sectionsOf } from '@/lib/poker/archive'
@@ -70,7 +69,9 @@ export function HandStreets({
   activeIndex = null,
   allIns,
   onSelect,
+  className,
 }: {
+  className?: string
   hand: StreetHand
   /** The history entry a replay is standing on; null once it reaches the result. */
   activeIndex?: number | null
@@ -129,12 +130,17 @@ export function HandStreets({
 
   return (
     /*
-     * A scroll area rather than `overflow-x-auto`: the native bar is a solid
-     * light slab on this felt, and it takes its height out of the panel whether
-     * or not there is anything to scroll. This one overlays, matches the room,
-     * and is not there at all until the columns are wider than the panel.
+     * Native scrolling, thinned and darkened to suit the room. A scroll area
+     * component cannot bound itself to a height it is only given by flex, and a
+     * desktop panel needs these columns to scroll inside whatever height is left
+     * under the table — down as well as across.
      */
-    <ScrollArea className="-mx-1 **:data-[slot=scroll-area-thumb]:bg-white/25">
+    <div
+      className={cn(
+        '-mx-1 overflow-auto [scrollbar-color:oklch(1_0_0/0.25)_transparent] scrollbar-thin',
+        className,
+      )}
+    >
       <div
         className={cn(
           // Wider than the panel when the streets need it, exactly the panel
@@ -241,6 +247,6 @@ export function HandStreets({
           </div>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   )
 }

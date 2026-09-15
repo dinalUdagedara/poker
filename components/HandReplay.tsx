@@ -62,12 +62,22 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
     ? `${seatName(entry.playerId, hand.names, hand.viewerId)} · ${calloutText(entry, hand.smallBlind, hand.bigBlind)}`
     : 'Result'
 
-  const table = <ReplayTable hand={hand} frame={frame} annotated={annotated} />
+  const table = (
+    <ReplayTable
+      hand={hand}
+      frame={frame}
+      annotated={annotated}
+      // In a desktop panel the felt is sized off the window's height, so the
+      // columns and scrubber below it always fit on the one screen.
+      className={contained ? 'sm:h-[min(36dvh,22rem)] sm:w-auto sm:max-w-full sm:shrink-0 sm:self-center' : undefined}
+    />
+  )
 
   const streets = (
-    <Card className="panel-milled border-border backdrop-blur">
-      <CardContent className="px-3 sm:px-4">
+    <Card className={cn('panel-milled border-border backdrop-blur', contained && 'sm:min-h-0 sm:flex-1')}>
+      <CardContent className={cn('px-3 sm:px-4', contained && 'sm:flex sm:min-h-0 sm:flex-1 sm:flex-col')}>
         <HandStreets
+          className={contained ? 'sm:min-h-0 sm:flex-1' : undefined}
           hand={hand}
           activeIndex={frame.entryIndex}
           allIns={allIns}
@@ -90,8 +100,11 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
             <Winner hand={hand} summary={summary} />
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-3 [scrollbar-color:oklch(1_0_0/0.25)_transparent] [scrollbar-width:thin] sm:px-5">
-          <div className="flex flex-col gap-3 sm:gap-4">
+        {/* A phone scrolls the table and the columns together. A desktop has
+            the room to show everything at once: the felt takes a share of the
+            window's height and only the columns scroll, inside their panel. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-3 [scrollbar-color:oklch(1_0_0/0.25)_transparent] scrollbar-thin sm:flex sm:flex-col sm:gap-3 sm:overflow-hidden sm:px-5">
+          <div className="flex flex-col gap-3 sm:contents">
             {table}
             {streets}
           </div>
@@ -118,11 +131,10 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
 /**
  * Who won, for how much, and with what, in one line.
  *
- * Cyan only when it is the viewer's money: in this room cyan means chips coming
- * your way, and somebody else's pot is just news.
+ * Plain white with the amount struck in brass, the house's own gleam, rather
+ * than a colour of its own: a result is read, not flashed.
  */
 function Winner({ hand, summary }: { hand: HandView; summary: ResultSummary }) {
-  const youWon = hand.viewerId !== null && summary.winners.includes(hand.viewerId)
   const names = summary.winners.map((id) => seatName(id, hand.names, hand.viewerId)).join(' and ')
   const verb =
     summary.winners.length > 1 ? 'split' : summary.winners[0] === hand.viewerId ? 'win' : 'wins'
@@ -131,8 +143,9 @@ function Winner({ hand, summary }: { hand: HandView; summary: ResultSummary }) {
     <div className="flex min-w-0 items-center justify-center gap-2 text-xs sm:text-sm" data-testid="replay-winner">
       <Trophy className="text-brass-lit size-3.5 shrink-0 sm:size-4" aria-hidden />
       <p className="min-w-0 truncate">
-        <span className={cn('font-semibold', youWon ? 'text-win' : 'text-white')}>
-          {names} {verb} <span className="font-mono tabular-nums">{summary.won.toLocaleString()}</span>
+        <span className="font-semibold text-white">
+          {names} {verb}{' '}
+          <span className="text-brass-lit font-mono tabular-nums">{summary.won.toLocaleString()}</span>
         </span>
         <span className="text-muted-foreground"> · {summary.handName ?? 'everyone else folded'}</span>
       </p>
@@ -170,10 +183,12 @@ function ReplayTable({
   hand,
   frame,
   annotated,
+  className,
 }: {
   hand: HandView
   frame: ReplayFrame
   annotated: AnnotatedEntry[]
+  className?: string
 }) {
   const seated = seatOrder(
     hand.players.filter((player) => player.status !== 'sitting-out'),
@@ -199,7 +214,10 @@ function ReplayTable({
   }
 
   return (
-    <div className="relative mx-auto aspect-16/10 w-full max-w-3xl sm:aspect-2/1" data-testid="replay-table">
+    <div
+      className={cn('relative mx-auto aspect-16/10 w-full max-w-3xl sm:aspect-2/1', className)}
+      data-testid="replay-table"
+    >
       <div className="table-body" aria-hidden>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/table-desktop.png" alt="" draggable={false} />
@@ -209,15 +227,10 @@ function ReplayTable({
         <div className="absolute top-1/2 left-1/2 z-20 flex w-max max-w-[70%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 sm:gap-2">
           {frame.settled && hand.result ? (
             <div className="text-center leading-tight">
-              <p
-                className={cn(
-                  'text-sm font-semibold sm:text-lg',
-                  hand.viewerId && winners.has(hand.viewerId) ? 'text-win' : 'text-white',
-                )}
-              >
+              <p className="text-sm font-semibold text-white sm:text-lg">
                 {winnerIds.map((id) => seatName(id, hand.names, hand.viewerId)).join(' and ')}{' '}
                 {winners.size > 1 ? 'split' : winnerIds[0] === hand.viewerId ? 'win' : 'wins'}{' '}
-                <span className="font-mono tabular-nums">{potWon.toLocaleString()}</span>
+                <span className="text-brass-lit font-mono tabular-nums">{potWon.toLocaleString()}</span>
               </p>
               <p className="text-[10px] text-white/60 sm:text-xs">
                 {winningHand ?? 'everyone else folded'}
@@ -280,7 +293,7 @@ function ReplayTable({
                 />
                 {winners.has(player.id) && (
                   <span
-                    className="bg-win absolute -top-4 left-1/2 z-40 -translate-x-1/2 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[oklch(0.2_0.04_210)] shadow-lg"
+                    className="brass-button absolute -top-4 left-1/2 z-40 -translate-x-1/2 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap"
                     data-testid={`replay-win-${player.id}`}
                   >
                     Win +{(hand.result?.payouts[player.id] ?? 0).toLocaleString()}
