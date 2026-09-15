@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { allInEntries, replayFrames, startingStacks, type ReplayHand } from '../replay'
+import { allInEntries, replayFrames, resultOf, startingStacks, type ReplayHand } from '../replay'
 import type { HandResult, HistoryEntry, Street } from '../types'
 
 const entry = (
@@ -51,7 +51,7 @@ const hand: ReplayHand = {
   communityCards: Array(5).fill(null) as unknown as ReplayHand['communityCards'],
   result: {
     payouts: { btn: 2100 },
-    awards: [],
+    awards: [{ amount: 2100, winners: ['btn'], eligiblePlayerIds: ['btn'], payouts: { btn: 2100 } }],
     showdown: false,
     refund: { playerId: 'btn', amount: 300 },
     shownHands: {},
@@ -101,5 +101,11 @@ describe('replaying a finished hand', () => {
 
     expect(Object.fromEntries(last.stacks)).toEqual({ sb: 300, bb: 300, btn: 2400 })
     expect(last.pot).toBe(2100)
+  })
+
+  it('names the winner, what they won, and that nobody had to show', () => {
+    // The 300 handed back is not winnings, and a fold to the button shows nothing.
+    expect(resultOf(hand)).toEqual({ winners: ['btn'], won: 2100, handName: null })
+    expect(resultOf({ result: null })).toBeNull()
   })
 })

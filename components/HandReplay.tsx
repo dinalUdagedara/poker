@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
@@ -10,9 +10,14 @@ import { seatName } from '@/lib/names'
 import { calloutPlacement, chipSide, seatOrder, seatRing } from '@/lib/table-seating'
 import type { HandView } from '@/lib/poker/archive'
 import { annotateHistory, calloutText, type AnnotatedEntry } from '@/lib/poker/callouts'
-import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import type { RedactedPlayer } from '@/lib/poker/redact'
-import { allInEntries, replayFrames, type ReplayFrame } from '@/lib/poker/replay'
+import {
+  allInEntries,
+  replayFrames,
+  resultOf,
+  type ReplayFrame,
+  type ResultSummary,
+} from '@/lib/poker/replay'
 import { HandStreets } from './HandStreets'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
@@ -34,6 +39,8 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
   const frames = useMemo(() => replayFrames(hand), [hand])
   const allIns = useMemo(() => allInEntries(hand), [hand])
   const annotated = useMemo(() => annotateHistory(hand.handHistory), [hand])
+  const summary = useMemo(() => resultOf(hand), [hand])
+  const decided = summary !== null && summary.winners.length > 0
 
   // Null follows the latest frame, which is where it opens. On a finished hand
   // that is the result — somebody arriving almost always wants how it ended
@@ -76,6 +83,13 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
   if (contained) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
+        {/* Pinned with the header: who won stays on screen at every step, so
+            stepping back through the hand never loses where it is going. */}
+        {decided && (
+          <div className="border-border shrink-0 border-b px-3 py-2 sm:px-5">
+            <Winner hand={hand} summary={summary} />
+          </div>
+        )}
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-3 [scrollbar-color:oklch(1_0_0/0.25)_transparent] [scrollbar-width:thin] sm:px-5">
           <div className="flex flex-col gap-3 sm:gap-4">
             {table}
@@ -91,11 +105,37 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
+      {decided && <Winner hand={hand} summary={summary} />}
       {table}
       {streets}
       <Card className="panel-milled border-border sticky bottom-4 z-40 backdrop-blur">
         <CardContent className="px-3 sm:px-4">{scrubber}</CardContent>
       </Card>
+    </div>
+  )
+}
+
+/**
+ * Who won, for how much, and with what, in one line.
+ *
+ * Cyan only when it is the viewer's money: in this room cyan means chips coming
+ * your way, and somebody else's pot is just news.
+ */
+function Winner({ hand, summary }: { hand: HandView; summary: ResultSummary }) {
+  const youWon = hand.viewerId !== null && summary.winners.includes(hand.viewerId)
+  const names = summary.winners.map((id) => seatName(id, hand.names, hand.viewerId)).join(' and ')
+  const verb =
+    summary.winners.length > 1 ? 'split' : summary.winners[0] === hand.viewerId ? 'win' : 'wins'
+
+  return (
+    <div className="flex min-w-0 items-center justify-center gap-2 text-xs sm:text-sm" data-testid="replay-winner">
+      <Trophy className="text-brass-lit size-3.5 shrink-0 sm:size-4" aria-hidden />
+      <p className="min-w-0 truncate">
+        <span className={cn('font-semibold', youWon ? 'text-win' : 'text-white')}>
+          {names} {verb} <span className="font-mono tabular-nums">{summary.won.toLocaleString()}</span>
+        </span>
+        <span className="text-muted-foreground"> · {summary.handName ?? 'everyone else folded'}</span>
+      </p>
     </div>
   )
 }
@@ -142,11 +182,11 @@ function ReplayTable({
   const ring = seatRing(seated.length, false)
   const actor = frame.entryIndex !== null ? hand.handHistory[frame.entryIndex]?.playerId : null
 
-  const winners = new Set(frame.settled ? (hand.result?.awards.flatMap((a) => a.winners) ?? []) : [])
-  const winnerIds = [...winners]
-  const potWon = Object.values(hand.result?.payouts ?? {}).reduce((sum, n) => sum + n, 0)
-  const shown = hand.result?.showdown ? hand.result.shownHands[winnerIds[0] ?? ''] : undefined
-  const winningHand = shown ? CATEGORY_NAMES[categoryOf(shown.score)] : null
+  const summary = resultOf(hand)
+  const winnerIds = frame.settled ? (summary?.winners ?? []) : []
+  const winners = new Set(winnerIds)
+  const potWon = summary?.won ?? 0
+  const winningHand = summary?.handName ?? null
 
   // The latest thing each player did on this frame's street, up to this frame.
   const callouts = new Map<string, string>()
@@ -238,6 +278,14 @@ function ReplayTable({
                   chipSide={chipSide(point)}
                   bigBlind={hand.bigBlind}
                 />
+                {winners.has(player.id) && (
+                  <span
+                    className="bg-win absolute -top-4 left-1/2 z-40 -translate-x-1/2 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[oklch(0.2_0.04_210)] shadow-lg"
+                    data-testid={`replay-win-${player.id}`}
+                  >
+                    Win +{(hand.result?.payouts[player.id] ?? 0).toLocaleString()}
+                  </span>
+                )}
               </div>
             )
           })}

@@ -12,6 +12,7 @@
  * the replay.
  */
 
+import { CATEGORY_NAMES, categoryOf } from './evaluator'
 import type { RedactedTableState } from './redact'
 import type { Street } from './types'
 
@@ -142,4 +143,32 @@ export function allInEntries(hand: ReplayHand): Set<number> {
   }
 
   return entries
+}
+
+/** Who won a hand, how much, and with what — or null while it is in play. */
+export type ResultSummary = {
+  /** Everyone who took a share of any pot, in the order the pots were awarded. */
+  winners: string[]
+  /** Every chip paid out; an uncalled bet handed back is not winnings. */
+  won: number
+  /** The winning hand's name, or null when everybody else folded. */
+  handName: string | null
+}
+
+/**
+ * The result, said the way the replay says it.
+ *
+ * A result keeps a score per player and not the category, because a score is
+ * all the engine needs to pick a winner. The name of the hand is read back out
+ * of it — the same trick the live table uses to say what beat you.
+ */
+export function resultOf(hand: Pick<ReplayHand, 'result'>): ResultSummary | null {
+  const result = hand.result
+  if (!result) return null
+
+  const winners = [...new Set(result.awards.flatMap((award) => award.winners))]
+  const won = Object.values(result.payouts).reduce((sum, amount) => sum + amount, 0)
+  const shown = result.showdown ? result.shownHands[winners[0] ?? ''] : undefined
+
+  return { winners, won, handName: shown ? CATEGORY_NAMES[categoryOf(shown.score)] : null }
 }
