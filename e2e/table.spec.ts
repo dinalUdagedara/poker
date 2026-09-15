@@ -60,6 +60,20 @@ const showing = (page: Page, testId: string) =>
     .isVisible()
     .catch(() => false)
 
+/**
+ * Open the hand drawer on the hand in play, and hand back its log.
+ *
+ * The log only exists while the drawer is open — it comes over the table
+ * rather than sitting collapsed on it — so reading it means opening it first.
+ */
+async function openHistory(page: Page) {
+  const log = page.getByTestId('history')
+  if (!(await log.isVisible().catch(() => false))) {
+    await page.getByTestId('open-this-hand').click()
+  }
+  return log
+}
+
 /** Play passively until `isDone` holds, sitting out the bots' turns. */
 async function playUntil(page: Page, isDone: () => Promise<boolean>, steps = 40) {
   for (let step = 0; step < steps; step++) {
@@ -190,7 +204,7 @@ test.describe('seat callouts', () => {
     // Asserted against the history, not the bubble: once the bots finish acting
     // the street turns over and callouts clear, which is intended but makes the
     // bubble a race. The history is the permanent record of the same number.
-    await expect(page.getByTestId('history')).toContainText(
+    await expect(await openHistory(page)).toContainText(
       new RegExp(`(Bet|Raise to) ${level}`),
     )
   })
@@ -295,7 +309,7 @@ test('sizes a bet with the stepper and stakes what it showed', async ({ page }) 
   await expect(page.getByTestId('error')).toHaveCount(0)
   // The history rather than the bubble, which clears as soon as the street
   // turns over — intended, but a race for anything asserted after the click.
-  await expect(page.getByTestId('history')).toContainText(shown)
+  await expect(await openHistory(page)).toContainText(shown)
 })
 
 test('puts chips on the felt for a wager and clears them when the hand ends', async ({ page }) => {
@@ -513,7 +527,7 @@ test('offers a raise amount the server will accept', async ({ page }) => {
 
   await expect(page.getByTestId('error')).toHaveCount(0)
   // The wager landed, so it shows up in the hand history.
-  await expect(page.getByTestId('history')).toContainText(/Bet|Raise to/)
+  await expect(await openHistory(page)).toContainText(/Bet|Raise to/)
   expect(label).toMatch(/\d/)
 })
 

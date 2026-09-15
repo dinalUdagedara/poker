@@ -1,9 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import Link from 'next/link'
 import { ChevronRight, History, List } from 'lucide-react'
-import { HandStreets } from '@/components/HandStreets'
 import { cn } from '@/lib/utils'
 import type { TableView } from '@/lib/poker/lifecycle'
 
@@ -15,90 +13,69 @@ const ICON =
   'grid size-10 place-items-center rounded-full border border-white/12 bg-black/55 text-white/80 shadow-sm backdrop-blur-sm' +
   ' transition-colors hover:border-white/25 hover:text-white'
 
+/** Which hand the drawer should open on. */
+export type HistoryOpen = 'current' | 'past'
+
 /**
- * The current hand, as columns, and a door into the archive.
+ * The two ways into the hand drawer: the hand in play, and the ones before it.
  *
- * Two chips. On a phone they sit left and right of the viewer on the felt. On
- * a desktop they shrink to icons at either end of the action row (`iconOnly`,
- * with the row as `children`), so they cost no height of their own.
+ * Buttons, not a popover and a link. Both open the same drawer over the table,
+ * so reading a hand back never takes anybody away from the game — closing it is
+ * the way back.
+ *
+ * On a phone they sit left and right of the viewer on the felt. On a desktop
+ * they shrink to icons at either end of the action row (`iconOnly`, with the
+ * row as `children`), so they cost no height of their own.
  */
 export function ThisHand({
   table,
   className,
-  historyTestId = true,
+  testIds = true,
   iconOnly = false,
+  onOpen,
   children,
 }: {
   table: TableView
   className?: string
   /**
-   * The live log is only tagged on the copy the tests can see. A phone and a
-   * desktop each mount one of these, and two `history` ids would make a query
-   * for the log answer twice.
+   * Only one copy carries test ids. A phone and a desktop each mount one of
+   * these, and two of every id would make each query answer twice.
    */
-  historyTestId?: boolean
+  testIds?: boolean
   /** Icons flanking `children`, shown from `sm` up; below it only `children`. */
   iconOnly?: boolean
+  onOpen: (which: HistoryOpen) => void
   children?: ReactNode
 }) {
+  /*
+    Only once there is something behind us. On the first hand of a table there
+    is nothing to go back to, and an affordance that leads nowhere is worse than
+    no affordance at all.
+  */
   const past = table.handNumber > 1 || table.result !== null
 
   return (
     <div className={cn('flex w-full items-end justify-between gap-2', className)}>
-      {/*
-        A native details rather than a state hook: the panel has no dependants,
-        and the browser already knows how to keep it open across the re-renders
-        every bot action causes. Held open by React state it would need the open
-        flag threaded through a component that is remounted mid-hand.
-      */}
-      <details className={cn('group pointer-events-auto relative', iconOnly && 'hidden shrink-0 sm:block')}>
-        <summary
-          className={cn(
-            iconOnly ? ICON : CHIP,
-            'cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden',
-          )}
-          title={iconOnly ? 'This hand' : undefined}
-        >
-          <List className={iconOnly ? 'size-4' : 'size-3 opacity-70'} aria-hidden />
-          <span className={cn(iconOnly && 'sr-only')}>This hand</span>
-        </summary>
-
-        <div
-          className={cn(
-            // Always opens up from the chip. Opening down put the log under
-            // the console, off the bottom of a desktop window.
-            'absolute bottom-full left-0 z-50 mb-2',
-            'w-[min(20rem,calc(100vw-1.5rem))] sm:w-[min(36rem,calc(100vw-3rem))]',
-            // Centred on a chip under the console; from an icon at the left end
-            // of the row it opens rightward, over the row, not off the window.
-            !iconOnly && 'sm:left-1/2 sm:-translate-x-1/2',
-            'max-h-[min(18rem,42vh)] overflow-auto',
-            'rounded-xl border border-white/15 bg-black/70 px-2 pt-2 pb-1 shadow-lg backdrop-blur-md sm:px-2.5 sm:pt-2.5',
-          )}
-          {...(historyTestId ? { 'data-testid': 'history' } : {})}
-        >
-          {table.handHistory.length === 0 ? (
-            <p className="text-muted-foreground px-1 py-2 text-center text-xs">
-              Nothing played yet.
-            </p>
-          ) : (
-            <HandStreets hand={table} />
-          )}
-        </div>
-      </details>
+      <button
+        type="button"
+        onClick={() => onOpen('current')}
+        className={cn(iconOnly ? cn(ICON, 'hidden shrink-0 sm:grid') : CHIP, 'pointer-events-auto cursor-pointer')}
+        title={iconOnly ? 'This hand' : undefined}
+        {...(testIds ? { 'data-testid': 'open-this-hand' } : {})}
+      >
+        <List className={iconOnly ? 'size-4' : 'size-3 opacity-70'} aria-hidden />
+        <span className={cn(iconOnly && 'sr-only')}>This hand</span>
+      </button>
 
       {children}
 
-      {/*
-        Only once there is something behind us. On the first hand of a table
-        this link goes to an empty page, and an affordance that leads nowhere is
-        worse than no affordance at all.
-      */}
       {past ? (
-        <Link
-          href={`/table/${table.tableId}/hands`}
-          className={cn(iconOnly ? cn(ICON, 'hidden shrink-0 sm:grid') : CHIP, 'pointer-events-auto')}
+        <button
+          type="button"
+          onClick={() => onOpen('past')}
+          className={cn(iconOnly ? cn(ICON, 'hidden shrink-0 sm:grid') : CHIP, 'pointer-events-auto cursor-pointer')}
           title={iconOnly ? 'Past hands' : undefined}
+          {...(testIds ? { 'data-testid': 'open-past-hands' } : {})}
         >
           {iconOnly ? (
             <>
@@ -111,7 +88,7 @@ export function ThisHand({
               <ChevronRight className="size-3 opacity-70" aria-hidden />
             </>
           )}
-        </Link>
+        </button>
       ) : (
         <span aria-hidden className={iconOnly ? 'hidden size-10 shrink-0 sm:block' : 'h-7 w-7'} />
       )}

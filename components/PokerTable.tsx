@@ -17,7 +17,8 @@ import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
 import { RankingsButton } from './RankingsButton'
 import { SoundToggle } from './SoundToggle'
-import { ThisHand } from './ThisHand'
+import { ThisHand, type HistoryOpen } from './ThisHand'
+import { HistoryDrawer, type HistoryPick } from './HistoryDrawer'
 import { getAudio } from '@/lib/audio'
 import { useTableStream } from '@/lib/use-table-stream'
 import { useTableSounds } from '@/lib/use-table-sounds'
@@ -44,6 +45,16 @@ const STEP_MS = 900
 
 export function PokerTable({ tableId, initial }: { tableId: string; initial: TableView }) {
   const [table, setTable] = useState(initial)
+
+  // The hand drawer: whether it is open, and which hand it is on. Held here
+  // rather than in the drawer because two sets of buttons open it — the chips on
+  // a phone's felt and the icons beside a desktop's action row.
+  const [history, setHistory] = useState<{ open: boolean; hand: HistoryPick }>({
+    open: false,
+    hand: 'live',
+  })
+  const openHistory = (which: HistoryOpen) =>
+    setHistory({ open: true, hand: which === 'current' ? 'live' : 'latest' })
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   useTableSounds(table)
@@ -678,7 +689,8 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
 
           <ThisHand
             table={table}
-            historyTestId={false}
+            testIds={false}
+            onOpen={openHistory}
             className="pointer-events-none absolute inset-x-2 bottom-1 z-35 sm:hidden"
           />
         </div>
@@ -694,7 +706,12 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
            * On a desktop the hand log and the archive are icons at either end
            * of the row; on a phone they stay on the felt beside the viewer.
            */}
-          <ThisHand table={table} iconOnly className="items-center justify-center sm:w-auto">
+          <ThisHand
+            table={table}
+            iconOnly
+            onOpen={openHistory}
+            className="items-center justify-center sm:w-auto"
+          >
           <div
             data-testid="action-console"
             className="action-dock relative z-40 w-full sm:w-138"
@@ -815,6 +832,14 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
           </ThisHand>
           </div>
       </div>
+
+      <HistoryDrawer
+        table={table}
+        open={history.open}
+        hand={history.hand}
+        onPick={(hand) => setHistory((current) => ({ ...current, hand }))}
+        onOpenChange={(open) => setHistory((current) => ({ ...current, open }))}
+      />
 
       {youWon > 0 && (
         /*
