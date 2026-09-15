@@ -481,9 +481,9 @@ p {
 }
 
 /*
- * The three plays. Full height, equal width, and never tinted panels — over a
- * lit table anything washed out simply disappears, and giving up, staying in
- * and committing chips must not look alike at a glance.
+ * The three plays. Pills a thumb tall, and never tinted panels — over a lit
+ * table anything washed out simply disappears, and giving up, staying in and
+ * committing chips must not look alike at a glance.
  */
 .play {
   display: flex;
@@ -492,14 +492,14 @@ p {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 56px;
+  height: 48px;
+  padding: 0 var(--space-3);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
   color: var(--color-text);
   cursor: pointer;
   box-shadow: var(--shadow-md), var(--edge);
@@ -544,58 +544,128 @@ p {
 .play-note {
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
   opacity: 0.75;
 }
 
+/*
+ * The action dock: one row — fold, call, the bet stepper, raise.
+ *
+ * Sizing lives in the row rather than in a presets strip and a slider stacked
+ * above it, so the table keeps the height a console used to take. On the room
+ * at every width: no sheet, no hairline.
+ */
 .action-dock {
   display: flex;
   width: 100%;
   min-width: 0;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
   gap: 6px;
-  background: transparent;
   padding: 6px 12px max(8px, env(safe-area-inset-bottom));
+}
+
+.action-dock .play {
+  flex: 0 0 auto;
+}
+
+.action-dock .play-fold {
+  width: 62px;
+}
+
+.action-dock .play-pass {
+  flex: 1 1 0;
+}
+
+.action-dock .play-commit {
+  width: 78px;
 }
 
 @media (min-width: 640px) {
   .action-dock {
-    gap: var(--space-3);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-divider);
-    background: var(--color-surface);
-    box-shadow: var(--shadow-md), var(--edge);
-    padding: 14px;
+    width: auto;
+    gap: var(--space-2);
+    padding: 0;
+  }
+
+  .action-dock .play-fold {
+    width: 104px;
+  }
+
+  .action-dock .play-pass {
+    flex: none;
+    width: 128px;
+  }
+
+  .action-dock .play-commit {
+    width: 128px;
   }
 }
 
-.action-presets {
+/*
+ * The bet stepper, between call and raise. Set into the room rather than onto
+ * it, like a well: − and + move a big blind, and tapping the amount walks the
+ * shortcuts — min, half pot, three-quarter pot, pot, all in.
+ */
+.bet-stepper {
   display: flex;
-  height: 28px;
-  gap: 6px;
-  background: transparent;
+  flex-shrink: 0;
+  align-items: center;
+  width: 128px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: 1px solid oklch(0.9 0.09 88 / 0.1);
+  background: oklch(0 0 0 / 0.28);
 }
 
-.action-preset {
-  flex: 1 1 0;
-  min-width: 0;
+@media (min-width: 640px) {
+  .bet-stepper {
+    width: 168px;
+  }
+}
+
+.bet-step {
   display: grid;
   place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 100%;
   border: 0;
-  border-radius: 999px;
-  background: oklch(1 0 0 / 0.06);
+  border-radius: var(--radius-full);
+  background: transparent;
   color: var(--color-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 18px;
+  cursor: pointer;
 }
 
-.action-preset.is-on {
-  background: oklch(0.8 0.135 82 / 0.22);
+.bet-step:hover {
+  color: var(--color-text);
+}
+
+.bet-amount {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.bet-amount .money {
+  font-size: 15px;
+  line-height: 18px;
   color: var(--color-accent-200);
+}
+
+.bet-size {
+  font-size: 9px;
+  line-height: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 /* ---------------------------------------------------------------------------

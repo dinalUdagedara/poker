@@ -49,6 +49,7 @@ Every duration is a physical claim: dealing is quick and light (`--dur-deal`), c
 | --- | --- | --- |
 | `.btn` with `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-icon`, `.btn-block` | Actions — the primary is the one struck-brass object | components/buttons.html |
 | `.play` with `.play-fold`, `.play-pass`, `.play-commit`, `.play-note` | The three plays, separated by material | components/buttons.html |
+| `.action-dock` + `.bet-stepper` (`.bet-step`, `.bet-amount`, `.bet-size`) | The one-row dock: the plays, with the stepper between call and raise | components/action-bar.html |
 | `.tag` with `.tag-accent`, `.tag-danger`, `.tag-mono` | Small labels — blinds, street, status | components/buttons.html |
 | `.card-face` with `.card-red`, `.card-back`, `.card-xs/-sm/-lg`, `.card-slot`, `.hand-folded` | Playing cards — paper, the only light surface | components/playing-cards.html |
 | `.chip` with `.chip-1/-5/-25/-100/-500/-1000` | Chips — denominations, never decoration | components/chips.html |
@@ -67,8 +68,9 @@ States are built in: hovers step the surface ramp and warm the border to brass, 
 - Give every raised object both halves of elevation: the shadow and the brass edge.
 - Say whose turn it is on the **felt**, not only on the plate — a tinted border is the same weight as every other border on a busy table.
 - Reserve height for anything that can appear and disappear at a seat, so a bot acting never nudges the table under the pointer.
-- Keep the action bar mounted and dimmed between turns rather than swapping it for a message; replacing it collapses the console on every opponent action.
-- Put the bet amount on the slider thumb, where the eye already is.
+- Keep the action bar mounted and dimmed between turns rather than swapping it for a message; replacing it collapses the row on every opponent action.
+- Size a bet in the row: − and + move a big blind, and tapping the amount walks the shortcuts. Never stack a presets strip or a slider above the plays — the table pays for every pixel of height the dock takes.
+- Read hands back over the table — a sheet on a phone, a dialog on a desktop — rather than on a page that takes the player out of the game.
 
 ## Don't
 
@@ -91,7 +93,7 @@ States are built in: hovers step the surface ramp and warm the border to brass, 
 - `components/playing-cards.html` — cards in every size, the house back, and the rules for them.
 - `components/chips.html` — denominations, stacks, wagers and the pot.
 - `components/seat.html` — a seat resting, to act, winning and folded.
-- `components/action-bar.html` — the console in all three of its states.
+- `components/action-bar.html` — the one-row dock in all three of its states.
 - `components/panels.html` — panels, rows and wells.
 - `components/forms.html` — inputs, the segmented control and one-tap choices.
 - `components/dialog.html` — the rankings chart as a modal over the felt.
