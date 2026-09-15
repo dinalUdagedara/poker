@@ -542,6 +542,19 @@ async function replayLayout(page: Page) {
       if (streets && seat.bottom > streets.top + 1) clashes.push(`${seat.id} / streets`)
     }
     if (table && streets && table.bottom > streets.top + 1) clashes.push('table / streets')
+
+    // On a desktop the columns share the panel's width; anything that pushes
+    // them wider than it has run off the edge of its column.
+    const columns = panel.querySelector('[data-testid="street-columns"]')
+    if (window.innerWidth >= 640 && columns && columns.scrollWidth > columns.clientWidth + 1) {
+      clashes.push('columns / panel width')
+    }
+    // A showdown's five cards have to stay inside the bubble they are shown in.
+    for (const row of panel.querySelectorAll('[data-testid="shown-cards"]')) {
+      const bubble = row.parentElement!.getBoundingClientRect()
+      const last = row.lastElementChild?.getBoundingClientRect()
+      if (last && last.right > bubble.right + 1) clashes.push('shown cards / bubble')
+    }
     if (!scrubber) clashes.push('no scrubber')
     else if (scrubber.top < edges.top - 1 || scrubber.bottom > edges.bottom + 1) {
       clashes.push('scrubber / panel edge')

@@ -158,6 +158,7 @@ export function HandStreets({
         '-mx-1 overflow-auto [scrollbar-color:oklch(1_0_0/0.25)_transparent] scrollbar-thin',
         className,
       )}
+      data-testid="street-columns"
     >
       <div
         className={cn(
@@ -174,7 +175,11 @@ export function HandStreets({
             key={`${section.street}-${i}`}
             className="panel-well border-border flex w-40 shrink-0 flex-col rounded-lg border sm:w-auto sm:max-w-52 sm:min-w-0 sm:flex-1"
           >
-            <div className="border-border flex flex-col items-center gap-0.5 border-b px-2 py-1.5">
+            {/* Stuck to the top of the panel: the columns scroll under it as
+                the replay follows the action down, and a street stripped of its
+                name, its pot and its cards is only a list of folds. Opaque, or
+                the actions would show through as they pass beneath. */}
+            <div className="border-border sticky top-0 z-10 flex flex-col items-center gap-0.5 rounded-t-lg border-b bg-[oklch(0.205_0.007_250)] px-2 py-1.5">
               <span className={LABEL}>{section.label}</span>
               <span className="font-mono text-xs tabular-nums text-white/70">
                 {section.potBefore.toLocaleString()}
@@ -264,11 +269,12 @@ export function HandStreets({
                         playerId,
                         <div className={cn(BUBBLE, edge)}>
                           <span aria-hidden className={cn(TAIL, edge)} />
-                          {/* Side by side, never overlapped: five fanned cards
-                              in a bubble this narrow hide each other's ranks. */}
-                          <div className="flex gap-0.5 py-0.5">
+                          {/* Five equal shares of whatever width the bubble has,
+                              never overlapped and never wider than it: a fixed
+                              card width ran off the edge of a desktop column. */}
+                          <div className="grid grid-cols-5 gap-0.5 py-0.5" data-testid="shown-cards">
                             {cards.map((card, k) => (
-                              <PlayingCard key={k} card={card} size="xs" className="w-5 min-w-0 text-[8px]" />
+                              <PlayingCard key={k} card={card} size="xs" className="w-full min-w-0 text-[8px]" />
                             ))}
                           </div>
                           <span className={cn('block text-[10px]', won ? 'text-win' : 'text-muted-foreground')}>
