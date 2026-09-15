@@ -94,14 +94,11 @@
         gap: var(--space-3);
         padding: 0 var(--space-4) var(--space-6);
       }
-      .console {
-        width: 100%;
-        max-width: 640px;
-        min-height: 208px;
+      .dock-row {
         display: flex;
-        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        gap: var(--space-4);
+        gap: var(--space-2);
       }
       .avatar-a { background: conic-gradient(from 200deg, #facc15, #dc2626, #8b5cf6, #facc15); }
       .avatar-b { background: conic-gradient(from 40deg, #0ea5e9, #e5e5e5, #8b5cf6, #0ea5e9); }
@@ -125,12 +122,6 @@
       .wager .money {
         font-size: 11px;
         color: var(--color-accent-200);
-      }
-      details summary {
-        cursor: pointer;
-        font-size: 12px;
-        color: var(--color-muted);
-        list-style: none;
       }
     </style>
   </head>
@@ -258,7 +249,7 @@
         </div>
       </div>
 
-      <!-- The near edge: your seat, then the console -->
+      <!-- The near edge: your seat, then the dock -->
       <div class="near">
         <div class="seat">
           <div class="seat-cards" style="margin-bottom: -16px">
@@ -275,41 +266,25 @@
           <span class="wager"><span class="chip chip-100"></span><span class="money">200</span></span>
         </div>
 
-        <div class="panel console">
-          <div class="row between" style="gap: var(--space-4)">
-            <button class="btn btn-secondary" style="height: 28px; font-size: 12px; font-weight: 400">&#9662;&nbsp; Bet size</button>
-            <div class="row wrap" style="gap: 6px">
-              <button class="btn btn-ghost" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; border-color: var(--color-divider)">&frac12; pot</button>
-              <button class="btn btn-ghost" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; border-color: var(--color-divider)">&frac34; pot</button>
-              <button class="btn" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; background: oklch(0.8 0.135 82 / 0.14); border-color: oklch(0.8 0.135 82 / 0.5); color: var(--color-accent-200)">Pot</button>
-              <button class="btn btn-ghost" style="height: 28px; padding: 0 10px; font-size: 12px; font-weight: 400; border-color: var(--color-divider)">All in</button>
-            </div>
-          </div>
-
-          <div class="col" style="gap: 6px">
-            <div style="position: relative; height: 22px">
-              <span class="slider-bubble" style="position: absolute; left: 46%; transform: translateX(-50%)">620</span>
-            </div>
-            <div class="slider">
-              <span class="slider-range" style="width: 46%"></span>
-              <span class="slider-thumb" style="left: 46%"></span>
-            </div>
-            <div class="row between money" style="font-size: 10px; color: var(--color-muted); font-weight: 400">
-              <span>400</span>
-              <span>2,480</span>
-            </div>
-          </div>
-
-          <div class="row" style="gap: var(--space-2)">
+        <!-- One row. The hand log and the finished hands sit at either end and
+             open over the table, never on a page of their own. -->
+        <div class="dock-row">
+          <button class="btn btn-icon" aria-label="This hand">&#9776;</button>
+          <div class="action-dock">
             <button class="play play-fold">Fold</button>
-            <button class="play play-pass">Call 200</button>
-            <button class="play play-commit">Raise to 620</button>
+            <button class="play play-pass">Call <span class="money">200</span></button>
+            <div class="bet-stepper" role="group" aria-label="Bet size">
+              <button class="bet-step" aria-label="Less">&minus;</button>
+              <button class="bet-amount" aria-label="620, half pot. Next size">
+                <span class="money">620</span>
+                <span class="bet-size">&frac12; pot</span>
+              </button>
+              <button class="bet-step" aria-label="More">+</button>
+            </div>
+            <button class="play play-commit">Raise</button>
           </div>
+          <button class="btn btn-icon" aria-label="Past hands">&#8634;</button>
         </div>
-
-        <details style="width: 100%; max-width: 640px">
-          <summary>Hand history</summary>
-        </details>
       </div>
     </div>
   </body>

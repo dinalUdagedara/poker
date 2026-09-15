@@ -509,10 +509,15 @@ async function fileFinishedHand(tableId: string, before: StoredTable, after: Sto
       // an archive is a copy that outlives the moment anyone was watching it.
       state: { ...after.state, deck: [], burned: [] },
     })
-  } catch {
+  } catch (error) {
     // History is a convenience; the hand is not. A player whose action cannot
     // be filed has still played it, and failing their request to say so would
     // trade the game for the record of it.
+    //
+    // Said out loud all the same. Swallowed silently, a store that refuses the
+    // write shows up only as hands missing from the history, with nothing to
+    // say why.
+    console.error(`[table-store] could not file hand ${after.state.handNumber} of ${tableId}`, error)
   }
 }
 
