@@ -5,7 +5,6 @@ import { Drawer } from '@base-ui/react/drawer'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import type { HandView } from '@/lib/poker/archive'
 import type { TableView } from '@/lib/poker/lifecycle'
@@ -157,22 +156,22 @@ export function HistoryDrawer({
     </div>
   )
 
-  // `min-h-0` so the scroll area gives way to the panel's max height rather
-  // than pushing past it.
+  // The rest of the panel's height, handed to the replay to divide: it scrolls
+  // the table and columns and keeps its scrubber pinned at the bottom. A scroll
+  // area wrapped round the whole replay could not bound itself to a panel that
+  // has only a max height, so a long hand pushed the scrubber out of sight.
   const body = (
-    <ScrollArea className="min-h-0 **:data-[slot=scroll-area-thumb]:bg-white/25">
-      <div className="px-3 pt-3 pb-4 sm:px-5" data-testid="history">
-        {waiting ? null : current ? (
-          // Keyed on when it ended too: the hand in play is replaced by its
-          // archived copy as it settles, and should land on the result.
-          <HandReplay key={`${current.handNumber}-${current.endedAt}`} hand={current} />
-        ) : (
-          <p className="text-muted-foreground py-6 text-center text-sm">
-            Nothing played yet. The first hand shows up here as soon as it is dealt.
-          </p>
-        )}
-      </div>
-    </ScrollArea>
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="history">
+      {waiting ? null : current ? (
+        // Keyed on when it ended too: the hand in play is replaced by its
+        // archived copy as it settles, and should land on the result.
+        <HandReplay key={`${current.handNumber}-${current.endedAt}`} hand={current} contained />
+      ) : (
+        <p className="text-muted-foreground px-4 py-6 text-center text-sm">
+          Nothing played yet. The first hand shows up here as soon as it is dealt.
+        </p>
+      )}
+    </div>
   )
 
   const close = <X className="size-4" aria-hidden />
@@ -183,7 +182,7 @@ export function HistoryDrawer({
         <Dialog.Portal>
           <Dialog.Backdrop className={cn(BACKDROP, 'data-ending-style:opacity-0 data-starting-style:opacity-0')} />
           <Dialog.Popup
-            className="panel-milled border-border fixed top-1/2 left-1/2 z-50 flex max-h-[88dvh] w-[min(56rem,calc(100vw-3rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border outline-none transition-[opacity,scale] duration-200 ease-[cubic-bezier(0.2,0.8,0.3,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0"
+            className="panel-milled border-border fixed top-1/2 left-1/2 z-50 flex max-h-[88dvh] w-[min(56rem,calc(100vw-3rem))] overflow-hidden -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border outline-none transition-[opacity,scale] duration-200 ease-[cubic-bezier(0.2,0.8,0.3,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0"
             data-testid="history-drawer"
           >
             {/* Pinned, because the replay below scrolls and a heading that
@@ -216,7 +215,7 @@ export function HistoryDrawer({
         />
         <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-center">
           <Drawer.Popup
-            className="panel-milled border-border relative flex max-h-[92dvh] w-full max-w-3xl translate-y-(--drawer-swipe-movement-y,0px) flex-col rounded-t-2xl border border-b-0 outline-none transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full data-swiping:transition-none"
+            className="panel-milled border-border relative flex max-h-[92dvh] w-full max-w-3xl overflow-hidden translate-y-(--drawer-swipe-movement-y,0px) flex-col rounded-t-2xl border border-b-0 outline-none transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full data-swiping:transition-none"
             data-testid="history-drawer"
           >
             {/* The grip: says this sheet can be pulled down out of the way. */}

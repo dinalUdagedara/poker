@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,8 +23,14 @@ import { PlayingCard } from './PlayingCard'
  * Three views of the same moment, kept in step: the table as it stood, the
  * columns with that action lit, and a scrubber saying how far through the hand
  * it is. Any of them moves the other two.
+ *
+ * `contained` is for a panel with a height of its own — the drawer and the
+ * dialog. The table and columns scroll inside it and the scrubber is pinned
+ * underneath, so the one control for moving through the hand can never be
+ * pushed out of the panel by a long hand. On a page it flows instead, with the
+ * scrubber stuck to the bottom of the window.
  */
-export function HandReplay({ hand }: { hand: HandView }) {
+export function HandReplay({ hand, contained = false }: { hand: HandView; contained?: boolean }) {
   const frames = useMemo(() => replayFrames(hand), [hand])
   const allIns = useMemo(() => allInEntries(hand), [hand])
   const annotated = useMemo(() => annotateHistory(hand.handHistory), [hand])
@@ -49,23 +55,47 @@ export function HandReplay({ hand }: { hand: HandView }) {
     ? `${seatName(entry.playerId, hand.names, hand.viewerId)} · ${calloutText(entry, hand.smallBlind, hand.bigBlind)}`
     : 'Result'
 
+  const table = <ReplayTable hand={hand} frame={frame} annotated={annotated} />
+
+  const streets = (
+    <Card className="panel-milled border-border backdrop-blur">
+      <CardContent className="px-3 sm:px-4">
+        <HandStreets
+          hand={hand}
+          activeIndex={frame.entryIndex}
+          allIns={allIns}
+          // Action frames sit at the same index as their history entry.
+          onSelect={move}
+        />
+      </CardContent>
+    </Card>
+  )
+
+  const scrubber = <ScrubberControls count={frames.length} index={at} caption={caption} onChange={move} />
+
+  if (contained) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-3 [scrollbar-color:oklch(1_0_0/0.25)_transparent] [scrollbar-width:thin] sm:px-5">
+          <div className="flex flex-col gap-3 sm:gap-4">
+            {table}
+            {streets}
+          </div>
+        </div>
+        <div className="border-border shrink-0 border-t px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+          {scrubber}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <ReplayTable hand={hand} frame={frame} annotated={annotated} />
-
-      <Card className="panel-milled border-border backdrop-blur">
-        <CardContent className="px-3 sm:px-4">
-          <HandStreets
-            hand={hand}
-            activeIndex={frame.entryIndex}
-            allIns={allIns}
-            // Action frames sit at the same index as their history entry.
-            onSelect={move}
-          />
-        </CardContent>
+      {table}
+      {streets}
+      <Card className="panel-milled border-border sticky bottom-4 z-40 backdrop-blur">
+        <CardContent className="px-3 sm:px-4">{scrubber}</CardContent>
       </Card>
-
-      <Scrubber count={frames.length} index={at} caption={caption} onChange={move} />
     </div>
   )
 }
@@ -223,7 +253,7 @@ function ReplayTable({
  * The arrow keys step too, unless focus is on the slider, which already
  * answers them itself and would otherwise take two steps per press.
  */
-function Scrubber({
+function ScrubberControls({
   count,
   index,
   caption,
@@ -231,7 +261,7 @@ function Scrubber({
 }: {
   count: number
   index: number
-  caption: string
+  caption: ReactNode
   onChange: (next: number) => void
 }) {
   useEffect(() => {
@@ -246,58 +276,56 @@ function Scrubber({
   }, [count, index, onChange])
 
   return (
-    <Card className="panel-milled border-border sticky bottom-4 z-40 backdrop-blur">
-      <CardContent className="flex flex-col gap-2 px-3 sm:px-4">
-        <p className="truncate text-center text-xs text-white/70" aria-live="polite" data-testid="replay-caption">
-          {caption}
-        </p>
+    <div className="flex flex-col gap-2">
+      <p className="truncate text-center text-xs text-white/70" aria-live="polite" data-testid="replay-caption">
+        {caption}
+      </p>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={index <= 0}
-            onClick={() => onChange(index - 1)}
-            aria-label="Previous action"
-          >
-            <ChevronLeft />
-          </Button>
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={index <= 0}
+          onClick={() => onChange(index - 1)}
+          aria-label="Previous action"
+        >
+          <ChevronLeft />
+        </Button>
 
-          <Slider
-            value={[index]}
-            min={0}
-            max={Math.max(count - 1, 1)}
-            step={1}
-            disabled={count < 2}
-            onValueChange={(value) => onChange(Array.isArray(value) ? value[0] : value)}
-            aria-label="Action"
-            // A recess, like every other track in this system. Plain rather
-            // than brass: brass is what a bet costs you, and reading back
-            // through a hand costs nothing.
-            className={cn(
-              'min-w-0 flex-1',
-              '**:data-[slot=slider-track]:h-2 **:data-[slot=slider-track]:bg-black/40',
-              '**:data-[slot=slider-track]:shadow-[inset_0_1px_3px_oklch(0_0_0/0.5)]',
-              '**:data-[slot=slider-range]:bg-white/25',
-              '**:data-[slot=slider-thumb]:size-4 **:data-[slot=slider-thumb]:border-white/40',
-            )}
-          />
+        <Slider
+          value={[index]}
+          min={0}
+          max={Math.max(count - 1, 1)}
+          step={1}
+          disabled={count < 2}
+          onValueChange={(value) => onChange(Array.isArray(value) ? value[0] : value)}
+          aria-label="Action"
+          // A recess, like every other track in this system. Plain rather
+          // than brass: brass is what a bet costs you, and reading back
+          // through a hand costs nothing.
+          className={cn(
+            'min-w-0 flex-1',
+            '**:data-[slot=slider-track]:h-2 **:data-[slot=slider-track]:bg-black/40',
+            '**:data-[slot=slider-track]:shadow-[inset_0_1px_3px_oklch(0_0_0/0.5)]',
+            '**:data-[slot=slider-range]:bg-white/25',
+            '**:data-[slot=slider-thumb]:size-4 **:data-[slot=slider-thumb]:border-white/40',
+          )}
+        />
 
-          <span className="shrink-0 font-mono text-xs tabular-nums text-white/55">
-            <span className="text-white">{index + 1}</span> / {count}
-          </span>
+        <span className="shrink-0 font-mono text-xs tabular-nums text-white/55">
+          <span className="text-white">{index + 1}</span> / {count}
+        </span>
 
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={index >= count - 1}
-            onClick={() => onChange(index + 1)}
-            aria-label="Next action"
-          >
-            <ChevronRight />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={index >= count - 1}
+          onClick={() => onChange(index + 1)}
+          aria-label="Next action"
+        >
+          <ChevronRight />
+        </Button>
+      </div>
+    </div>
   )
 }
