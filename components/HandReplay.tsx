@@ -209,7 +209,7 @@ function atFrame(player: RedactedPlayer, frame: ReplayFrame, viewerId: string | 
  * a seat on the near rail.
  */
 const DESIGN = {
-  wide: { width: 1024, stage: 512, top: 40, bottom: 56 },
+  wide: { width: 1024, stage: 512, top: 24, bottom: 56 },
   portrait: { width: 360, stage: 580, top: 20, bottom: 96 },
 } as const
 
@@ -273,7 +273,7 @@ function ReplayTable({
   const design = portrait ? DESIGN.portrait : DESIGN.wide
   const designHeight = design.top + design.stage + design.bottom
   const box = useRef<HTMLDivElement>(null)
-  const scale = useFit(box, design.width, designHeight, fitHeight ? (portrait ? 0.55 : 0.42) : null)
+  const scale = useFit(box, design.width, designHeight, fitHeight ? (portrait ? 0.55 : 0.38) : null)
 
   const seated = seatOrder(hand.players, hand.viewerId)
   const deskRing = seatRing(seated.length, false)

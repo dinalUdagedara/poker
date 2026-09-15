@@ -169,7 +169,7 @@ export function HistoryDrawer({
         <Dialog.Portal>
           <Dialog.Backdrop className={cn(BACKDROP, 'data-ending-style:opacity-0 data-starting-style:opacity-0')} />
           <Dialog.Popup
-            className="panel-milled border-border fixed top-1/2 left-1/2 z-50 flex max-h-[88dvh] w-[min(56rem,calc(100vw-3rem))] overflow-hidden -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border outline-none transition-[opacity,scale] duration-200 ease-[cubic-bezier(0.2,0.8,0.3,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0"
+            className="panel-milled border-border fixed top-1/2 left-1/2 z-50 flex max-h-[92dvh] w-[min(56rem,calc(100vw-3rem))] overflow-hidden -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border outline-none transition-[opacity,scale] duration-200 ease-[cubic-bezier(0.2,0.8,0.3,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0"
             data-testid="history-drawer"
           >
             {/* Pinned, because the replay below scrolls and a heading that

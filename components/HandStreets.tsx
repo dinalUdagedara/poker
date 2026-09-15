@@ -7,6 +7,7 @@ import { seatName } from '@/lib/names'
 import { positionsOf, sectionsOf } from '@/lib/poker/archive'
 import { calloutText, type AnnotatedEntry } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
+import type { Card } from '@/lib/poker/cards'
 import type { RedactedTableState } from '@/lib/poker/redact'
 import { PlayingCard } from './PlayingCard'
 
@@ -46,6 +47,34 @@ export type StreetHand = Pick<
   | 'viewerId'
   | 'result'
 > & { names: Record<string, string> }
+
+const SUIT_SYMBOLS: Record<Card['suit'], string> = { h: '♥', d: '♦', c: '♣', s: '♠' }
+const SUIT_NAMES: Record<Card['suit'], string> = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' }
+
+/**
+ * A card small enough for five to share a speech bubble: rank over suit, in the
+ * suit's ink, on the card's own stock.
+ *
+ * Not a `PlayingCard` shrunk down. That face puts a rank in one corner and a
+ * large pip in the other, sized off the card's width, and at a fifth of a
+ * bubble the two run into each other until neither can be read.
+ */
+function MiniCard({ card }: { card: Card }) {
+  const rank = card.rank === 'T' ? '10' : card.rank
+  return (
+    <span
+      className={cn(
+        'flex aspect-2/3 min-w-0 flex-col items-center justify-center rounded-[3px] leading-none font-bold shadow-sm',
+        'bg-linear-to-b from-[oklch(0.99_0.002_90)] to-[oklch(0.97_0.004_90)]',
+        card.suit === 'h' || card.suit === 'd' ? 'text-suit-red' : 'text-[oklch(0.2_0.01_260)]',
+      )}
+      aria-label={`${rank} of ${SUIT_NAMES[card.suit]}`}
+    >
+      <span className="text-[10px] tracking-tighter">{rank}</span>
+      <span className="text-[9px]">{SUIT_SYMBOLS[card.suit]}</span>
+    </span>
+  )
+}
 
 /** An action split into what was done and how much, for a bubble's two lines. */
 function phrase(entry: AnnotatedEntry, smallBlind: number, bigBlind: number) {
@@ -156,6 +185,9 @@ export function HandStreets({
     <div
       className={cn(
         '-mx-1 overflow-auto [scrollbar-color:oklch(1_0_0/0.25)_transparent] scrollbar-thin',
+        // On a desktop each street scrolls on its own, under a header that stays
+        // put, so this only ever scrolls sideways there.
+        'sm:flex sm:flex-col sm:overflow-y-hidden',
         className,
       )}
       data-testid="street-columns"
@@ -168,12 +200,14 @@ export function HandStreets({
           'flex w-max min-w-full gap-2 px-1',
           // Room under the columns for the overlaid bar to sit in.
           'pb-2.5',
+          // The height the panel has left, shared by every column.
+          'sm:min-h-0 sm:flex-1',
         )}
       >
         {sections.map((section, i) => (
           <div
             key={`${section.street}-${i}`}
-            className="panel-well border-border flex w-40 shrink-0 flex-col rounded-lg border sm:w-auto sm:max-w-52 sm:min-w-0 sm:flex-1"
+            className="panel-well border-border flex w-40 shrink-0 flex-col rounded-lg border sm:min-h-0 sm:w-auto sm:max-w-52 sm:min-w-0 sm:flex-1"
           >
             {/* Stuck to the top of the panel: the columns scroll under it as
                 the replay follows the action down, and a street stripped of its
@@ -207,7 +241,9 @@ export function HandStreets({
               )}
             </div>
 
-            <ol className="flex flex-col gap-2.5 p-2">
+            {/* A street's own scroll on a desktop: reading down the flop never
+                drags the river's actions out from under the reader. */}
+            <ol className="flex flex-col gap-2.5 p-2 [scrollbar-color:oklch(1_0_0/0.25)_transparent] scrollbar-thin sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
               {section.entries.map((entry, j) => {
                 const index = starts[i]! + j
                 const active = activeIndex === index
@@ -274,7 +310,7 @@ export function HandStreets({
                               card width ran off the edge of a desktop column. */}
                           <div className="grid grid-cols-5 gap-0.5 py-0.5" data-testid="shown-cards">
                             {cards.map((card, k) => (
-                              <PlayingCard key={k} card={card} size="xs" className="w-full min-w-0 text-[8px]" />
+                              <MiniCard key={k} card={card} />
                             ))}
                           </div>
                           <span className={cn('block text-[10px]', won ? 'text-win' : 'text-muted-foreground')}>
