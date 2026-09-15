@@ -3,9 +3,10 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { Drawer } from '@base-ui/react/drawer'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { usePortrait } from '@/lib/use-portrait'
 import type { HandView } from '@/lib/poker/archive'
 import type { TableView } from '@/lib/poker/lifecycle'
 import { HandReplay } from './HandReplay'
@@ -15,21 +16,6 @@ import { HandReplay } from './HandReplay'
  * finished, or a particular hand by number.
  */
 export type HistoryPick = 'live' | 'latest' | number
-
-const WIDE = '(min-width: 640px)'
-
-/** Whether the screen is past `sm`. False on the server, where it cannot know. */
-function useWide() {
-  return useSyncExternalStore(
-    (onChange) => {
-      const query = window.matchMedia(WIDE)
-      query.addEventListener('change', onChange)
-      return () => query.removeEventListener('change', onChange)
-    },
-    () => window.matchMedia(WIDE).matches,
-    () => false,
-  )
-}
 
 const BACKDROP = 'fixed inset-0 z-50 bg-[oklch(0.1_0.012_150/0.72)] backdrop-blur-sm transition-opacity duration-300'
 const HEADER = 'border-border flex items-center gap-3 border-b px-4 pb-3'
@@ -66,7 +52,8 @@ export function HistoryDrawer({
   onPick: (hand: HistoryPick) => void
   onOpenChange: (open: boolean) => void
 }) {
-  const wide = useWide()
+  // The same 640px breakpoint the table's own layout switches on.
+  const wide = !usePortrait()
   const [archived, setArchived] = useState<HandView[]>([])
   const [loaded, setLoaded] = useState(false)
 

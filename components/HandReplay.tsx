@@ -1,6 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,6 +18,7 @@ import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { seatName } from '@/lib/names'
 import { calloutPlacement, chipSide, seatOrder, seatRing } from '@/lib/table-seating'
+import { usePortrait } from '@/lib/use-portrait'
 import type { HandView } from '@/lib/poker/archive'
 import { annotateHistory, calloutText, type AnnotatedEntry } from '@/lib/poker/callouts'
 import type { RedactedPlayer } from '@/lib/poker/redact'
@@ -18,9 +29,11 @@ import {
   type ReplayFrame,
   type ResultSummary,
 } from '@/lib/poker/replay'
+import { ChipStack } from './ChipStack'
 import { HandStreets } from './HandStreets'
 import { PlayerSeat } from './PlayerSeat'
 import { PlayingCard } from './PlayingCard'
+import { TableBody } from './TableBody'
 
 /**
  * One finished hand, played back an action at a time.
@@ -67,14 +80,16 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
       hand={hand}
       frame={frame}
       annotated={annotated}
-      // In a desktop panel the felt is sized off the window's height, so the
-      // columns and scrubber below it always fit on the one screen.
-      className={contained ? 'sm:h-[min(36dvh,22rem)] sm:w-auto sm:max-w-full sm:shrink-0 sm:self-center' : undefined}
+      fitHeight={contained}
+      className={contained ? 'sm:shrink-0' : undefined}
     />
   )
 
   const streets = (
-    <Card className={cn('panel-milled border-border backdrop-blur', contained && 'sm:min-h-0 sm:flex-1')}>
+    <Card
+      className={cn('panel-milled border-border backdrop-blur', contained && 'sm:min-h-0 sm:flex-1')}
+      data-testid="replay-streets"
+    >
       <CardContent className={cn('px-3 sm:px-4', contained && 'sm:flex sm:min-h-0 sm:flex-1 sm:flex-col')}>
         <HandStreets
           className={contained ? 'sm:min-h-0 sm:flex-1' : undefined}
@@ -173,35 +188,96 @@ function atFrame(player: RedactedPlayer, frame: ReplayFrame, viewerId: string | 
 }
 
 /**
- * The felt at one moment: the board so far, the pot, and every seat with its
- * stack, its wager on the street and the bubble for what it last did.
+ * The size the replay table is drawn at, before it is fitted to its box.
  *
- * Always the wide still, on any screen. A replay is read in a landscape box
- * above the columns, and the portrait oval would push them off a phone.
+ * Exactly the live table's: its desktop stage is 1024 wide at 2:1, and a
+ * phone's felt stands up the height of the screen — its image is 3:4, but the
+ * stage stretches it to roughly 360 by 580, and the ring's percentages are tuned
+ * to that. Drawn at 3:4 the side seats closed on the waist of the felt and sat
+ * on a full board. Every size on that felt is tuned against every
+ * other one, so the replay draws the same composition at that size and scales
+ * the whole thing, rather than shrinking pieces of it and watching them collide.
+ *
+ * The margins above and below are room the live table gets from what surrounds
+ * it: cards held up above a top seat, and the wagers and badges that hang under
+ * a seat on the near rail.
+ */
+const DESIGN = {
+  wide: { width: 1024, stage: 512, top: 40, bottom: 56 },
+  portrait: { width: 360, stage: 580, top: 20, bottom: 96 },
+} as const
+
+/**
+ * How far to scale the drawn table so it fits: the width it is given, and — in
+ * a panel — a share of the window's height, so there is room left under it.
+ */
+function useFit(
+  box: RefObject<HTMLDivElement | null>,
+  width: number,
+  height: number,
+  heightShare: number | null,
+): number {
+  const [scale, setScale] = useState(0)
+
+  useLayoutEffect(() => {
+    const element = box.current
+    if (!element) return
+    const measure = () => {
+      let next = element.clientWidth / width
+      if (heightShare !== null) next = Math.min(next, (window.innerHeight * heightShare) / height)
+      setScale(Math.max(next, 0))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    window.addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [box, width, height, heightShare])
+
+  return scale
+}
+
+/**
+ * The felt at one moment, drawn exactly as the live table draws it — the same
+ * seats, board, pot, wagers and bubbles, at the same size — and then zoomed as
+ * one piece to fit.
+ *
+ * `zoom` rather than a transform, as the live table does: a transform paints at
+ * the new size without occupying it, so the table would overhang the columns
+ * underneath instead of pushing them down.
  */
 function ReplayTable({
   hand,
   frame,
   annotated,
+  fitHeight,
   className,
 }: {
   hand: HandView
   frame: ReplayFrame
   annotated: AnnotatedEntry[]
+  /** In a panel: keep the table to a share of the window's height. */
+  fitHeight: boolean
   className?: string
 }) {
-  const seated = seatOrder(
-    hand.players.filter((player) => player.status !== 'sitting-out'),
-    hand.viewerId,
-  )
-  const ring = seatRing(seated.length, false)
+  const portrait = usePortrait()
+  const design = portrait ? DESIGN.portrait : DESIGN.wide
+  const designHeight = design.top + design.stage + design.bottom
+  const box = useRef<HTMLDivElement>(null)
+  const scale = useFit(box, design.width, designHeight, fitHeight ? (portrait ? 0.55 : 0.42) : null)
+
+  const seated = seatOrder(hand.players, hand.viewerId)
+  const deskRing = seatRing(seated.length, false)
+  const phoneRing = seatRing(seated.length, true)
+  const ring = portrait ? phoneRing : deskRing
+  const crowded = hand.players.length >= 5
   const actor = frame.entryIndex !== null ? hand.handHistory[frame.entryIndex]?.playerId : null
 
   const summary = resultOf(hand)
-  const winnerIds = frame.settled ? (summary?.winners ?? []) : []
-  const winners = new Set(winnerIds)
-  const potWon = summary?.won ?? 0
-  const winningHand = summary?.handName ?? null
+  const winners = new Set(frame.settled ? (summary?.winners ?? []) : [])
 
   // The latest thing each player did on this frame's street, up to this frame.
   const callouts = new Map<string, string>()
@@ -214,94 +290,116 @@ function ReplayTable({
   }
 
   return (
-    <div
-      className={cn('relative mx-auto aspect-16/10 w-full max-w-3xl sm:aspect-2/1', className)}
-      data-testid="replay-table"
-    >
-      <div className="table-body" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/table-desktop.png" alt="" draggable={false} />
-      </div>
+    <div ref={box} className={cn('flex w-full justify-center', className)} data-testid="replay-table">
+      <div
+        style={{
+          width: design.width,
+          paddingTop: design.top,
+          paddingBottom: design.bottom,
+          // Hidden for the one layout pass before it has been measured.
+          zoom: scale || undefined,
+          visibility: scale ? undefined : 'hidden',
+        }}
+      >
+        <div className="table-stage relative w-full" style={{ height: design.stage }}>
+          <TableBody />
+          <div className="table-felt">
+            <span
+              className="felt-mark pointer-events-none absolute top-[68%] left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase select-none sm:top-[79%]"
+              aria-hidden
+            >
+              Showdown
+            </span>
 
-      <div className="table-felt">
-        <div className="absolute top-1/2 left-1/2 z-20 flex w-max max-w-[70%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 sm:gap-2">
-          {frame.settled && hand.result ? (
-            <div className="text-center leading-tight">
-              <p className="text-sm font-semibold text-white sm:text-lg">
-                {winnerIds.map((id) => seatName(id, hand.names, hand.viewerId)).join(' and ')}{' '}
-                {winners.size > 1 ? 'split' : winnerIds[0] === hand.viewerId ? 'win' : 'wins'}{' '}
-                <span className="text-brass-lit font-mono tabular-nums">{potWon.toLocaleString()}</span>
-              </p>
-              <p className="text-[10px] text-white/60 sm:text-xs">
-                {winningHand ?? 'everyone else folded'}
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[9px] font-semibold tracking-[0.22em] text-white/65 uppercase sm:text-[10px]">
-                pot
-              </span>
-              <span
-                className="font-mono text-base font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-2xl"
-                data-testid="replay-pot"
-              >
-                {frame.pot.toLocaleString()}
-              </span>
-            </div>
-          )}
-
-          <div
-            className="flex min-h-10 items-end justify-center gap-1 sm:min-h-17 sm:gap-1.5"
-            data-testid="replay-board"
-          >
-            {hand.communityCards.slice(0, frame.boardCount).map((card, i) => (
-              <PlayingCard key={i} card={card} size="sm" className="w-7 sm:w-11" />
-            ))}
-          </div>
-        </div>
-
-        <div className="absolute inset-0">
-          {seated.map((player, i) => {
-            const point = ring[i]
-            if (!point) return null
-            return (
-              <div
-                key={player.id}
-                className={cn('table-seat scale-[0.6] sm:scale-[0.8]', player.id === actor ? 'z-30' : 'z-10')}
-                style={
-                  {
-                    '--seat-d-l': `${point.left}%`,
-                    '--seat-d-t': `${point.top}%`,
-                    '--seat-p-l': `${point.left}%`,
-                    '--seat-p-t': `${point.top}%`,
-                  } as CSSProperties
-                }
-              >
-                <PlayerSeat
-                  player={atFrame(player, frame, hand.viewerId)}
-                  viewerId={hand.viewerId}
-                  names={hand.names}
-                  isActing={player.id === actor}
-                  isButton={hand.buttonSeat === player.seat}
-                  isWinner={winners.has(player.id)}
-                  handOver={frame.settled}
-                  compact
-                  callout={callouts.get(player.id)}
-                  calloutSide={calloutPlacement(point)}
-                  chipSide={chipSide(point)}
-                  bigBlind={hand.bigBlind}
-                />
-                {winners.has(player.id) && (
-                  <span
-                    className="brass-button absolute -top-4 left-1/2 z-40 -translate-x-1/2 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap"
-                    data-testid={`replay-win-${player.id}`}
-                  >
-                    Win +{(hand.result?.payouts[player.id] ?? 0).toLocaleString()}
+            {/* Pot and board, as the live table centres them. The result is
+                not written here: the line above the table already says it, and
+                a third row in the middle pushed the board into the near seat. */}
+            <div
+              className={cn(
+                'absolute top-1/2 left-1/2 z-20 flex w-max max-w-[64%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 sm:gap-2.5',
+                crowded ? 'sm:max-w-[56%]' : 'sm:max-w-[68%]',
+              )}
+            >
+              <div className="flex items-end justify-center gap-1.5 sm:gap-2">
+                <div className="flex h-7 items-end sm:h-11">
+                  {!frame.settled && <ChipStack look="felt" size="lg" stack={frame.pot} />}
+                </div>
+                <div className="flex flex-col items-start leading-none">
+                  <span className="text-[9px] font-semibold tracking-[0.22em] text-white/65 uppercase sm:text-[10px]">
+                    pot
                   </span>
-                )}
+                  <span
+                    className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
+                    data-testid="replay-pot"
+                  >
+                    {frame.pot.toLocaleString()}
+                  </span>
+                </div>
               </div>
-            )
-          })}
+
+              <div
+                className="flex min-h-18 items-end justify-center gap-1.5 sm:min-h-24 sm:gap-2.5"
+                data-testid="replay-board"
+              >
+                {hand.communityCards.slice(0, frame.boardCount).map((card, i) => (
+                  <PlayingCard key={i} card={card} size="md" className="w-10 sm:w-16" />
+                ))}
+              </div>
+            </div>
+
+            <div className="absolute inset-0">
+              {seated.map((player, i) => {
+                const point = ring[i]
+                const desk = deskRing[i]
+                const phone = phoneRing[i]
+                if (!point || !desk || !phone) return null
+                const isYou = player.id === hand.viewerId
+                const seat = atFrame(player, frame, hand.viewerId)
+                const showing = seat.holeCards != null
+                return (
+                  <div
+                    key={player.id}
+                    className={cn('table-seat', isYou ? 'z-30' : showing ? 'z-20' : 'max-sm:scale-[0.82]')}
+                    style={
+                      {
+                        '--seat-d-l': `${desk.left}%`,
+                        '--seat-d-t': `${desk.top}%`,
+                        '--seat-p-l': `${phone.left}%`,
+                        '--seat-p-t': `${phone.top}%`,
+                      } as CSSProperties
+                    }
+                  >
+                    <PlayerSeat
+                      player={seat}
+                      viewerId={hand.viewerId}
+                      names={hand.names}
+                      isActing={player.id === actor}
+                      isButton={hand.buttonSeat === player.seat}
+                      isWinner={winners.has(player.id)}
+                      handOver={frame.settled}
+                      compact={!isYou}
+                      hero={isYou}
+                      callout={callouts.get(player.id)}
+                      calloutSide={calloutPlacement(point)}
+                      chipSide={chipSide(point)}
+                      bigBlind={hand.bigBlind}
+                    />
+                    {winners.has(player.id) && (
+                      /* In the row under the plate, which a settled hand leaves
+                         empty — its wagers have gone to the pot — so the badge
+                         can never land on the cards above. */
+                      <span
+                        className="brass-button absolute bottom-0.5 left-1/2 z-40 -translate-x-1/2 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap"
+                        data-testid={`replay-win-${player.id}`}
+                      >
+                        Win +{(hand.result?.payouts[player.id] ?? 0).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -225,14 +225,11 @@ export function HandStreets({
                         playerId,
                         <div className={cn(BUBBLE, edge)}>
                           <span aria-hidden className={cn(TAIL, edge)} />
-                          <div className="flex py-0.5">
+                          {/* Side by side, never overlapped: five fanned cards
+                              in a bubble this narrow hide each other's ranks. */}
+                          <div className="flex gap-0.5 py-0.5">
                             {cards.map((card, k) => (
-                              <PlayingCard
-                                key={k}
-                                card={card}
-                                size="xs"
-                                className={cn('w-5 text-[8px]', k > 0 && '-ml-1')}
-                              />
+                              <PlayingCard key={k} card={card} size="xs" className="w-5 min-w-0 text-[8px]" />
                             ))}
                           </div>
                           <span className={cn('block text-[10px]', won ? 'text-win' : 'text-muted-foreground')}>
