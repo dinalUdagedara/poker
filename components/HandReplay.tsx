@@ -73,7 +73,9 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
   const entry = frame.entryIndex !== null ? annotated[frame.entryIndex] : undefined
   const caption = entry
     ? `${seatName(entry.playerId, hand.names, hand.viewerId)} · ${calloutText(entry, hand.smallBlind, hand.bigBlind)}`
-    : 'Result'
+    : frame.kind === 'deal'
+      ? `The ${frame.street}`
+      : 'Result'
 
   const table = (
     <ReplayTable
@@ -95,9 +97,13 @@ export function HandReplay({ hand, contained = false }: { hand: HandView; contai
           className={contained ? 'sm:min-h-0 sm:flex-1' : undefined}
           hand={hand}
           activeIndex={frame.entryIndex}
+          reached={frame.settled ? null : frame.lastEntry}
+          boardShown={frame.boardCount}
+          showdown={frame.settled}
           allIns={allIns}
-          // Action frames sit at the same index as their history entry.
-          onSelect={move}
+          // The board has frames of its own, so frames and history entries do
+          // not line up one to one: go to the frame that played this entry.
+          onSelect={(index) => move(frames.findIndex((f) => f.entryIndex === index))}
         />
       </CardContent>
     </Card>

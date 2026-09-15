@@ -22,6 +22,8 @@ const player = (id: string, seat: number, stack: number) =>
     cardCount: 2,
   }) as ReplayHand['players'][number]
 
+const board = (count: number) => Array(count).fill(null) as unknown as ReplayHand['communityCards']
+
 /**
  * The archive's reference hand, played on to the river from 1,000 each: the
  * button shoves the 300 it has left, both blinds fold, and the uncalled shove
@@ -48,7 +50,7 @@ const hand: ReplayHand = {
     entry('river', 'bb', 'fold'),
   ],
   players: [player('sb', 0, 300), player('bb', 1, 300), player('btn', 2, 2400)],
-  communityCards: Array(5).fill(null) as unknown as ReplayHand['communityCards'],
+  communityCards: board(5),
   result: {
     payouts: { btn: 2100 },
     awards: [{ amount: 2100, winners: ['btn'], eligiblePlayerIds: ['btn'], payouts: { btn: 2100 } }],
@@ -58,41 +60,51 @@ const hand: ReplayHand = {
   } as unknown as HandResult,
 }
 
+/** The frame that played a given history entry. */
+const frameFor = (frames: ReturnType<typeof replayFrames>, index: number) =>
+  frames.find((frame) => frame.entryIndex === index)!
+
 describe('replaying a finished hand', () => {
   it('reads the starting stacks back off the result', () => {
     expect(Object.fromEntries(startingStacks(hand))).toEqual({ sb: 1000, bb: 1000, btn: 1000 })
   })
 
-  it('makes a frame for every action and one for the result', () => {
+  it('makes a frame for every action, one for each street dealt, and one for the result', () => {
     const frames = replayFrames(hand)
 
-    expect(frames).toHaveLength(hand.handHistory.length + 1)
-    expect(frames.slice(0, -1).map((frame) => frame.entryIndex)).toEqual(
+    expect(frames).toHaveLength(hand.handHistory.length + 3 + 1)
+    expect(frames.filter((f) => f.kind === 'action').map((f) => f.entryIndex)).toEqual(
       hand.handHistory.map((_, i) => i),
     )
-    expect(frames.at(-1)).toMatchObject({ entryIndex: null, settled: true })
+    expect(frames.filter((f) => f.kind === 'deal').map((f) => f.street)).toEqual(['flop', 'turn', 'river'])
+    expect(frames.at(-1)).toMatchObject({ kind: 'result', entryIndex: null, settled: true })
   })
 
   it('carries the pot, the stacks and the street wagers as it goes', () => {
     // The big blind's flop raise to 600.
-    const frame = replayFrames(hand)[6]!
+    const frame = frameFor(replayFrames(hand), 6)
 
     expect(frame.pot).toBe(1000)
     expect(frame.stacks.get('bb')).toBe(300)
     expect(Object.fromEntries(frame.streetBets)).toEqual({ sb: 100, bb: 600 })
   })
 
-  it('turns the board over a street at a time', () => {
+  it('turns each street over before anyone acts on it', () => {
     const frames = replayFrames(hand)
+    const flop = frames.findIndex((f) => f.kind === 'deal' && f.street === 'flop')
 
-    expect([0, 5, 9, 12].map((i) => frames[i]!.boardCount)).toEqual([0, 3, 4, 5])
+    expect(frameFor(frames, 4).boardCount).toBe(0)
+    expect(frames[flop]).toMatchObject({ boardCount: 3, lastEntry: 4, pot: 300 })
+    expect(frames[flop]!.streetBets.size).toBe(0)
+    expect(frames[flop + 1]!.entryIndex).toBe(5)
+    expect(frames.filter((f) => f.kind === 'deal').map((f) => f.boardCount)).toEqual([3, 4, 5])
   })
 
   it('marks who is all in and who has folded', () => {
     const frames = replayFrames(hand)
 
-    expect(frames[14]!.allIn.has('btn')).toBe(true)
-    expect([...frames[16]!.folded].sort()).toEqual(['bb', 'sb'])
+    expect(frameFor(frames, 14).allIn.has('btn')).toBe(true)
+    expect([...frameFor(frames, 16).folded].sort()).toEqual(['bb', 'sb'])
     expect(allInEntries(hand)).toEqual(new Set([14]))
   })
 
@@ -107,5 +119,42 @@ describe('replaying a finished hand', () => {
     // The 300 handed back is not winnings, and a fold to the button shows nothing.
     expect(resultOf(hand)).toEqual({ winners: ['btn'], won: 2100, handName: null })
     expect(resultOf({ result: null })).toBeNull()
+  })
+
+  it('runs the board out a street at a time when everyone is all in before the flop', () => {
+    const shoved: ReplayHand = {
+      handHistory: [
+        entry('preflop', 'a', 'post-blind', 50),
+        entry('preflop', 'b', 'post-blind', 100),
+        entry('preflop', 'a', 'raise', 950),
+        entry('preflop', 'b', 'call', 900),
+      ],
+      players: [player('a', 0, 2000), player('b', 1, 0)],
+      communityCards: board(5),
+      result: {
+        payouts: { a: 2000 },
+        awards: [{ amount: 2000, winners: ['a'], eligiblePlayerIds: ['a', 'b'], payouts: { a: 2000 } }],
+        showdown: false,
+        refund: null,
+        shownHands: {},
+      } as unknown as HandResult,
+    }
+
+    const tail = replayFrames(shoved).slice(4)
+
+    expect(tail.map((f) => f.kind)).toEqual(['deal', 'deal', 'deal', 'result'])
+    expect(tail.map((f) => f.boardCount)).toEqual([3, 4, 5, 5])
+    expect(tail.slice(0, 3).every((f) => f.lastEntry === 3 && f.pot === 2000)).toBe(true)
+  })
+
+  it('turns over a street just dealt on the hand in play', () => {
+    const live: ReplayHand = {
+      handHistory: hand.handHistory.slice(0, 5),
+      players: [player('sb', 0, 900), player('bb', 1, 900), player('btn', 2, 900)],
+      communityCards: board(3),
+      result: null,
+    }
+
+    expect(replayFrames(live).at(-1)).toMatchObject({ kind: 'deal', street: 'flop', boardCount: 3 })
   })
 })

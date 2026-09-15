@@ -12,6 +12,13 @@ import { PlayingCard } from './PlayingCard'
 
 const LABEL = 'text-[10px] font-medium tracking-wide text-white/45 uppercase'
 
+/** Which board cards each street turned over, as a slice of the five. */
+const STREET_CARDS: Partial<Record<string, [number, number]>> = {
+  flop: [0, 3],
+  turn: [3, 4],
+  river: [4, 5],
+}
+
 /** Brass for the button, the seat with a job; the blinds stay quiet. */
 const POSITION_TAG: Record<string, string> = {
   BTN: 'bg-brass/20 text-brass-lit',
@@ -67,14 +74,23 @@ function phrase(entry: AnnotatedEntry, smallBlind: number, bigBlind: number) {
 export function HandStreets({
   hand,
   activeIndex = null,
+  reached = null,
+  boardShown,
+  showdown,
   allIns,
   onSelect,
   className,
 }: {
   className?: string
   hand: StreetHand
-  /** The history entry a replay is standing on; null once it reaches the result. */
+  /** The history entry a replay is standing on, lit. */
   activeIndex?: number | null
+  /** The last history entry a replay has played; everything after it dims. Null dims nothing. */
+  reached?: number | null
+  /** How many board cards a replay has turned over. Every one dealt, by default. */
+  boardShown?: number
+  /** Whether to close the last column on the cards shown down. Yes, by default, at a showdown. */
+  showdown?: boolean
   /** History entries, by index, that put a player all in. */
   allIns?: ReadonlySet<number>
   /** Makes each action a button that moves the replay to it. */
@@ -97,7 +113,9 @@ export function HandStreets({
     sections.slice(0, i).reduce((sum, section) => sum + section.entries.length, 0),
   )
 
-  const shown = hand.result?.showdown && activeIndex === null ? Object.entries(hand.result.shownHands) : []
+  const dealt = boardShown ?? hand.communityCards.length
+  const shown =
+    hand.result?.showdown && (showdown ?? true) ? Object.entries(hand.result.shownHands) : []
   const winners = new Set(hand.result?.awards.flatMap((award) => award.winners) ?? [])
 
   /** A player's side of a bubble: face and position, then name over balloon. */
@@ -161,6 +179,27 @@ export function HandStreets({
               <span className="font-mono text-xs tabular-nums text-white/70">
                 {section.potBefore.toLocaleString()}
               </span>
+              {/*
+                The cards this street turned over, once the replay has turned
+                them — stepping back puts them face down again rather than
+                giving away what is coming. The row's height is kept in every
+                column, so each street's actions still start level.
+              */}
+              {hand.communityCards.length > 0 && (
+                <div
+                  className="flex h-9 items-center justify-center gap-0.5"
+                  data-testid={STREET_CARDS[section.street] && section.label !== 'Blinds' ? `street-cards-${section.street}` : undefined}
+                >
+                  {section.label !== 'Blinds' &&
+                    STREET_CARDS[section.street] &&
+                    dealt >= STREET_CARDS[section.street]![1] &&
+                    hand.communityCards
+                      .slice(...STREET_CARDS[section.street]!)
+                      .map((card, k) => (
+                        <PlayingCard key={k} card={card} size="xs" className="w-6 text-[9px]" />
+                      ))}
+                </div>
+              )}
             </div>
 
             <ol className="flex flex-col gap-2.5 p-2">
@@ -196,7 +235,7 @@ export function HandStreets({
                     ref={active ? activeRef : undefined}
                     className={cn(
                       'transition-opacity duration-150',
-                      activeIndex !== null && index > activeIndex && 'opacity-35',
+                      reached !== null && index > reached && 'opacity-35',
                     )}
                   >
                     {onSelect ? (

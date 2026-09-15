@@ -24,8 +24,15 @@ export type ReplayHand = Pick<
 
 /** The table at one moment of a hand. */
 export type ReplayFrame = {
-  /** The history entry this frame has just applied; null for the result. */
+  /**
+   * What this frame is of: a player acting, the board turning over a street,
+   * or the pot being paid out at the end.
+   */
+  kind: 'action' | 'deal' | 'result'
+  /** The history entry this frame has just applied; null for a deal or the result. */
   entryIndex: number | null
+  /** The last history entry played by this frame, or -1 before anyone has acted. */
+  lastEntry: number
   street: Street
   /** How many community cards are face up. */
   boardCount: number
@@ -46,6 +53,13 @@ const CARDS_OUT: Record<Street, number> = {
   river: 5,
   showdown: 5,
 }
+
+/** The streets that turn cards over, and how many are out once each has. */
+const DEALT: { street: Street; cards: number }[] = [
+  { street: 'flop', cards: 3 },
+  { street: 'turn', cards: 4 },
+  { street: 'river', cards: 5 },
+]
 
 /**
  * What each player sat down to the hand with.
@@ -70,11 +84,16 @@ export function startingStacks(hand: ReplayHand): Map<string, number> {
 }
 
 /**
- * One frame per history entry, then one for the result.
+ * One frame per history entry, one for each street as its cards come out, then
+ * one for the result.
  *
- * The board a frame shows is capped at the cards the hand actually dealt: a
- * hand that ended on a flop fold has no turn to show, whatever street a later
- * frame might otherwise imply.
+ * The board gets frames of its own rather than riding in on the first action
+ * after it. Otherwise a hand that went all in before the flop — where nobody
+ * acts again — would turn all five cards over at once on the result, and the
+ * run-out, which is the whole drama of that hand, would never be seen.
+ *
+ * A board is only ever turned over as far as the hand actually dealt it: a hand
+ * that ended on a flop fold has no turn to show.
  */
 export function replayFrames(hand: ReplayHand): ReplayFrame[] {
   const stacks = startingStacks(hand)
@@ -83,10 +102,43 @@ export function replayFrames(hand: ReplayHand): ReplayFrame[] {
   let streetBets = new Map<string, number>()
   let street: Street | null = null
   let pot = 0
+  let board = 0
+  let lastEntry = -1
   const frames: ReplayFrame[] = []
 
+  const snapshot = (
+    kind: ReplayFrame['kind'],
+    entryIndex: number | null,
+    frameStreet: Street,
+  ): ReplayFrame => ({
+    kind,
+    entryIndex,
+    lastEntry,
+    street: frameStreet,
+    boardCount: board,
+    pot,
+    stacks: new Map(stacks),
+    streetBets: new Map(streetBets),
+    folded: new Set(folded),
+    allIn: new Set(allIn),
+    settled: false,
+  })
+
+  // Turn the board over to `upTo` cards, a street at a time, a frame each.
+  const deal = (upTo: number) => {
+    const limit = Math.min(upTo, hand.communityCards.length)
+    for (const { street: next, cards } of DEALT) {
+      if (board >= cards || cards > limit) continue
+      board = cards
+      street = next
+      // A new street starts everybody's wager on it from nothing.
+      streetBets = new Map()
+      frames.push(snapshot('deal', null, next))
+    }
+  }
+
   for (const [index, entry] of hand.handHistory.entries()) {
-    // A new street starts everybody's wager on it from nothing.
+    deal(CARDS_OUT[entry.street])
     if (entry.street !== street) {
       streetBets = new Map()
       street = entry.street
@@ -98,25 +150,21 @@ export function replayFrames(hand: ReplayHand): ReplayFrame[] {
     streetBets.set(entry.playerId, (streetBets.get(entry.playerId) ?? 0) + entry.amount)
     if (entry.type === 'fold') folded.add(entry.playerId)
     if (entry.amount > 0 && left === 0) allIn.add(entry.playerId)
+    lastEntry = index
 
-    frames.push({
-      entryIndex: index,
-      street: entry.street,
-      boardCount: Math.min(CARDS_OUT[entry.street], hand.communityCards.length),
-      pot,
-      stacks: new Map(stacks),
-      streetBets: new Map(streetBets),
-      folded: new Set(folded),
-      allIn: new Set(allIn),
-      settled: false,
-    })
+    frames.push(snapshot('action', index, entry.street))
   }
+
+  // Whatever came out after the last action: a run-out once everyone is all
+  // in, or, on the hand in play, a street that has just been dealt.
+  deal(hand.communityCards.length)
 
   if (hand.result) {
     frames.push({
+      kind: 'result',
       entryIndex: null,
+      lastEntry,
       street: 'showdown',
-      // The whole board, including any run out after the last action.
       boardCount: hand.communityCards.length,
       // What was actually contested: an uncalled bet went straight back.
       pot: pot - (hand.result.refund?.amount ?? 0),
