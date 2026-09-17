@@ -589,44 +589,46 @@
 }
 
 /*
- * Face-down cards get house stock: near-black woven cloth inside a brass rule.
+ * Face-down cards: racing-green stock engraved in fine champagne rings, inside
+ * a champagne rule — the back of a good deck rather than a pattern fill.
  *
- * The weave is neutral, not warm. It was written as a near-black and mixed
- * warm, which passed unnoticed on a red table and turns to maroon on a green
- * one — and counting an opponent's cards from across the felt is the entire
- * job of a face-down card, so it has to stay the darkest thing out there.
+ * Kept dark and cool. Counting an opponent's cards from across the felt is the
+ * entire job of a face-down card, so it has to stay darker than the cloth it
+ * lies on, and the edge has to catch the light.
  */
 .card-back {
+  background-color: oklch(0.27 0.04 159);
   background-image:
-    repeating-linear-gradient(45deg, oklch(0.29 0.008 250) 0 3px, oklch(0.175 0.006 250) 3px 6px);
-  border-color: oklch(0.8 0.095 82 / 0.45);
+    repeating-radial-gradient(circle at 50% 50%, oklch(0.789 0.066 86 / 0.32) 0 1px, transparent 1px 3.5px);
+  border-color: oklch(0.82 0.06 88 / 0.75);
   box-shadow:
-    0 1px 0 oklch(0.45 0.06 70),
-    0 2px 0 oklch(0.26 0.01 250),
-    0 4px 10px -2px oklch(0 0 0 / 0.7),
-    inset 0 0 0 1px oklch(0.8 0.095 82 / 0.18);
+    0 0 0 1px oklch(0 0 0 / 0.6),
+    inset 0 0 0 2px oklch(0.27 0.04 159),
+    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
+    0 8px 16px -4px oklch(0 0 0 / 0.85);
 }
 
 /*
- * Card stock has a body: a short wall of shadow under the paper, so a card
- * lying on the felt is an object rather than a rectangle of colour.
+ * Card stock has a body: a short wall of shadow under the paper and a lit
+ * inner edge, so a card lying on the felt is an object rather than a rectangle
+ * of colour.
  */
 .card-stock {
   position: relative;
   box-shadow:
-    0 0 0 1px oklch(1 0 0 / 0.28),
-    0 1px 0 oklch(0.72 0.03 80),
-    0 2px 0 oklch(0.5 0.04 50),
-    0 10px 22px -6px oklch(0 0 0 / 0.78);
+    0 0 0 1px oklch(0 0 0 / 0.28),
+    inset 0 0 0 1px oklch(1 0 0 / 0.6),
+    0 1px 0 oklch(0.823 0.034 85),
+    0 12px 22px -8px oklch(0 0 0 / 0.8);
 }
 
 .card-back.card-stock {
   box-shadow:
-    0 0 0 1px oklch(1 0 0 / 0.18),
-    0 1px 0 oklch(0.45 0.06 70),
-    0 2px 0 oklch(0.26 0.01 250),
-    0 10px 22px -6px oklch(0 0 0 / 0.78),
-    inset 0 0 0 1px oklch(0.8 0.095 82 / 0.18);
+    0 0 0 1px oklch(0 0 0 / 0.6),
+    inset 0 0 0 2px oklch(0.27 0.04 159),
+    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
+    0 1px 0 oklch(0.45 0.05 80),
+    0 12px 22px -8px oklch(0 0 0 / 0.85);
 }
 
 @keyframes deal-in {

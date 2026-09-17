@@ -98,22 +98,24 @@ function CardFace({
   const isRed = card.suit === 'h' || card.suit === 'd'
   const rank = card.rank === 'T' ? '10' : card.rank
   const pip = SUIT_SYMBOLS[card.suit]
-  const ink = cn('leading-none', isRed ? 'text-suit-red' : 'text-[oklch(0.2_0.01_260)]')
+  const ink = cn('leading-none', isRed ? 'text-suit-red' : 'text-[oklch(0.188_0.009_85)]')
 
   return (
     <div
       className={cn(
         className,
-        // ClubGG's face, not a printed card: rank in the suit's colour at the
-        // top left, one large pip in the bottom right, no inverted corner.
-        'bg-linear-to-b from-[oklch(0.99_0.002_90)] to-[oklch(0.97_0.004_90)]',
+        // ClubGG's face on the Salon's stock: rank in the suit's colour at the
+        // top left, one large pip in the bottom right, no inverted corner, on
+        // ivory rather than screen white.
+        'overflow-hidden bg-linear-to-b from-[oklch(0.985_0.011_90)] to-[oklch(0.935_0.022_86)]',
       )}
       style={style}
       data-testid="card-face"
       aria-label={`${rank} of ${SUIT_NAMES[card.suit]}`}
     >
       <span className={cn(ink, 'absolute top-[1%] left-[10%] flex flex-col items-start leading-[0.85]')}>
-        <span className="text-[1.7em] font-bold tracking-tighter">{rank}</span>
+        {/* Tall and condensed, so the rank is read by its shape across the table. */}
+        <span className="font-(family-name:--font-index) text-[1.6em] font-medium tracking-[-0.04em]">{rank}</span>
         <span className="text-[0.95em] leading-none">{pip}</span>
       </span>
       <span className={cn(ink, 'absolute right-[5%] bottom-[1%] text-[2.15em] leading-[0.85]')}>{pip}</span>
