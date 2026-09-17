@@ -185,6 +185,38 @@ describe('a room filling up', () => {
     // It dealt on the second join, so the third player can only watch.
     expect((await joinTable(tableId, THIRD)).stage).toBe('playing')
   })
+
+  it('seats a player in the chair they picked', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 4, botCount: 0 }, OWNER))
+
+    const room = asRoom(await joinTable(tableId, STRANGER, undefined, 2))
+
+    expect(room.seats.map((s) => s.taken)).toEqual([true, false, true, false])
+    expect(room.seats[2].you).toBe(true)
+  })
+
+  it('refuses a chair somebody else is sitting in', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, botCount: 0 }, OWNER))
+
+    await expect(joinTable(tableId, STRANGER, undefined, 0)).rejects.toMatchObject({ status: 409 })
+  })
+
+  it('refuses a chair the room does not have', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, botCount: 0 }, OWNER))
+
+    await expect(joinTable(tableId, STRANGER, undefined, 3)).rejects.toMatchObject({ status: 400 })
+    await expect(joinTable(tableId, STRANGER, undefined, 1.5)).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('moves a seated player to the open chair they pick', async () => {
+    const { tableId } = asRoom(await createTable({ seatCount: 3, botCount: 0 }, OWNER))
+
+    const room = asRoom(await joinTable(tableId, OWNER, undefined, 2))
+
+    // Moved, not doubled: still one person, now in the far chair.
+    expect(room.seats.map((s) => s.you)).toEqual([false, false, true])
+    expect(room.seats.filter((s) => s.taken)).toHaveLength(1)
+  })
 })
 
 describe('the public lobby', () => {
