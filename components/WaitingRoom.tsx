@@ -20,12 +20,14 @@ import { TableBody } from './TableBody'
 /**
  * The room before the cards come out, drawn as the table it is about to be.
  *
- * Every chair is where it will be once the game deals: the room's seats first,
- * then one for each bot. Before you sit, an open chair is a button that sits you
- * down in it, so choosing where to sit is the same gesture as sitting. Once you
- * are sitting, the open chairs go quiet: they are waiting for other people, and
- * a button on them read as more places you could somehow also be. Changing
- * chairs is leaving, then taking the other one.
+ * Your chair is always the one at the bottom, as it is once the cards come out:
+ * the ring is turned so it sits in front of you, and everybody else keeps their
+ * order round the table from there. Drawn with every chair in a fixed place,
+ * two people in the same room each saw themselves somewhere different, and
+ * neither view matched the table they were about to be dealt.
+ *
+ * Before you sit, the chair in front of you is the next free one and the only
+ * place to sit — every other open chair is quiet, waiting for other people.
  *
  * Everything here is a request the server can refuse — taking a seat, starting
  * early, leaving — so the screen only ever shows what came back, never what was
@@ -93,6 +95,12 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
   // are handed to CSS, which picks the one that matches the felt, exactly as
   // the live table does.
   const chairs = room.seats.length + room.botCount
+
+  // The chair at the bottom: yours, or the one you would sit down in. Every
+  // chair is placed by how far round the table it is from that one.
+  const yours = room.seats.findIndex((seat) => seat.you)
+  const anchor = yours !== -1 ? yours : Math.max(room.seats.findIndex((seat) => !seat.taken), 0)
+  const position = (chair: number) => (chair - anchor + chairs) % chairs
   const deskRing = seatRing(chairs, false)
   const phoneRing = seatRing(chairs, true)
   const place = (index: number) =>
@@ -156,7 +164,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                   {room.botCount > 0 && ` · plus ${room.botCount} bot${room.botCount === 1 ? '' : 's'}`}
                 </span>
                 {!seated && remaining > 0 && (
-                  <span className="text-brass-lit mt-1 text-xs font-medium sm:text-sm">Tap a seat to sit down</span>
+                  <span className="text-brass-lit mt-1 text-xs font-medium sm:text-sm">Your seat is waiting in front of you</span>
                 )}
               </div>
 
@@ -165,8 +173,9 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                   <div
                     key={`seat-${index}`}
                     className="table-seat z-10"
-                    style={place(index)}
+                    style={place(position(index))}
                     data-seat={index}
+                    data-position={position(index)}
                     data-state={seat.taken ? 'taken' : 'open'}
                   >
                     {seat.taken ? (
@@ -187,7 +196,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                           </span>
                         )}
                       </div>
-                    ) : seated ? (
+                    ) : seated || index !== anchor ? (
                       <div
                         className="grid size-16 place-items-center rounded-full border border-dashed border-white/15 bg-black/30 sm:size-20"
                         data-testid={`open-seat-${index}`}
@@ -200,10 +209,10 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() => void send(`/api/table/${room.tableId}/join`, { seat: index })}
+                        onClick={() => void send(`/api/table/${room.tableId}/join`)}
                         className="group grid size-16 place-items-center rounded-full border border-white/25 bg-black/60 text-white shadow-lg backdrop-blur-sm transition-colors hover:border-brass/70 hover:bg-black/75 disabled:opacity-50 sm:size-20"
-                        aria-label={`Take seat ${index + 1}`}
-                        data-testid={`take-seat-${index}`}
+                        aria-label="Take this seat"
+                        data-testid="take-seat"
                       >
                         <span className="flex flex-col items-center gap-0.5">
                           <ChevronsDown
@@ -223,7 +232,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                   <div
                     key={`bot-${bot}`}
                     className="table-seat z-10 opacity-60"
-                    style={place(room.seats.length + bot)}
+                    style={place(position(room.seats.length + bot))}
                     data-state="bot"
                   >
                     <div className="flex flex-col items-center gap-1">

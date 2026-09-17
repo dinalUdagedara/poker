@@ -90,7 +90,7 @@ test('two players find each other in the lobby and are dealt in together', async
   }
 })
 
-test('lets a player pick their own chair in the waiting room', async ({ browser }) => {
+test('seats every player at the bottom of their own waiting room', async ({ browser }) => {
   const [aliceContext, alice] = await newPlayer(browser)
   const [bobContext, bob] = await newPlayer(browser)
 
@@ -108,19 +108,21 @@ test('lets a player pick their own chair in the waiting room', async ({ browser 
     await bob.goto(`/table/${tableId}`)
     await expect(bob.getByTestId('waiting-room')).toBeVisible()
 
-    // The chair across the table, not the next free one along.
-    await bob.getByTestId('take-seat-2').click()
-    await expect(bob.locator('[data-seat="2"] [data-testid="you-tag"]')).toBeVisible()
-    await expect(bob.locator('[data-seat="1"][data-state="open"]')).toBeVisible()
-    // Sitting down quiets the other open chairs: they wait for other people,
-    // and are not somewhere else Bob could also be.
-    await expect(bob.getByTestId('open-seat-1')).toBeVisible()
-    await expect(bob.getByTestId('take-seat-1')).toHaveCount(0)
+    // One place to sit, and it is in front of him: the next free chair.
+    await expect(bob.getByTestId('take-seat')).toHaveCount(1)
+    await expect(bob.locator('[data-seat="1"]')).toHaveAttribute('data-position', '0')
+    await expect(bob.getByTestId('open-seat-2')).toBeVisible()
 
-    // Alice, already sitting, sees Bob in the chair he picked.
+    await bob.getByTestId('take-seat').click()
+    await expect(bob.locator('[data-seat="1"] [data-testid="you-tag"]')).toBeVisible()
+    await expect(bob.locator('[data-seat="1"]')).toHaveAttribute('data-position', '0')
+    await expect(bob.getByTestId('take-seat')).toHaveCount(0)
+
+    // Alice sees herself at the bottom of the same room, with Bob next along.
     await alice.goto(`/table/${tableId}`)
-    await expect(alice.locator('[data-seat="2"][data-state="taken"]')).toBeVisible()
     await expect(alice.locator('[data-seat="0"] [data-testid="you-tag"]')).toBeVisible()
+    await expect(alice.locator('[data-seat="0"]')).toHaveAttribute('data-position', '0')
+    await expect(alice.locator('[data-seat="1"][data-state="taken"]')).toHaveAttribute('data-position', '1')
   } finally {
     await aliceContext.close()
     await bobContext.close()
