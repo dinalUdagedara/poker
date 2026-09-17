@@ -60,7 +60,7 @@ export function NextHandButton({
 
   return (
     <Button
-      className="next-hand-button brass-button relative h-12 w-full max-w-xs overflow-hidden rounded-xl text-base font-medium tracking-[0.16em] uppercase"
+      className="next-hand-button brass-button relative h-12 w-full max-w-xs overflow-hidden rounded-[2px] text-sm font-semibold tracking-[0.24em] uppercase"
       disabled={busy}
       onClick={go}
       data-testid="next-hand"

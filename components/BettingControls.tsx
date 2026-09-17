@@ -10,19 +10,25 @@ import type { LegalActions } from '@/lib/poker/types'
 export type SubmitAction = (action: { type: string; amount?: number }) => void
 
 /**
- * The three plays are separated by material: unlit stone to give up, felt
- * green to stay in, struck brass to put chips in. Call is green because it is
- * the cloth, not because it is money — stacks stay cyan.
+ * The three plays are separated by material: folding is a hairline and
+ * nothing else, staying in is cloth, and putting chips in is the only
+ * champagne-filled object on the screen. Call is green because it is the
+ * cloth, not because it is money — stacks are ivory.
+ *
+ * Milled rather than moulded: tight corners and small spaced capitals, the
+ * way the rest of the Salon is lettered. The row keeps its height, because the
+ * table's zoom steps were measured against it.
  */
 const PILL =
-  'h-12 shrink-0 rounded-full px-3 text-[13px] font-semibold whitespace-nowrap text-white sm:text-sm' +
+  'h-12 shrink-0 rounded-[2px] px-3 text-[11px] font-semibold tracking-[0.12em] whitespace-nowrap uppercase sm:text-xs sm:tracking-[0.2em]' +
   ' border border-transparent' +
-  ' transition-colors active:translate-y-px'
+  ' transition-[color,border-color,filter] active:translate-y-px'
 
-const FOLD = 'w-[62px] bg-play-fold hover:bg-play-fold-lit border-white/8 sm:w-26'
-const PASSIVE = 'min-w-0 flex-1 gap-1 bg-play-pass hover:bg-play-pass-lit sm:w-32 sm:flex-none'
+const FOLD =
+  'w-[62px] bg-transparent text-foreground/80 border-foreground/20 hover:bg-transparent hover:border-foreground/40 hover:text-foreground sm:w-26'
+const PASSIVE = 'play-call min-w-0 flex-1 gap-1.5 text-foreground sm:w-32 sm:flex-none'
 const COMMIT = 'brass-button w-[78px] sm:w-32'
-const STEP = 'grid h-full w-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-foreground disabled:opacity-35'
+const STEP = 'grid h-full w-9 shrink-0 place-items-center rounded-[2px] text-muted-foreground hover:text-foreground disabled:opacity-35'
 
 /** What the stepper calls each shortcut when the amount lands on one. */
 const SIZE_NAMES: Record<string, string> = {
@@ -148,7 +154,9 @@ export function BettingControls({
                 data-testid="action-call"
               >
                 <span>{legal.call.allIn ? 'All in' : 'Call'}</span>
-                <span className="font-mono tabular-nums">{legal.call.amount.toLocaleString()}</span>
+                <span className="font-mono text-[13px] tracking-normal tabular-nums normal-case sm:text-sm">
+                  {legal.call.amount.toLocaleString()}
+                </span>
               </Button>
             )}
           </>
@@ -159,7 +167,7 @@ export function BettingControls({
           legal amount, and between turns there is no range — because taking it
           away is the row jumping under the thumb.
         */}
-        <div className="bet-stepper flex h-12 w-32 shrink-0 items-center rounded-full sm:w-42" role="group" aria-label="Bet size">
+        <div className="bet-stepper flex h-12 w-32 shrink-0 items-center rounded-[2px] sm:w-42" role="group" aria-label="Bet size">
           <button
             type="button"
             className={STEP}
@@ -178,7 +186,7 @@ export function BettingControls({
             aria-label={sizing ? `${amount.toLocaleString()}, ${sizeName}. Next size` : 'No bet to size'}
             data-testid="bet-size"
           >
-            <span className="text-brass-lit font-mono text-[15px] leading-4.5 font-semibold tabular-nums" data-testid="bet-amount">
+            <span className="text-foreground font-mono text-[15px] leading-4.5 font-semibold tabular-nums" data-testid="bet-amount">
               {sizing ? amount.toLocaleString() : '—'}
             </span>
             <span className="text-muted-foreground text-[9px] leading-2.75 font-semibold tracking-[0.08em] uppercase">

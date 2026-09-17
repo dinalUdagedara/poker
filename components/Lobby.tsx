@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { LandingShell, PlayerNameField, SizePicker } from '@/components/LandingShell'
+import { LandingShell, PlayerNameField, SalonFrame, SizePicker } from '@/components/LandingShell'
 import { cn } from '@/lib/utils'
 import { getAudio } from '@/lib/audio'
 import { requestTable } from '@/lib/request-table'
@@ -95,8 +95,8 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
         </p>
       </div>
 
-      <Card className="panel-milled border-border backdrop-blur">
-        <CardContent className="flex flex-col gap-4 py-1">
+      <SalonFrame>
+        <div className="flex flex-col gap-5 px-5 py-6 sm:px-7">
           <PlayerNameField />
           <SizePicker
             label="Seats at the table"
@@ -126,15 +126,15 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
             </span>
           </label>
           <Button
-            className="brass-button h-12 w-full rounded-xl text-sm font-medium tracking-[0.16em] uppercase"
+            className="brass-button h-12 w-full rounded-[2px] text-xs font-semibold tracking-[0.3em] uppercase"
             disabled={locked}
             onClick={() => void openRoom()}
             data-testid="open-public-room"
           >
             {opening ? 'Opening…' : 'Open a room'}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </SalonFrame>
 
       {error && (
         <p className="text-destructive text-sm" role="alert">

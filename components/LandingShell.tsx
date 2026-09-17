@@ -83,13 +83,45 @@ export function LandingShell({
   )
 }
 
-/** Crest, wordmark, game — the door of the house. */
+/**
+ * The panel a landing screen is set in: no fill of its own, two champagne
+ * hairlines with a gap between them and a diamond at each corner — printed
+ * like an invitation rather than boxed like a form.
+ */
+export function SalonFrame({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('salon-frame relative w-full p-1.5', className)}>
+      {(['-top-1 -left-1', '-top-1 -right-1', '-bottom-1 -left-1', '-bottom-1 -right-1'] as const).map(
+        (corner) => (
+          <span key={corner} className={cn('salon-diamond absolute size-[7px]', corner)} aria-hidden />
+        ),
+      )}
+      <div className="salon-frame-inner">{children}</div>
+    </div>
+  )
+}
+
+/** A hairline, a diamond and a hairline. */
+export function Ornament({ className }: { className?: string }) {
+  return (
+    <span className={cn('flex w-44 items-center gap-2.5', className)} aria-hidden>
+      <span className="h-px flex-1 bg-linear-to-r from-transparent to-brass/60" />
+      <span className="salon-diamond size-1.5" />
+      <span className="h-px flex-1 bg-linear-to-r from-brass/60 to-transparent" />
+    </span>
+  )
+}
+
+/** Crest, game, wordmark — the door of the house. */
 export function HouseMark() {
   return (
-    <div className="flex flex-col items-center gap-1 text-center">
-      <Logo className="mb-2 h-20 w-auto" />
-      <h1 className="wordmark text-4xl font-medium">Showdown</h1>
-      <p className="text-muted-foreground text-sm">No-limit Hold&rsquo;em</p>
+    <div className="flex flex-col items-center gap-3 text-center">
+      <Logo className="h-14 w-auto" />
+      <span className="text-brass text-[11px] font-semibold tracking-[0.24em] uppercase">
+        No-limit Hold&rsquo;em
+      </span>
+      <h1 className="wordmark text-5xl leading-none font-medium sm:text-6xl">Showdown</h1>
+      <Ornament />
     </div>
   )
 }
@@ -112,8 +144,11 @@ export function PlayerNameField() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor="player-name" className="text-muted-foreground text-sm font-medium">
+    <div className="flex flex-col gap-1.5">
+      <label
+        htmlFor="player-name"
+        className="text-muted-foreground text-[11px] font-semibold tracking-[0.24em] uppercase"
+      >
         Your name
       </label>
       <input
@@ -126,7 +161,7 @@ export function PlayerNameField() {
         }}
         placeholder="Leave blank and we will name you"
         data-testid="player-name"
-        className="panel-well ring-border placeholder:text-muted-foreground/50 focus:ring-brass h-11 w-full rounded-lg px-3 text-sm text-white ring-1 ring-inset transition-colors outline-none"
+        className="placeholder:text-muted-foreground/70 border-foreground/20 focus:border-brass text-foreground h-11 w-full border-b bg-transparent px-0.5 text-[15px] transition-colors outline-none"
       />
     </div>
   )
@@ -153,12 +188,12 @@ export function SizePicker({
   disabled?: boolean
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       <div className="flex items-baseline justify-between">
-        <span className="text-muted-foreground text-sm font-medium">{label}</span>
-        <span className="text-muted-foreground/70 text-xs">{hint}</span>
+        <span className="text-muted-foreground text-[11px] font-semibold tracking-[0.24em] uppercase">{label}</span>
+        <span className="text-brass font-(family-name:--font-display) text-base italic">{hint}</span>
       </div>
-      <div role="radiogroup" aria-label={ariaLabel} className="grid grid-cols-5 gap-1.5">
+      <div role="radiogroup" aria-label={ariaLabel} className="grid grid-cols-5 gap-2">
         {values.map((n) => {
           const selected = value === n
           return (
@@ -172,11 +207,11 @@ export function SizePicker({
               onClick={() => onChange(n)}
               data-testid={`${testIdPrefix}-${n}`}
               className={cn(
-                'h-11 rounded-lg font-mono text-base font-semibold tabular-nums transition-colors',
-                'ring-1 ring-inset disabled:opacity-50',
+                'h-12 rounded-[2px] border font-(family-name:--font-display) text-xl transition-colors',
+                'disabled:opacity-50',
                 selected
-                  ? 'brass-button ring-brass'
-                  : 'panel-well text-muted-foreground ring-border hover:bg-white/8',
+                  ? 'border-brass bg-brass/8 text-brass-lit'
+                  : 'border-foreground/14 text-muted-foreground hover:border-brass/50 hover:text-foreground',
               )}
             >
               {n}

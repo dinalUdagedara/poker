@@ -1,0 +1,778 @@
+/*
+ * The Private Salon.
+ *
+ * The same room as Showdown with the volume turned down further: champagne
+ * rather than brass, money in ivory, a didone for the house lettering and a
+ * quiet grotesque for everything read while deciding. Every colour is a token
+ * on `.room`, so carrying the look into globals.css later is a matter of moving
+ * this block rather than hunting through rules.
+ *
+ * Scoped to a module because none of it is meant to reach the live table until
+ * it has been signed off.
+ */
+
+.room {
+  --salon-ink: oklch(0.935 0.018 86);
+  --salon-muted: oklch(0.703 0.016 90);
+  --salon-placeholder: oklch(0.631 0.015 89);
+  --salon-gold: oklch(0.789 0.066 86);
+  --salon-gold-lit: oklch(0.896 0.044 90);
+  --salon-stack: oklch(0.857 0.046 89);
+  --salon-short: oklch(0.756 0.095 36);
+  --salon-on-gold: oklch(0.192 0.014 88);
+  --salon-hairline: oklch(0.789 0.066 86 / 0.26);
+  --salon-hairline-soft: oklch(0.935 0.018 86 / 0.14);
+
+  --salon-display: var(--font-salon-display), 'Bodoni Moda', Georgia, serif;
+  --salon-sans: var(--font-salon-sans), 'Hanken Grotesk', system-ui, sans-serif;
+  --salon-index: var(--font-salon-index), 'Oswald', 'Arial Narrow', sans-serif;
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--salon-ink);
+  font-family: var(--salon-sans);
+  background: radial-gradient(
+    ellipse 70% 62% at 50% 44%,
+    oklch(0.28 0.034 157) 0%,
+    oklch(0.197 0.019 158) 50%,
+    oklch(0.14 0.007 157) 100%
+  );
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+/* ---- Lab chrome ------------------------------------------------------------ */
+
+.labBar {
+  height: 40px;
+  border-bottom: 1px solid var(--salon-hairline-soft);
+  background: oklch(0 0 0 / 0.35);
+}
+
+.labTitle {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--salon-muted);
+}
+
+.labTab {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-size: 12px;
+  color: var(--salon-muted);
+}
+
+.labTab:hover {
+  color: var(--salon-ink);
+}
+
+.labTabOn {
+  border-color: var(--salon-hairline);
+  color: var(--salon-gold-lit);
+}
+
+/* ---- Type roles ------------------------------------------------------------ */
+
+.caps {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.muted {
+  color: var(--salon-muted);
+}
+
+.gold {
+  color: var(--salon-gold);
+}
+
+/* Lining, tabular figures in the sans: money that does not dance, without the
+   terminal look of a monospace. */
+.money {
+  font-family: var(--salon-sans);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.03em;
+}
+
+.stackInk {
+  color: var(--salon-stack);
+}
+
+.short {
+  color: var(--salon-short);
+}
+
+.wordmark {
+  margin: 0;
+  font-family: var(--salon-display);
+  font-size: clamp(48px, 12vw, 62px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: oklch(0.955 0.015 86);
+}
+
+.italicNote {
+  font-family: var(--salon-display);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--salon-gold);
+}
+
+.rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, oklch(0.789 0.066 86 / 0.6));
+}
+
+.ruleOut {
+  background: linear-gradient(90deg, oklch(0.789 0.066 86 / 0.6), transparent);
+}
+
+.diamond {
+  width: 6px;
+  height: 6px;
+  background: var(--salon-gold);
+  rotate: 45deg;
+}
+
+/* ---- Home ------------------------------------------------------------------ */
+
+/* Two hairlines with a gap between them, and a diamond at each corner. */
+.frame {
+  position: relative;
+  padding: 6px;
+  border: 1px solid oklch(0.789 0.066 86 / 0.38);
+}
+
+.frameInner {
+  border: 1px solid oklch(0.789 0.066 86 / 0.16);
+  background: linear-gradient(180deg, oklch(0.19 0.016 157 / 0.78), oklch(0.14 0.007 157 / 0.9));
+}
+
+.corner {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: var(--salon-gold);
+  rotate: 45deg;
+}
+
+.corner-tl {
+  top: -4px;
+  left: -4px;
+}
+
+.corner-tr {
+  top: -4px;
+  right: -4px;
+}
+
+.corner-bl {
+  bottom: -4px;
+  left: -4px;
+}
+
+.corner-br {
+  right: -4px;
+  bottom: -4px;
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px solid oklch(0.935 0.018 86 / 0.22);
+  background: transparent;
+  font-size: 15px;
+  color: var(--salon-ink);
+  transition: border-color 200ms ease;
+}
+
+.input::placeholder {
+  color: var(--salon-placeholder);
+}
+
+.input:focus {
+  outline: none;
+  border-bottom-color: var(--salon-gold);
+}
+
+.option {
+  height: 48px;
+  border: 1px solid var(--salon-hairline-soft);
+  border-radius: 2px;
+  font-family: var(--salon-display);
+  font-size: 20px;
+  color: var(--salon-muted);
+  transition:
+    border-color 200ms ease,
+    color 200ms ease,
+    background-color 200ms ease;
+}
+
+.option:hover {
+  border-color: oklch(0.789 0.066 86 / 0.5);
+  color: var(--salon-ink);
+}
+
+.optionOn {
+  border-color: var(--salon-gold);
+  background: oklch(0.789 0.066 86 / 0.08);
+  color: var(--salon-gold-lit);
+}
+
+.goldButton {
+  border-radius: 2px;
+  background: linear-gradient(180deg, oklch(0.869 0.054 89) 0%, oklch(0.749 0.072 86) 100%);
+  color: var(--salon-on-gold);
+  letter-spacing: 0.3em;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.45),
+    0 14px 28px -14px oklch(0 0 0 / 0.9);
+  transition: filter 200ms ease;
+}
+
+.goldButton:hover {
+  filter: brightness(1.06);
+}
+
+.rowLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 2px;
+  border-top: 1px solid oklch(0.935 0.018 86 / 0.1);
+  border-bottom: 1px solid oklch(0.935 0.018 86 / 0.1);
+  color: var(--salon-ink);
+  transition: border-color 200ms ease;
+}
+
+.rowLink:hover {
+  border-color: oklch(0.789 0.066 86 / 0.35);
+}
+
+.quietLink {
+  font-size: 13px;
+  color: var(--salon-muted);
+  text-decoration: underline;
+  text-decoration-color: oklch(0.703 0.016 90 / 0.4);
+  text-underline-offset: 4px;
+}
+
+.quietLink:hover {
+  color: var(--salon-ink);
+}
+
+.iconButton {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--salon-hairline-soft);
+  border-radius: 2px;
+  color: oklch(0.84 0.016 88);
+  transition:
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+.iconButton:hover {
+  border-color: oklch(0.789 0.066 86 / 0.5);
+  color: var(--salon-gold-lit);
+}
+
+/* ---- Table ----------------------------------------------------------------- */
+
+/*
+ * The house grades its table still with one filter so the phone and desktop
+ * images stay matched. The Salon desktop render already carries its own
+ * colours, so from `sm` up it keeps only the floor shadow; the phone still is
+ * the house image and keeps the house grading.
+ */
+@media (min-width: 640px) {
+  picture.salonBody img {
+    filter: drop-shadow(0 18px 28px oklch(0 0 0 / 0.55));
+  }
+}
+
+.headerMark {
+  font-family: var(--salon-display);
+  font-size: 24px;
+  font-weight: 500;
+  color: oklch(0.955 0.015 86);
+}
+
+.headerRule {
+  width: 1px;
+  height: 20px;
+  background: oklch(0.789 0.066 86 / 0.35);
+}
+
+.feltMark {
+  font-family: var(--salon-display);
+  font-size: 11px;
+  letter-spacing: 0.6em;
+  text-transform: uppercase;
+  color: oklch(0.896 0.044 90 / 0.22);
+  pointer-events: none;
+  user-select: none;
+}
+
+.feltLabel {
+  font-size: 10px;
+  color: oklch(0.935 0.018 86 / 0.6);
+}
+
+.potValue {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  color: oklch(0.955 0.015 86);
+  text-shadow: 0 2px 3px oklch(0 0 0 / 0.5);
+}
+
+@media (min-width: 640px) {
+  .potValue {
+    font-size: 26px;
+  }
+}
+
+/* A felt object placed on whichever ring the viewport is using. */
+.onFelt {
+  position: absolute;
+  left: var(--p-l);
+  top: var(--p-t);
+  translate: -50% -50%;
+}
+
+@media (min-width: 640px) {
+  .onFelt {
+    left: var(--d-l);
+    top: var(--d-t);
+  }
+}
+
+.wager {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--salon-ink);
+  text-shadow: 0 1px 2px oklch(0 0 0 / 0.6);
+}
+
+.dealer {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  font-family: var(--salon-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: oklch(0.2 0.012 85);
+  background: radial-gradient(circle at 40% 35%, oklch(0.986 0.014 85), oklch(0.879 0.036 85));
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.3),
+    0 2px 0 oklch(0.723 0.049 86),
+    0 4px 8px oklch(0 0 0 / 0.5),
+    inset 0 0 0 3px oklch(0.96 0.018 86),
+    inset 0 0 0 4px oklch(0.6 0.07 80 / 0.5);
+}
+
+/*
+ * A seat stands off the table rather than lying on it.
+ *
+ * The plate is a step lighter than the rail it sits on, ringed in black before
+ * the champagne edge so it separates from the leather, and carries a long,
+ * soft shadow. The monogram is a medallion that breaks out of the plate's left
+ * end, the way a portrait does in ClubGG, so the player is the first shape you
+ * find at every seat.
+ */
+.plate {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 132px;
+  align-items: center;
+  gap: 8px;
+  margin-left: 30px;
+  padding: 7px 16px 7px 42px;
+  border: 1px solid oklch(0.789 0.066 86 / 0.5);
+  border-radius: 4px;
+  background: linear-gradient(180deg, oklch(0.31 0.008 157), oklch(0.2 0.006 160));
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.65),
+    0 16px 30px -8px oklch(0 0 0 / 0.95),
+    0 4px 10px -2px oklch(0 0 0 / 0.6),
+    inset 0 1px 0 oklch(0.896 0.044 90 / 0.18);
+}
+
+.plateActing {
+  border-color: var(--salon-gold-lit);
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.65),
+    0 0 0 5px oklch(0.789 0.066 86 / 0.22),
+    0 0 26px 2px oklch(0.789 0.066 86 / 0.28),
+    0 16px 30px -8px oklch(0 0 0 / 0.95),
+    inset 0 1px 0 oklch(0.896 0.044 90 / 0.24);
+}
+
+/* A monogram struck on dark enamel, in a champagne bezel, off the plate's end. */
+.monogram {
+  position: absolute;
+  top: 50%;
+  left: -32px;
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 50%;
+  translate: 0 -50%;
+  font-family: var(--salon-display);
+  font-size: 28px;
+  font-style: italic;
+  color: var(--salon-gold-lit);
+  background: radial-gradient(circle at 50% 32%, oklch(0.34 0.012 151), oklch(0.18 0.004 165));
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.7),
+    0 0 0 3px oklch(0.82 0.06 88),
+    0 0 0 4px oklch(0 0 0 / 0.5),
+    0 10px 20px -4px oklch(0 0 0 / 0.9),
+    inset 0 2px 4px oklch(1 0 0 / 0.12);
+}
+
+/* A step under the stack, so the name labels the plate and the chips lead it. */
+.name {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  color: oklch(0.975 0.01 86);
+}
+
+.out {
+  opacity: 0.42;
+  filter: saturate(0.4);
+}
+
+/* Time to act, as a hairline draining along the foot of the plate. */
+.timer {
+  position: absolute;
+  right: 5px;
+  bottom: -1px;
+  left: 38px;
+  height: 2px;
+  background: oklch(0.789 0.066 86 / 0.18);
+}
+
+.timerFill {
+  display: block;
+  height: 100%;
+  background: var(--salon-gold-lit);
+  animation: salon-timer 20s linear infinite;
+}
+
+@keyframes salon-timer {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.callout {
+  position: absolute;
+  padding: 5px 9px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--salon-on-gold);
+  background: oklch(0.824 0.064 89);
+  animation: salon-callout 360ms cubic-bezier(0.25, 1, 0.5, 1) backwards;
+}
+
+.callout-right {
+  top: 50%;
+  left: calc(100% + 10px);
+  translate: 0 -50%;
+}
+
+.callout-left {
+  top: 50%;
+  /* Clear of the medallion that hangs off the plate's left end. */
+  right: calc(100% + 42px);
+  translate: 0 -50%;
+}
+
+.callout-above {
+  bottom: calc(100% + 56px);
+  left: 50%;
+  translate: -50% 0;
+}
+
+.callout-below {
+  top: calc(100% + 8px);
+  left: 50%;
+  translate: -50% 0;
+}
+
+/* Calmer than the house callout: no scale, just arriving. */
+@keyframes salon-callout {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cardBack {
+  display: block;
+  width: 36px;
+  height: 51px;
+  border: 1px solid oklch(0.82 0.06 88 / 0.75);
+  border-radius: 4px;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, oklch(0.789 0.066 86 / 0.32) 0 1px, transparent 1px 3.5px),
+    oklch(0.27 0.04 159);
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.6),
+    inset 0 0 0 2px oklch(0.27 0.04 159),
+    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
+    0 8px 16px -4px oklch(0 0 0 / 0.85);
+}
+
+/* ---- Cards ----------------------------------------------------------------- */
+
+/*
+ * ClubGG's layout on the Salon's stock.
+ *
+ * A tall condensed rank in the corner with a small suit under it, and the suit
+ * again, large, in the opposite corner — so the card is read by its shape from
+ * across the table rather than by squinting at an index. The stock stays
+ * ivory and the red stays the Salon's.
+ *
+ * Positions are percentages of the card and sizes are ems of its font size, so
+ * one size class scales the whole face.
+ */
+.card {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  color: oklch(0.188 0.009 85);
+  background: linear-gradient(180deg, oklch(0.985 0.011 90), oklch(0.935 0.022 86));
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.28),
+    inset 0 0 0 1px oklch(1 0 0 / 0.6),
+    0 1px 0 oklch(0.823 0.034 85),
+    0 12px 22px -8px oklch(0 0 0 / 0.8);
+}
+
+.red {
+  color: oklch(0.5 0.17 25);
+}
+
+.rank {
+  position: absolute;
+  top: 4%;
+  left: 9%;
+  font-family: var(--salon-index);
+  font-size: 1.6em;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.suit {
+  position: absolute;
+  top: 43%;
+  left: 10%;
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+.pip {
+  position: absolute;
+  right: 5%;
+  bottom: 1%;
+  font-size: 2.35em;
+  line-height: 1;
+}
+
+/* Sized by font-size, so every part of the face scales together. */
+.card-board {
+  width: 44px;
+  height: 62px;
+  font-size: 15.5px;
+}
+
+.card-hero {
+  width: 60px;
+  height: 84px;
+  font-size: 21px;
+}
+
+.card-fan {
+  width: 64px;
+  height: 90px;
+  font-size: 22.5px;
+}
+
+@media (min-width: 640px) {
+  .card-board {
+    width: 66px;
+    height: 92px;
+    font-size: 23px;
+  }
+
+  .card-hero {
+    width: 78px;
+    height: 110px;
+    font-size: 27.5px;
+    border-radius: 7px;
+  }
+}
+
+/* ---- Dock ------------------------------------------------------------------ */
+
+.play {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    filter 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+@media (min-width: 640px) {
+  .play {
+    height: 52px;
+    font-size: 12px;
+    letter-spacing: 0.22em;
+  }
+}
+
+.playNumber {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+.playFold {
+  border-color: oklch(0.935 0.018 86 / 0.2);
+  color: oklch(0.78 0.016 88);
+}
+
+.playFold:hover {
+  border-color: oklch(0.935 0.018 86 / 0.4);
+  color: var(--salon-ink);
+}
+
+.playCall {
+  border-color: oklch(0.896 0.044 90 / 0.18);
+  color: oklch(0.955 0.015 86);
+  background: linear-gradient(180deg, oklch(0.485 0.081 160), oklch(0.397 0.069 159));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.12);
+}
+
+.playRaise {
+  color: var(--salon-on-gold);
+  background: linear-gradient(180deg, oklch(0.869 0.054 89), oklch(0.749 0.072 86));
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.45),
+    0 12px 24px -12px oklch(0 0 0 / 0.9);
+}
+
+.playCall:hover,
+.playRaise:hover {
+  filter: brightness(1.06);
+}
+
+.stepper {
+  display: flex;
+  height: 48px;
+  align-items: stretch;
+  border: 1px solid oklch(0.789 0.066 86 / 0.24);
+  border-radius: 2px;
+  background: oklch(0 0 0 / 0.32);
+}
+
+@media (min-width: 640px) {
+  .stepper {
+    height: 52px;
+  }
+}
+
+.stepButton {
+  display: grid;
+  width: 40px;
+  place-items: center;
+  color: var(--salon-stack);
+}
+
+.stepButton:hover {
+  color: var(--salon-ink);
+}
+
+.stepValue {
+  display: grid;
+  min-width: 52px;
+  place-items: center;
+  border-inline: 1px solid oklch(0.789 0.066 86 / 0.16);
+  font-size: 16px;
+  font-weight: 600;
+  color: oklch(0.955 0.015 86);
+}
+
+@media (min-width: 640px) {
+  .stepButton {
+    width: 46px;
+  }
+
+  .stepValue {
+    min-width: 70px;
+    font-size: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timerFill,
+  .callout {
+    animation: none;
+  }
+
+  .timerFill {
+    width: 62%;
+  }
+}

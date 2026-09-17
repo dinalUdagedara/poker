@@ -3,10 +3,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { HouseMark, LandingShell, PlayerNameField, SizePicker } from '@/components/LandingShell'
+import { HouseMark, LandingShell, PlayerNameField, SalonFrame, SizePicker } from '@/components/LandingShell'
 import { getAudio } from '@/lib/audio'
 import { requestTable } from '@/lib/request-table'
 
@@ -40,8 +39,8 @@ export function HomePanel() {
 
   return (
     <LandingShell fan>
-      <Card className="panel-milled border-border w-full pt-10 backdrop-blur">
-        <CardContent className="flex flex-col gap-6">
+      <SalonFrame>
+        <div className="flex flex-col gap-6 px-6 pt-12 pb-7 sm:px-10">
           <HouseMark />
           <PlayerNameField />
 
@@ -57,7 +56,7 @@ export function HomePanel() {
           />
 
           <Button
-            className="brass-button h-14 w-full rounded-xl text-base font-medium tracking-[0.16em] uppercase"
+            className="brass-button h-14 w-full rounded-[2px] text-xs font-semibold tracking-[0.3em] uppercase"
             disabled={busy}
             onClick={() => void deal()}
             data-testid="deal"
@@ -69,14 +68,15 @@ export function HomePanel() {
             href="/rooms"
             data-testid="tab-people"
             onClick={() => getAudio().play('click')}
-            className="group bg-secondary border-border flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors hover:border-brass/30 hover:bg-white/6 focus-visible:ring-brass/50 focus-visible:ring-2 focus-visible:outline-none"
+            className="group border-foreground/10 flex w-full items-center gap-3 border-y px-0.5 py-3.5 text-left transition-colors hover:border-brass/35 focus-visible:ring-brass/50 focus-visible:ring-2 focus-visible:outline-none"
           >
             <span className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-white">With people</span>
-              <span className="text-muted-foreground text-xs">Open or join a real table</span>
+              <span className="text-foreground text-[15px] font-medium">With people</span>
+              <span className="text-muted-foreground text-[13px]">Open or join a real table</span>
             </span>
-            <ChevronRight
-              className="text-muted-foreground group-hover:text-brass ml-auto size-4 shrink-0 transition-colors"
+            <ArrowRight
+              className="text-brass ml-auto size-[18px] shrink-0 transition-transform group-hover:translate-x-0.5"
+              strokeWidth={1.25}
               aria-hidden
             />
           </Link>
@@ -89,13 +89,13 @@ export function HomePanel() {
 
           <Link
             href="/how-to-play"
-            className="text-muted-foreground -mt-2 text-center text-sm underline-offset-4 hover:text-white hover:underline"
+            className="text-muted-foreground decoration-muted-foreground/40 -mt-2 self-center text-[13px] underline underline-offset-4 hover:text-foreground"
             data-testid="how-to-play"
           >
             New to Hold&rsquo;em? Read the guide
           </Link>
-        </CardContent>
-      </Card>
+        </div>
+      </SalonFrame>
     </LandingShell>
   )
 }
