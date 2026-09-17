@@ -1,33 +1,46 @@
 import type { Metadata } from 'next'
-import { Jost, Playfair_Display } from 'next/font/google'
+import { Bodoni_Moda, Hanken_Grotesk, Oswald } from 'next/font/google'
 import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, siteUrl } from '@/lib/site'
 import './globals.css'
 
 /**
  * Everything read while playing, figures included.
  *
- * A geometric sans out of the same Art Deco drawer as the signage over a
- * Monte Carlo room, which is what lets it sit beside the didone without either
- * looking borrowed. It carries tabular figures, so stacks and bets line up in
- * a column without falling back to a monospace that makes money read like a
- * terminal.
+ * A quiet grotesque that stays out of the way of the lettering above it. It
+ * carries tabular, lining figures, so stacks and bets line up in a column
+ * without falling back to a monospace that makes money read like a terminal.
  */
-const jost = Jost({
-  variable: '--font-jost',
+const hanken = Hanken_Grotesk({
+  variable: '--font-hanken',
   subsets: ['latin'],
 })
 
 /**
  * The house lettering.
  *
- * A didone, because that is what casino signage, chip inlays and the back of a
- * deck are set in — it does more to say "room" than any amount of colour. It
- * carries names, titles and card ranks only; anything read while deciding
- * stays in the sans, which is legible at a glance in a way this is not.
+ * A high-contrast didone, the face of a private room's menu and a deck's
+ * box — it does more to say "salon" than any amount of colour. It carries
+ * names, titles and monograms only; anything read while deciding stays in the
+ * sans, which is legible at a glance in a way this is not. The italic is the
+ * monogram struck on every seat.
  */
-const playfair = Playfair_Display({
-  variable: '--font-playfair',
+const bodoni = Bodoni_Moda({
+  variable: '--font-bodoni',
   subsets: ['latin'],
+  style: ['normal', 'italic'],
+})
+
+/**
+ * Card indices, and nothing else.
+ *
+ * A condensed face lets the rank stand tall in the corner the way ClubGG
+ * prints it, so a card is read by its shape from across the table. The didone
+ * is too wide and too fine for a "10" at that size.
+ */
+const oswald = Oswald({
+  variable: '--font-oswald',
+  subsets: ['latin'],
+  weight: ['500'],
 })
 
 /**
@@ -98,7 +111,7 @@ export default function RootLayout({
     // white card faces all depend on the surround staying dark.
     <html
       lang="en"
-      className={`dark ${jost.variable} ${playfair.variable} h-full antialiased`}
+      className={`dark ${hanken.variable} ${bodoni.variable} ${oswald.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
     </html>

@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Showdown — green felt and brass.
+ * Showdown — the Private Salon: racing-green felt and champagne.
  *
  * The whole app is one near-black room lit from over the table, in either OS
  * theme: the felt, the chips and the white card faces all depend on the
@@ -23,21 +23,23 @@
   /* These have to point at the variables layout.tsx actually defines. Naming
      one after itself resolves to nothing, which silently dropped the whole app
      back to the browser's default serif. */
-  --font-sans: var(--font-jost);
+  --font-sans: var(--font-hanken);
   /*
    * Figures, not code. Every `font-mono` in the app is a stack, a bet or a
-   * count, and a monospace made the money read like a terminal. Jost's own
-   * tabular figures keep the columns lining up, so the role points back at it.
+   * count, and a monospace made the money read like a terminal. The sans has
+   * its own tabular figures, so the role points back at it.
    */
-  --font-mono: var(--font-jost);
+  --font-mono: var(--font-hanken);
   /*
-   * The house lettering. A didone is what casino signage, chip inlays and the
-   * back of a deck are set in, and it is the cheapest way for a screen to say
-   * "room" rather than "web app". Names, titles and card ranks only — never
+   * The house lettering. A didone is what a private room's menu and the box of
+   * a good deck are set in, and it is the cheapest way for a screen to say
+   * "salon" rather than "web app". Names, titles and monograms only — never
    * body copy, which stays in the sans.
    */
-  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-display: var(--font-bodoni), Georgia, "Times New Roman", serif;
   --font-heading: var(--font-display);
+  /* Card ranks: tall and condensed, so a card reads by its shape. */
+  --font-index: var(--font-oswald), "Arial Narrow", sans-serif;
 
   /* The table, and the metal on it. */
   --color-felt: var(--felt);
@@ -65,7 +67,7 @@
    */
   --color-suit-red: var(--suit-red);
 
-  /* Money, read off a stack at a glance. Cyan, because green is the table. */
+  /* Money, read off a stack at a glance. Ivory, with only warnings in colour. */
   --color-win: var(--state-win);
   --color-stack-healthy: var(--state-healthy);
   --color-stack-medium: var(--state-medium);
@@ -110,55 +112,53 @@
 }
 
 /*
- * The shadcn roles, in the house palette.
+ * The shadcn roles, in the Salon's palette.
  *
- * Charcoal with a hair of blue in it, so every primitive that reads these —
- * Card, Badge, Button, Slider, Select — arrives already belonging to the room
- * instead of having to be overridden at each call site. `--primary` is brass,
- * because the primary action is always the one that costs something.
+ * Every primitive that reads these — Card, Badge, Button, Dialog, Select —
+ * arrives already belonging to the room instead of having to be overridden at
+ * each call site. `--primary` is champagne, because the primary action is
+ * always the one that costs something.
  *
- * Warm, and only barely tinted: espresso and old leather rather than a
- * monitor's blue-grey. What ruled warm out before was a red tint on a green
- * table, two near-opposite hues at similar lightness. This is the yellow side
- * of brown at a sliver of chroma, which is the colour of the rail and the
- * brass it carries, so a plate reads as part of the furniture. The chroma is
- * still low enough that the only coloured things in the room are the felt,
- * the brass and the cards.
+ * Near-black with a breath of the cloth in it, and barely any chroma: the
+ * panels are the furniture of a racing-green room, not a second colour in it.
+ * The ink is ivory rather than white, so text sits in the same warm light as
+ * the champagne. Corners are tight — a private room's objects are milled, not
+ * moulded — which is why the radius is small.
  */
 :root {
-  --background: oklch(0.15 0.007 70);
-  --foreground: oklch(0.97 0.012 85);
-  --card: oklch(0.26 0.01 65);
-  --card-foreground: oklch(0.97 0.012 85);
-  --popover: oklch(0.22 0.01 65);
-  --popover-foreground: oklch(0.97 0.012 85);
-  --primary: oklch(0.8 0.095 82);
-  --primary-foreground: oklch(0.2 0.05 40);
-  --secondary: oklch(0.29 0.011 65);
-  --secondary-foreground: oklch(0.97 0.012 85);
-  --muted: oklch(0.28 0.011 65);
-  --muted-foreground: oklch(0.74 0.02 80);
-  --accent: oklch(0.33 0.014 65);
-  --accent-foreground: oklch(0.97 0.012 85);
+  --background: oklch(0.14 0.007 157);
+  --foreground: oklch(0.935 0.018 86);
+  --card: oklch(0.25 0.007 157);
+  --card-foreground: oklch(0.935 0.018 86);
+  --popover: oklch(0.21 0.007 157);
+  --popover-foreground: oklch(0.935 0.018 86);
+  --primary: oklch(0.789 0.066 86);
+  --primary-foreground: oklch(0.192 0.014 88);
+  --secondary: oklch(0.28 0.008 157);
+  --secondary-foreground: oklch(0.935 0.018 86);
+  --muted: oklch(0.27 0.008 157);
+  --muted-foreground: oklch(0.72 0.016 90);
+  --accent: oklch(0.32 0.01 157);
+  --accent-foreground: oklch(0.935 0.018 86);
   --destructive: oklch(0.67 0.175 25);
-  --border: oklch(0.9 0.05 85 / 14%);
-  --input: oklch(0.9 0.05 85 / 18%);
-  --ring: oklch(0.8 0.09 82);
+  --border: oklch(0.935 0.018 86 / 14%);
+  --input: oklch(0.935 0.018 86 / 18%);
+  --ring: oklch(0.789 0.066 86);
   /* The chip denominations, so a chart on this table is the same room. */
   --chart-1: oklch(0.88 0.15 92);
   --chart-2: oklch(0.62 0.19 300);
   --chart-3: oklch(0.66 0.15 240);
   --chart-4: oklch(0.6 0.2 25);
   --chart-5: oklch(0.34 0.01 30);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.26 0.01 65);
-  --sidebar-foreground: oklch(0.97 0.012 85);
-  --sidebar-primary: oklch(0.8 0.095 82);
-  --sidebar-primary-foreground: oklch(0.2 0.05 40);
-  --sidebar-accent: oklch(0.29 0.011 65);
-  --sidebar-accent-foreground: oklch(0.97 0.012 85);
-  --sidebar-border: oklch(0.9 0.05 85 / 14%);
-  --sidebar-ring: oklch(0.8 0.09 82);
+  --radius: 0.3rem;
+  --sidebar: oklch(0.25 0.007 157);
+  --sidebar-foreground: oklch(0.935 0.018 86);
+  --sidebar-primary: oklch(0.789 0.066 86);
+  --sidebar-primary-foreground: oklch(0.192 0.014 88);
+  --sidebar-accent: oklch(0.28 0.008 157);
+  --sidebar-accent-foreground: oklch(0.935 0.018 86);
+  --sidebar-border: oklch(0.935 0.018 86 / 14%);
+  --sidebar-ring: oklch(0.789 0.066 86);
 }
 
 /*
@@ -167,37 +167,37 @@
  * ones above — the room does not have a light mode.
  */
 .dark {
-  --background: oklch(0.15 0.007 70);
-  --foreground: oklch(0.97 0.012 85);
-  --card: oklch(0.26 0.01 65);
-  --card-foreground: oklch(0.97 0.012 85);
-  --popover: oklch(0.22 0.01 65);
-  --popover-foreground: oklch(0.97 0.012 85);
-  --primary: oklch(0.8 0.095 82);
-  --primary-foreground: oklch(0.2 0.05 40);
-  --secondary: oklch(0.29 0.011 65);
-  --secondary-foreground: oklch(0.97 0.012 85);
-  --muted: oklch(0.28 0.011 65);
-  --muted-foreground: oklch(0.74 0.02 80);
-  --accent: oklch(0.33 0.014 65);
-  --accent-foreground: oklch(0.97 0.012 85);
+  --background: oklch(0.14 0.007 157);
+  --foreground: oklch(0.935 0.018 86);
+  --card: oklch(0.25 0.007 157);
+  --card-foreground: oklch(0.935 0.018 86);
+  --popover: oklch(0.21 0.007 157);
+  --popover-foreground: oklch(0.935 0.018 86);
+  --primary: oklch(0.789 0.066 86);
+  --primary-foreground: oklch(0.192 0.014 88);
+  --secondary: oklch(0.28 0.008 157);
+  --secondary-foreground: oklch(0.935 0.018 86);
+  --muted: oklch(0.27 0.008 157);
+  --muted-foreground: oklch(0.72 0.016 90);
+  --accent: oklch(0.32 0.01 157);
+  --accent-foreground: oklch(0.935 0.018 86);
   --destructive: oklch(0.67 0.175 25);
-  --border: oklch(0.9 0.05 85 / 14%);
-  --input: oklch(0.9 0.05 85 / 18%);
-  --ring: oklch(0.8 0.09 82);
+  --border: oklch(0.935 0.018 86 / 14%);
+  --input: oklch(0.935 0.018 86 / 18%);
+  --ring: oklch(0.789 0.066 86);
   --chart-1: oklch(0.88 0.15 92);
   --chart-2: oklch(0.62 0.19 300);
   --chart-3: oklch(0.66 0.15 240);
   --chart-4: oklch(0.6 0.2 25);
   --chart-5: oklch(0.34 0.01 30);
-  --sidebar: oklch(0.26 0.01 65);
-  --sidebar-foreground: oklch(0.97 0.012 85);
-  --sidebar-primary: oklch(0.8 0.095 82);
-  --sidebar-primary-foreground: oklch(0.2 0.05 40);
-  --sidebar-accent: oklch(0.29 0.011 65);
-  --sidebar-accent-foreground: oklch(0.97 0.012 85);
-  --sidebar-border: oklch(0.9 0.05 85 / 14%);
-  --sidebar-ring: oklch(0.8 0.09 82);
+  --sidebar: oklch(0.25 0.007 157);
+  --sidebar-foreground: oklch(0.935 0.018 86);
+  --sidebar-primary: oklch(0.789 0.066 86);
+  --sidebar-primary-foreground: oklch(0.192 0.014 88);
+  --sidebar-accent: oklch(0.28 0.008 157);
+  --sidebar-accent-foreground: oklch(0.935 0.018 86);
+  --sidebar-border: oklch(0.935 0.018 86 / 14%);
+  --sidebar-ring: oklch(0.789 0.066 86);
 }
 
 @layer base {
@@ -217,71 +217,65 @@
    --------------------------------------------------------------------------- */
 
 :root {
-  /* Cloth. Lit from over the middle and falling off to the rail. Bottle green
-     rather than baize: a lit, saturated green is a kitchen-table game, and a
-     private room's cloth is deeper and quieter. */
-  --felt-lit: oklch(0.5 0.085 156);
-  --felt: oklch(0.43 0.075 157);
-  --felt-deep: oklch(0.32 0.06 158);
+  /* Cloth. Lit from over the middle and falling off to the rail. Racing green:
+     deeper and a touch bluer than baize, the colour the Salon render prints. */
+  --felt-lit: oklch(0.5 0.08 158);
+  --felt: oklch(0.42 0.07 158);
+  --felt-deep: oklch(0.3 0.05 158);
 
   /* The rail is the darkest thing on the screen, so the felt reads as lit. */
   --rail-lit: oklch(0.3 0.008 150);
   --rail: oklch(0.2 0.006 150);
   --rail-deep: oklch(0.125 0.004 150);
 
-  /* Champagne gold. Yellow brass at full chroma is a slot machine's metal;
-     pulled back a third it reads as jewellery. */
-  --brass: oklch(0.8 0.095 82);
-  --brass-lit: oklch(0.91 0.06 88);
-  --brass-deep: oklch(0.45 0.065 72);
+  /* Champagne. Yellow brass at full chroma is a slot machine's metal; held at
+     a third of that it reads as jewellery. The token keeps its old name so
+     every `brass` class in the app takes the new metal without being touched. */
+  --brass: oklch(0.789 0.066 86);
+  --brass-lit: oklch(0.896 0.044 90);
+  --brass-deep: oklch(0.45 0.05 80);
 
-  /* A nameplate. Half a step lighter than a panel, because it sits on the
-     brightest surface in the room and a panel-dark plate disappears into the
-     rail behind it. */
-  --plate: oklch(0.31 0.011 65);
+  /* A nameplate. A step lighter than the rail it sits on, so it stands off
+     the table rather than lying in it. */
+  --plate: oklch(0.31 0.008 157);
+  --plate-deep: oklch(0.2 0.006 160);
 
-  --play-fold: oklch(0.33 0.012 65);
-  --play-fold-lit: oklch(0.4 0.014 65);
+  --play-fold: oklch(0.24 0.006 157);
+  --play-fold-lit: oklch(0.3 0.008 157);
   /*
-   * Staying in is still felt, but not this felt. Held at the cloth's own hue it
+   * Staying in is cloth, but not this cloth. Held at the felt's own hue it
    * became the one button you could not see against the table behind it, so it
-   * is pushed round towards emerald and lifted a step — near enough to still
-   * read as "the colour of staying in", far enough to be an object on the
-   * table rather than a hole in it.
+   * is lifted a step and given a little more green — near enough to still read
+   * as "the colour of staying in", far enough to be an object on the table.
    */
-  --play-pass: oklch(0.52 0.1 163);
-  --play-pass-lit: oklch(0.59 0.11 163);
+  --play-pass: oklch(0.47 0.08 160);
+  --play-pass-lit: oklch(0.53 0.085 160);
 
-  /* Measured off a ClubGG card rather than chosen: their red is deeper and
-     slightly warmer than the signal red this palette used. */
-  --suit-red: oklch(0.5 0.2 27);
+  /* A card's red: deep and slightly warm, printed rather than lit. */
+  --suit-red: oklch(0.5 0.17 25);
 
   /*
-   * Money, and no longer green.
+   * Money, in ivory.
    *
-   * Green meant money in this system and nothing else, which worked while the
-   * room was red. It cannot survive a green table: a healthy stack in felt
-   * green, printed on felt green, says nothing at all. Cyan takes the job —
-   * it is the only hue left that is not the cloth, not the brass and not the
-   * red suits, and it is what ClubGG uses for exactly this reason.
-   *
-   * The warning steps keep their old colours. Amber and red were never the
-   * felt, and a short stack has to shout in a hue nothing else on the table
-   * owns.
+   * A stack is the figure read most often on the table, and a coloured one
+   * made every plate shout. It is set in the room's own ivory now, and colour
+   * is kept for the two things that are news: a stack running short, and a
+   * pot being won. Amber and coral were never the felt or the champagne, so a
+   * warning still owns its hue.
    */
-  --state-win: oklch(0.84 0.115 202);
-  --state-healthy: oklch(0.81 0.095 205);
+  --state-win: oklch(0.896 0.044 90);
+  --state-healthy: oklch(0.857 0.046 89);
   --state-medium: oklch(0.83 0.13 84);
-  --state-short: oklch(0.7 0.185 22);
+  --state-short: oklch(0.756 0.095 36);
 
   /*
    * Elevation, twice over. On a dark ground a shadow alone is invisible, so
    * every raised object also gets a lit hairline along its top edge — and the
-   * hairline is brass, because every lit edge in this room is. That is what
-   * makes a panel look milled rather than pasted on.
+   * hairline is champagne, because every lit edge in this room is. That is
+   * what makes a panel look milled rather than pasted on.
    */
-  --edge: inset 0 1px 0 oklch(0.9 0.06 88 / 0.2);
-  --edge-strong: inset 0 1px 0 oklch(0.9 0.06 88 / 0.36);
+  --edge: inset 0 1px 0 oklch(0.896 0.044 90 / 0.18);
+  --edge-strong: inset 0 1px 0 oklch(0.896 0.044 90 / 0.32);
 }
 
 /*
@@ -294,11 +288,14 @@
  */
 .table-room {
   background:
+    /* A few percent of grain, so the light reads as falling on a room rather
+       than as a gradient on a screen. */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
     radial-gradient(
-      70% 55% at 50% 38%,
-      oklch(0.2 0.018 152) 0%,
-      oklch(0.145 0.012 152) 48%,
-      oklch(0.11 0.008 152) 100%
+      70% 62% at 50% 42%,
+      oklch(0.26 0.03 157) 0%,
+      oklch(0.19 0.018 158) 50%,
+      oklch(0.13 0.007 157) 100%
     );
 }
 
@@ -449,7 +446,7 @@
 .felt-mark {
   font-family: var(--font-display);
   letter-spacing: 0.55em;
-  color: oklch(0.95 0.055 90 / 0.22);
+  color: oklch(0.896 0.044 90 / 0.22);
 }
 
 /*
@@ -483,15 +480,15 @@
  * action that costs you something; everything else is painted.
  */
 .brass-button {
-  background: linear-gradient(180deg, oklch(0.87 0.08 86) 0%, oklch(0.72 0.095 79) 100%);
-  color: oklch(0.2 0.05 40);
+  background: linear-gradient(180deg, oklch(0.869 0.054 89) 0%, oklch(0.749 0.072 86) 100%);
+  color: oklch(0.192 0.014 88);
   box-shadow:
     0 6px 18px -6px oklch(0 0 0 / 0.6),
     inset 0 1px 0 oklch(1 0 0 / 0.45);
 }
 
 .brass-button:hover {
-  background: linear-gradient(180deg, oklch(0.92 0.06 88) 0%, oklch(0.83 0.09 84) 100%);
+  background: linear-gradient(180deg, oklch(0.91 0.045 90) 0%, oklch(0.8 0.066 87) 100%);
 }
 
 /*
@@ -526,16 +523,16 @@
  * portion is the wait left; when it covers the button, the hand deals.
  */
 .next-hand-button {
-  background: linear-gradient(180deg, oklch(0.72 0.07 82) 0%, oklch(0.58 0.08 76) 100%);
+  background: linear-gradient(180deg, oklch(0.72 0.05 86) 0%, oklch(0.6 0.06 82) 100%);
 }
 
 .next-hand-button:hover {
-  background: linear-gradient(180deg, oklch(0.76 0.07 84) 0%, oklch(0.62 0.08 78) 100%);
+  background: linear-gradient(180deg, oklch(0.76 0.05 87) 0%, oklch(0.64 0.06 83) 100%);
 }
 
 .next-hand-fill {
   width: 0%;
-  background: linear-gradient(180deg, oklch(0.92 0.06 88) 0%, oklch(0.83 0.09 84) 100%);
+  background: linear-gradient(180deg, oklch(0.869 0.054 89) 0%, oklch(0.749 0.072 86) 100%);
   animation: next-hand-fill var(--next-hand-ms, 4s) linear forwards;
 }
 
@@ -553,10 +550,10 @@
   }
 }
 
-/* The wordmark, struck rather than printed: brass clipped to the letterforms. */
+/* The wordmark: ivory warming to champagne at its foot, clipped to the letters. */
 .wordmark {
   font-family: var(--font-display);
-  background: linear-gradient(180deg, oklch(0.93 0.055 88), oklch(0.62 0.08 76));
+  background: linear-gradient(180deg, oklch(0.97 0.012 86), oklch(0.82 0.055 86));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -759,13 +756,13 @@
   0%,
   100% {
     box-shadow:
-      0 0 0 2px oklch(0.8 0.095 82 / 0.55),
-      0 0 0 7px oklch(0.8 0.095 82 / 0.1);
+      0 0 0 2px oklch(0.789 0.066 86 / 0.6),
+      0 0 0 7px oklch(0.789 0.066 86 / 0.12);
   }
   50% {
     box-shadow:
-      0 0 0 3px oklch(0.86 0.15 85 / 0.9),
-      0 0 0 11px oklch(0.8 0.095 82 / 0.18);
+      0 0 0 3px oklch(0.896 0.044 90 / 0.95),
+      0 0 0 11px oklch(0.789 0.066 86 / 0.22);
   }
 }
 
