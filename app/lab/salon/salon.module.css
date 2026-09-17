@@ -25,6 +25,7 @@
 
   --salon-display: var(--font-salon-display), 'Bodoni Moda', Georgia, serif;
   --salon-sans: var(--font-salon-sans), 'Hanken Grotesk', system-ui, sans-serif;
+  --salon-index: var(--font-salon-index), 'Oswald', 'Arial Narrow', sans-serif;
 
   position: relative;
   isolation: isolate;
@@ -393,54 +394,73 @@
     inset 0 0 0 4px oklch(0.6 0.07 80 / 0.5);
 }
 
+/*
+ * A seat stands off the table rather than lying on it.
+ *
+ * The plate is a step lighter than the rail it sits on, ringed in black before
+ * the champagne edge so it separates from the leather, and carries a long,
+ * soft shadow. The monogram is a medallion that breaks out of the plate's left
+ * end, the way a portrait does in ClubGG, so the player is the first shape you
+ * find at every seat.
+ */
 .plate {
   position: relative;
   z-index: 1;
   display: flex;
-  min-width: 136px;
+  min-width: 132px;
   align-items: center;
-  gap: 10px;
-  padding: 5px 18px 5px 5px;
-  border: 1px solid var(--salon-hairline);
-  border-radius: 3px;
-  background: linear-gradient(180deg, oklch(0.227 0.006 157), oklch(0.166 0.004 165));
+  gap: 8px;
+  margin-left: 22px;
+  padding: 7px 16px 7px 34px;
+  border: 1px solid oklch(0.789 0.066 86 / 0.5);
+  border-radius: 4px;
+  background: linear-gradient(180deg, oklch(0.31 0.008 157), oklch(0.2 0.006 160));
   box-shadow:
-    0 10px 24px -10px oklch(0 0 0 / 0.8),
-    inset 0 1px 0 oklch(0.896 0.044 90 / 0.08);
+    0 0 0 1px oklch(0 0 0 / 0.65),
+    0 16px 30px -8px oklch(0 0 0 / 0.95),
+    0 4px 10px -2px oklch(0 0 0 / 0.6),
+    inset 0 1px 0 oklch(0.896 0.044 90 / 0.18);
 }
 
 .plateActing {
-  border-color: var(--salon-gold);
+  border-color: var(--salon-gold-lit);
   box-shadow:
-    0 0 0 4px oklch(0.789 0.066 86 / 0.13),
-    0 12px 28px -10px oklch(0 0 0 / 0.85),
-    inset 0 1px 0 oklch(0.896 0.044 90 / 0.14);
+    0 0 0 1px oklch(0 0 0 / 0.65),
+    0 0 0 5px oklch(0.789 0.066 86 / 0.22),
+    0 0 26px 2px oklch(0.789 0.066 86 / 0.28),
+    0 16px 30px -8px oklch(0 0 0 / 0.95),
+    inset 0 1px 0 oklch(0.896 0.044 90 / 0.24);
 }
 
-/* A monogram struck on dark enamel, inside a double champagne ring. */
+/* A monogram struck on dark enamel, in a champagne bezel, off the plate's end. */
 .monogram {
+  position: absolute;
+  top: 50%;
+  left: -24px;
   display: grid;
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
   place-items: center;
   border-radius: 50%;
+  translate: 0 -50%;
   font-family: var(--salon-display);
-  font-size: 18px;
+  font-size: 22px;
   font-style: italic;
   color: var(--salon-gold-lit);
-  background: radial-gradient(circle at 50% 35%, oklch(0.299 0.01 151), oklch(0.189 0.004 165));
+  background: radial-gradient(circle at 50% 32%, oklch(0.34 0.012 151), oklch(0.18 0.004 165));
   box-shadow:
-    inset 0 0 0 1px oklch(0.789 0.066 86 / 0.6),
-    inset 0 0 0 3px oklch(0.189 0.004 165),
-    inset 0 0 0 4px oklch(0.789 0.066 86 / 0.22);
+    0 0 0 1px oklch(0 0 0 / 0.7),
+    0 0 0 3px oklch(0.82 0.06 88),
+    0 0 0 4px oklch(0 0 0 / 0.5),
+    0 10px 20px -4px oklch(0 0 0 / 0.9),
+    inset 0 2px 4px oklch(1 0 0 / 0.12);
 }
 
 .name {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.15;
-  color: var(--salon-ink);
+  color: oklch(0.975 0.01 86);
 }
 
 .out {
@@ -451,9 +471,9 @@
 /* Time to act, as a hairline draining along the foot of the plate. */
 .timer {
   position: absolute;
-  right: 4px;
+  right: 5px;
   bottom: -1px;
-  left: 4px;
+  left: 30px;
   height: 2px;
   background: oklch(0.789 0.066 86 / 0.18);
 }
@@ -496,7 +516,8 @@
 
 .callout-left {
   top: 50%;
-  right: calc(100% + 10px);
+  /* Clear of the medallion that hangs off the plate's left end. */
+  right: calc(100% + 34px);
   translate: 0 -50%;
 }
 
@@ -524,96 +545,110 @@
 
 .cardBack {
   display: block;
-  width: 32px;
-  height: 45px;
-  border: 1px solid oklch(0.789 0.066 86 / 0.6);
-  border-radius: 3px;
+  width: 36px;
+  height: 51px;
+  border: 1px solid oklch(0.82 0.06 88 / 0.75);
+  border-radius: 4px;
   background:
-    repeating-radial-gradient(circle at 50% 50%, oklch(0.789 0.066 86 / 0.3) 0 1px, transparent 1px 3.5px),
-    oklch(0.243 0.035 159);
+    repeating-radial-gradient(circle at 50% 50%, oklch(0.789 0.066 86 / 0.32) 0 1px, transparent 1px 3.5px),
+    oklch(0.27 0.04 159);
   box-shadow:
-    inset 0 0 0 2px oklch(0.243 0.035 159),
-    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.35),
-    0 4px 10px -2px oklch(0 0 0 / 0.7);
+    0 0 0 1px oklch(0 0 0 / 0.6),
+    inset 0 0 0 2px oklch(0.27 0.04 159),
+    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
+    0 8px 16px -4px oklch(0 0 0 / 0.85);
 }
 
 /* ---- Cards ----------------------------------------------------------------- */
 
+/*
+ * ClubGG's layout on the Salon's stock.
+ *
+ * A tall condensed rank in the corner with a small suit under it, and the suit
+ * again, large, in the opposite corner — so the card is read by its shape from
+ * across the table rather than by squinting at an index. The stock stays
+ * ivory and the red stays the Salon's.
+ *
+ * Positions are percentages of the card and sizes are ems of its font size, so
+ * one size class scales the whole face.
+ */
 .card {
   position: relative;
   display: block;
   flex-shrink: 0;
-  border-radius: 5px;
+  overflow: hidden;
+  border-radius: 6px;
   color: oklch(0.188 0.009 85);
-  background: linear-gradient(180deg, oklch(0.985 0.011 90), oklch(0.93 0.024 86));
+  background: linear-gradient(180deg, oklch(0.985 0.011 90), oklch(0.935 0.022 86));
   box-shadow:
-    0 0 0 1px oklch(0 0 0 / 0.25),
+    0 0 0 1px oklch(0 0 0 / 0.28),
+    inset 0 0 0 1px oklch(1 0 0 / 0.6),
     0 1px 0 oklch(0.823 0.034 85),
-    0 10px 20px -8px oklch(0 0 0 / 0.8);
+    0 12px 22px -8px oklch(0 0 0 / 0.8);
 }
 
 .red {
-  color: oklch(0.464 0.148 25);
+  color: oklch(0.5 0.17 25);
 }
 
-/* Each part is placed in its own ems, all derived from the card's font size. */
 .rank {
   position: absolute;
-  top: 0.28em;
-  left: 0.33em;
-  font-family: var(--salon-display);
-  font-size: 1em;
-  font-weight: 600;
+  top: 4%;
+  left: 9%;
+  font-family: var(--salon-index);
+  font-size: 1.6em;
+  font-weight: 500;
   line-height: 1;
+  letter-spacing: -0.04em;
 }
 
 .suit {
   position: absolute;
-  top: 2.25em;
-  left: 0.6em;
-  font-size: 0.62em;
+  top: 43%;
+  left: 10%;
+  font-size: 0.95em;
   line-height: 1;
 }
 
 .pip {
   position: absolute;
-  right: 0.3em;
-  bottom: 0.22em;
-  font-size: 1.35em;
+  right: 5%;
+  bottom: 1%;
+  font-size: 2.35em;
   line-height: 1;
 }
 
 /* Sized by font-size, so every part of the face scales together. */
 .card-board {
-  width: 40px;
-  height: 56px;
-  font-size: 15px;
+  width: 44px;
+  height: 62px;
+  font-size: 15.5px;
 }
 
 .card-hero {
   width: 60px;
   height: 84px;
-  font-size: 22px;
+  font-size: 21px;
 }
 
 .card-fan {
   width: 64px;
   height: 90px;
-  font-size: 24px;
+  font-size: 22.5px;
 }
 
 @media (min-width: 640px) {
   .card-board {
-    width: 56px;
-    height: 78px;
-    font-size: 21px;
+    width: 66px;
+    height: 92px;
+    font-size: 23px;
   }
 
   .card-hero {
-    width: 76px;
-    height: 106px;
-    font-size: 28px;
-    border-radius: 6px;
+    width: 78px;
+    height: 110px;
+    font-size: 27.5px;
+    border-radius: 7px;
   }
 }
 

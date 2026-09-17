@@ -332,9 +332,8 @@ function initial(name: string) {
 }
 
 /**
- * A seat: the cards or nothing above, and a plate with a monogram. The plate is
- * milled like the rest of the room — dark, a champagne hairline, and a lit top
- * edge — with the monogram struck in the didone rather than set in the sans.
+ * A seat: the cards or nothing above, and a plate with a monogram medallion.
+ * Everything here is lifted off the table — see `.plate` for how.
  */
 function Seat({
   player,
@@ -352,7 +351,7 @@ function Seat({
     <div className={cn('relative flex flex-col items-center', player.folded && styles.out)}>
       <div className={cn('flex items-end justify-center', hero ? '-mb-4' : '-mb-3')}>
         {player.folded ? (
-          <span className="block h-[45px]" />
+          <span className="block h-[51px]" />
         ) : hero ? (
           HERO_CARDS.map((card, i) => (
             <span key={i} className={cn(i === 0 ? '-rotate-4' : 'rotate-4 -ml-3')}>
@@ -367,7 +366,7 @@ function Seat({
         )}
       </div>
 
-      <div className={cn(styles.plate, acting && styles.plateActing, hero && 'min-w-40')}>
+      <div className={cn(styles.plate, acting && styles.plateActing, hero && 'min-w-38')}>
         <span className={styles.monogram}>{initial(player.name)}</span>
         <span className="flex flex-col gap-0.5">
           <span className={styles.name}>{player.name}</span>

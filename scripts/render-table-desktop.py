@@ -53,13 +53,15 @@ RAIL_DARK = np.array([8, 8, 9], np.float32)
 RAIL_LIT = np.array([112, 110, 110], np.float32)
 
 # What changes between skins: the cloth, the betting line, and whether the rail
-# carries a metal inlay. `line_strength` is how strongly the line is printed.
+# carries a metal inlay. `line_strength` is how strongly the line is printed
+# and `line_width` how wide, in plane units.
 SKINS = {
     'house': {
         'felt_edge': [22, 66, 26],
         'felt_hot': [70, 142, 64],
         'line': [150, 196, 140],
         'line_strength': 0.22,
+        'line_width': 0.9,
         'inlay': None,
         'out': 'public/table-desktop.png',
     },
@@ -67,7 +69,10 @@ SKINS = {
         'felt_edge': [15, 48, 32],
         'felt_hot': [50, 114, 78],
         'line': [214, 196, 150],
-        'line_strength': 0.3,
+        # Printed boldly enough to read from across the room: the table's outline
+        # is what holds the seat ring together once the plates stand off it.
+        'line_strength': 0.6,
+        'line_width': 1.8,
         'inlay': [205, 184, 138],
         'out': 'public/table-desktop-salon.png',
     },
@@ -194,7 +199,7 @@ def main():
     felt = FELT_EDGE + (FELT_HOT - FELT_EDGE) * spot[..., None]
     occlusion = 1.0 - 0.6 * np.exp(np.minimum(d, 0) / 14)
     felt *= occlusion[..., None]
-    line = np.clip(1.4 - np.abs(d + LINE_INSET) / 0.9, 0, 1) * skin['line_strength']
+    line = np.clip(1.4 - np.abs(d + LINE_INSET) / skin['line_width'], 0, 1) * skin['line_strength']
     felt += (LINE - felt) * line[..., None]
     weave = (
         rng.normal(0, 3.2, (H, W)).astype(np.float32)
