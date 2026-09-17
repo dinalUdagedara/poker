@@ -15,7 +15,12 @@ are elliptical rather than half-circles, which rounds the oval off without
 changing its width or depth — so the felt still lands where the seat ring
 expects it.
 
-    python3 scripts/render-table-desktop.py [--out public/table-desktop.png]
+The Salon skin is the same table in a private room's colours: a deeper racing
+green, a champagne betting line, and a thin champagne strip set into the rail
+where it meets the cloth. The geometry, camera and light are untouched, so the
+seat ring lands on it exactly as it does on the house table.
+
+    python3 scripts/render-table-desktop.py [--skin house|salon] [--out PATH]
 """
 
 import argparse
@@ -44,11 +49,29 @@ TILT = 0.90  # vertical squash of the plane
 HEIGHT_SCALE = 1.0  # how far a raised point climbs the screen
 CENTER_Y = 0.5  # table centre as a fraction of height
 
-FELT_EDGE = np.array([22, 66, 26], np.float32)
-FELT_HOT = np.array([70, 142, 64], np.float32)
-LINE = np.array([150, 196, 140], np.float32)
 RAIL_DARK = np.array([8, 8, 9], np.float32)
 RAIL_LIT = np.array([112, 110, 110], np.float32)
+
+# What changes between skins: the cloth, the betting line, and whether the rail
+# carries a metal inlay. `line_strength` is how strongly the line is printed.
+SKINS = {
+    'house': {
+        'felt_edge': [22, 66, 26],
+        'felt_hot': [70, 142, 64],
+        'line': [150, 196, 140],
+        'line_strength': 0.22,
+        'inlay': None,
+        'out': 'public/table-desktop.png',
+    },
+    'salon': {
+        'felt_edge': [15, 48, 32],
+        'felt_hot': [50, 114, 78],
+        'line': [214, 196, 150],
+        'line_strength': 0.3,
+        'inlay': [205, 184, 138],
+        'out': 'public/table-desktop-salon.png',
+    },
+}
 
 
 def felt_edge(X, Z):
@@ -86,8 +109,14 @@ def rail_profile(d):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--out', default='public/table-desktop.png')
+    parser.add_argument('--skin', choices=sorted(SKINS), default='house')
+    parser.add_argument('--out')
     args = parser.parse_args()
+    skin = SKINS[args.skin]
+    out_path = args.out or skin['out']
+    FELT_EDGE = np.array(skin['felt_edge'], np.float32)
+    FELT_HOT = np.array(skin['felt_hot'], np.float32)
+    LINE = np.array(skin['line'], np.float32)
 
     W, H = OUT_W * SS, OUT_H * SS
     rng = np.random.default_rng(7)
@@ -149,13 +178,23 @@ def main():
     shade = np.clip(shade + grain, 0, 1)
     rail = RAIL_DARK + (RAIL_LIT - RAIL_DARK) * shade[..., None]
 
+    # A strip of metal set into the leather just off the cloth. Lit like metal
+    # rather than leather: it takes the same catch as the lip, only brighter, so
+    # it reads on the far rail and is hidden behind the crown on the near one,
+    # which is where a real inlay goes out of sight too.
+    if skin['inlay'] is not None:
+        inlay = np.clip(1.0 - np.abs(t - 0.075) / 0.022, 0, 1)
+        sheen = np.clip(0.45 + 0.5 * lambert + 0.9 * spec + 0.6 * lip, 0, 1.3)
+        metal = np.array(skin['inlay'], np.float32) * sheen[..., None]
+        rail += (metal - rail) * inlay[..., None]
+
     # Felt: an overhead light brightest in the middle, falling off to a deep
     # green under the rail, one betting line, and the cloth's weave.
     spot = np.exp(-((HX / 620) ** 2 + (HZ / 340) ** 2))
     felt = FELT_EDGE + (FELT_HOT - FELT_EDGE) * spot[..., None]
     occlusion = 1.0 - 0.6 * np.exp(np.minimum(d, 0) / 14)
     felt *= occlusion[..., None]
-    line = np.clip(1.4 - np.abs(d + LINE_INSET) / 0.9, 0, 1) * 0.22
+    line = np.clip(1.4 - np.abs(d + LINE_INSET) / 0.9, 0, 1) * skin['line_strength']
     felt += (LINE - felt) * line[..., None]
     weave = (
         rng.normal(0, 3.2, (H, W)).astype(np.float32)
@@ -180,8 +219,8 @@ def main():
     out = centred
     print('table rows', rows[0] + shift, '..', rows[-1] + shift)
 
-    out.save(args.out, optimize=True)
-    print('wrote', args.out, out.size)
+    out.save(out_path, optimize=True)
+    print('wrote', out_path, out.size)
 
 
 if __name__ == '__main__':
