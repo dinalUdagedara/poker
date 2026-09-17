@@ -1,6 +1,6 @@
 # Showdown design system
 
-Showdown is a room, not a page. A near-black house lit from over the table, a green felt inside a near-black rail with a brass hairline, and exactly one accent — brass — reserved for the things that cost you something. The felt is the brightest surface in the room after the faces of the playing cards, which is what lets the scheme sit this dark without going murky.
+Showdown is a room, not a page — the Private Salon. A near-black house lit from over the table, a racing-green felt inside a near-black rail with a champagne inlay, and exactly one accent — champagne, still named `brass` in the tokens — reserved for the things that cost you something. The felt is the brightest surface in the room after the faces of the playing cards, which is what lets the scheme sit this dark without going murky.
 
 ## How to use this
 
@@ -19,7 +19,7 @@ A near-black ground (`--color-bg`) carrying the faintest green, so the surround 
 
 The neutral ramp is cool and barely tinted, and it has to stay that way. A warm neutral is the near-opposite hue to the felt at a similar lightness, so a panel built from one reads as a patch stuck onto the green rather than an object resting on it.
 
-**Cyan means money** (`--state-win`, `--state-healthy`) — never green, and never decoratively. Green used to carry money here, which worked while the room was red; on a green table a healthy stack printed in felt green says nothing at all. Cyan is the only hue left that is not the cloth, not the brass and not the red suits. The warning steps keep amber (`--state-medium`) and red (`--state-short`): neither was ever the felt, and a short stack has to shout in a hue nothing else on the table owns.
+**Money is ivory** (`--state-healthy`), and a won pot is lit champagne (`--state-win`). A stack is the figure read most often on the table, and printed in a colour it made every plate shout, so colour is kept for the two things that are news: a stack running short takes amber (`--state-medium`) and then coral (`--state-short`), hues that are neither the cloth nor the champagne.
 
 The red suits take `--suit-red`, not the signal red. It is deeper and slightly warmer, and it has the room to be, now that the cloth it lies on is green.
 
@@ -37,7 +37,7 @@ The primary button elsewhere in the system is the same brass, for the same reaso
 
 ## Type
 
-Playfair Display for the house lettering, Geist for anything read while deciding, Geist Mono for every figure that is money. The three never trade jobs. Card ranks take the didone — that printed look is most of what makes a rectangle read as a card. Money is always `.money`: mono, tabular, 600, so figures do not dance as chips move. The wordmark is `.wordmark`: a brass gradient clipped to the letterforms, struck rather than printed.
+Bodoni Moda for the house lettering and the italic monogram on every seat, Hanken Grotesk for anything read while deciding and for every figure that is money, and Oswald for card ranks alone. The three never trade jobs. Card ranks are tall and condensed so a card is read by its shape from across the table. Money is tabular and lining, so figures do not dance as chips move, without the terminal look of a monospace. The wordmark is `.wordmark`: ivory warming to champagne, clipped to the letterforms.
 
 ## Motion
 
