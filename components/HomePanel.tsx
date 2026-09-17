@@ -57,7 +57,7 @@ export function HomePanel() {
           />
 
           <Button
-            className="brass-button h-14 w-full rounded-xl text-base font-bold tracking-wide uppercase"
+            className="brass-button h-14 w-full rounded-xl text-base font-medium tracking-[0.16em] uppercase"
             disabled={busy}
             onClick={() => void deal()}
             data-testid="deal"

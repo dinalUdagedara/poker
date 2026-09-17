@@ -89,7 +89,7 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
   return (
     <LandingShell width="md" centered={false}>
       <div className="flex flex-col gap-1">
-        <h1 className="wordmark text-4xl font-bold tracking-tight">Open rooms</h1>
+        <h1 className="wordmark text-4xl font-medium">Open rooms</h1>
         <p className="text-muted-foreground text-sm">
           Sit with people. Open a table, or take a seat at one that is waiting.
         </p>
@@ -126,7 +126,7 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
             </span>
           </label>
           <Button
-            className="brass-button h-12 w-full rounded-xl text-sm font-bold tracking-wide uppercase"
+            className="brass-button h-12 w-full rounded-xl text-sm font-medium tracking-[0.16em] uppercase"
             disabled={locked}
             onClick={() => void openRoom()}
             data-testid="open-public-room"

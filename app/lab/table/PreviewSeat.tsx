@@ -78,6 +78,7 @@ export function PreviewSeat({
           ) : (
             <PlayerAvatar
               seed={player.id}
+              name={player.name}
               className={cn(hero ? 'size-14' : 'size-12', 'ring-2 ring-black/45')}
             />
           )}
@@ -166,6 +167,7 @@ export function PreviewSeat({
         <div className="flex items-center gap-2">
           <PlayerAvatar
             seed={player.id}
+            name={player.name}
             className={cn(hero ? 'size-9' : 'size-6', out && 'grayscale')}
           />
           <div className="text-center leading-tight">
