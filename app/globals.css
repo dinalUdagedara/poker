@@ -567,8 +567,19 @@
 
 /* The bet stepper: set into the room rather than onto it, like a well. */
 .bet-stepper {
-  background: oklch(0 0 0 / 0.28);
-  border: 1px solid oklch(0.9 0.06 88 / 0.14);
+  background: oklch(0 0 0 / 0.32);
+  border: 1px solid oklch(0.789 0.066 86 / 0.24);
+}
+
+/* Staying in: cloth, lit along its top edge. */
+.play-call {
+  border-color: oklch(0.896 0.044 90 / 0.18);
+  background: linear-gradient(180deg, var(--play-pass-lit), var(--play-pass));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.12);
+}
+
+.play-call:hover {
+  filter: brightness(1.08);
 }
 
 /*
