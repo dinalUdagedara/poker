@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Copy, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { LandingShell } from '@/components/LandingShell'
+import { LandingShell, SalonFrame } from '@/components/LandingShell'
 import { cn } from '@/lib/utils'
 import { getAudio } from '@/lib/audio'
 import { useTableStream } from '@/lib/use-table-stream'
@@ -74,8 +73,8 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
 
   return (
     <LandingShell>
-      <Card className="panel-milled border-border w-full backdrop-blur">
-        <CardContent className="flex flex-col gap-6">
+      <SalonFrame>
+        <div className="flex flex-col gap-6 px-6 py-8 sm:px-8">
           <div className="flex flex-col items-center gap-2 text-center">
             <span className="relative flex size-10 items-center justify-center">
               <span className="absolute inline-flex size-10 animate-ping rounded-full bg-brass/20" />
@@ -131,7 +130,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
           <div className="flex flex-col gap-2">
             {!seated && (
               <Button
-                className="brass-button h-12 w-full rounded-xl text-base font-medium tracking-[0.16em] uppercase"
+                className="brass-button h-12 w-full rounded-[2px] text-xs font-semibold tracking-[0.3em] uppercase"
                 disabled={busy}
                 data-testid="take-seat"
                 onClick={() => void send(`/api/table/${room.tableId}/join`)}
@@ -187,8 +186,8 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
               Back to rooms
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SalonFrame>
 
       <p className="text-muted-foreground/60 mt-4 max-w-xs text-center text-xs">
         {room.isPublic

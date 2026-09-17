@@ -522,6 +522,24 @@
   background: oklch(0.824 0.064 89);
 }
 
+/*
+ * A landing screen's panel: two champagne hairlines with a gap between them,
+ * the inner one fainter, over a veil of the room rather than a fill.
+ */
+.salon-frame {
+  border: 1px solid oklch(0.789 0.066 86 / 0.38);
+}
+
+.salon-frame-inner {
+  border: 1px solid oklch(0.789 0.066 86 / 0.16);
+  background: linear-gradient(180deg, oklch(0.19 0.016 157 / 0.78), oklch(0.14 0.007 157 / 0.9));
+}
+
+.salon-diamond {
+  background: var(--brass);
+  rotate: 45deg;
+}
+
 /* The opposite gesture: something set into a panel rather than onto it. */
 .panel-well {
   background: oklch(0 0 0 / 0.28);
