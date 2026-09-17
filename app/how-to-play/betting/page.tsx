@@ -20,7 +20,7 @@ export default function BettingPage() {
     <>
       <div className="flex flex-col items-center gap-2 py-8 text-center">
         <Hand cards="AcAh" className="mb-2" />
-        <h1 className="wordmark text-4xl font-bold tracking-tight drop-shadow-sm">Betting</h1>
+        <h1 className="wordmark text-4xl font-medium drop-shadow-sm">Betting</h1>
         <p className="max-w-md text-sm text-white/70 drop-shadow-sm">
           Where the money actually moves. These are the rules behind every greyed-out button and
           every pot that did not go where you expected.
@@ -33,7 +33,7 @@ export default function BettingPage() {
       >
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="panel-well border-border flex flex-1 flex-col gap-1.5 rounded-lg border p-3">
-            <span className="text-xs font-medium tracking-wide text-white/45 uppercase">
+            <span className="text-xs font-medium tracking-[0.18em] text-white/45 uppercase">
               Nothing to match
             </span>
             <p className="text-sm leading-relaxed text-white/70">
@@ -43,7 +43,7 @@ export default function BettingPage() {
             </p>
           </div>
           <div className="panel-well border-border flex flex-1 flex-col gap-1.5 rounded-lg border p-3">
-            <span className="text-xs font-medium tracking-wide text-white/45 uppercase">
+            <span className="text-xs font-medium tracking-[0.18em] text-white/45 uppercase">
               A bet to face
             </span>
             <p className="text-sm leading-relaxed text-white/70">

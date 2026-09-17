@@ -88,7 +88,7 @@ export function HouseMark() {
   return (
     <div className="flex flex-col items-center gap-1 text-center">
       <Logo className="mb-2 h-20 w-auto" />
-      <h1 className="wordmark text-4xl font-bold tracking-tight">Showdown</h1>
+      <h1 className="wordmark text-4xl font-medium">Showdown</h1>
       <p className="text-muted-foreground text-sm">No-limit Hold&rsquo;em</p>
     </div>
   )

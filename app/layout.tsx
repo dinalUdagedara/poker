@@ -1,15 +1,19 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google'
+import { Jost, Playfair_Display } from 'next/font/google'
 import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, siteUrl } from '@/lib/site'
 import './globals.css'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+/**
+ * Everything read while playing, figures included.
+ *
+ * A geometric sans out of the same Art Deco drawer as the signage over a
+ * Monte Carlo room, which is what lets it sit beside the didone without either
+ * looking borrowed. It carries tabular figures, so stacks and bets line up in
+ * a column without falling back to a monospace that makes money read like a
+ * terminal.
+ */
+const jost = Jost({
+  variable: '--font-jost',
   subsets: ['latin'],
 })
 
@@ -94,7 +98,7 @@ export default function RootLayout({
     // white card faces all depend on the surround staying dark.
     <html
       lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+      className={`dark ${jost.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
     </html>

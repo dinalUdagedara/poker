@@ -37,7 +37,7 @@ export function Section({
 export function Worked({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="panel-well border-border flex flex-col gap-2 rounded-lg border p-3">
-      <span className="text-xs font-medium tracking-wide text-white/45 uppercase">{title}</span>
+      <span className="text-xs font-medium tracking-[0.18em] text-white/45 uppercase">{title}</span>
       <div className="flex flex-col gap-2 text-sm leading-relaxed text-white/70">{children}</div>
     </div>
   )

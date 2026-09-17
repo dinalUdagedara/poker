@@ -19,7 +19,7 @@ export default function HandsPage() {
     <>
       <div className="flex flex-col items-center gap-2 py-8 text-center">
         <Hand cards="AsKsQsJsTs" className="mb-2" />
-        <h1 className="wordmark text-4xl font-bold tracking-tight drop-shadow-sm">
+        <h1 className="wordmark text-4xl font-medium drop-shadow-sm">
           What beats what
         </h1>
         <p className="max-w-md text-sm text-white/70 drop-shadow-sm">

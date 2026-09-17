@@ -335,7 +335,7 @@ function ReplayTable({
                     pot
                   </span>
                   <span
-                    className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
+                    className="font-mono text-xl font-medium tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
                     data-testid="replay-pot"
                   >
                     {frame.pot.toLocaleString()}
@@ -395,7 +395,7 @@ function ReplayTable({
                          empty — its wagers have gone to the pot — so the badge
                          can never land on the cards above. */
                       <span
-                        className="brass-button absolute bottom-0.5 left-1/2 z-40 -translate-x-1/2 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap"
+                        className="brass-button absolute bottom-0.5 left-1/2 z-40 -translate-x-1/2 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide whitespace-nowrap"
                         data-testid={`replay-win-${player.id}`}
                       >
                         Win +{(hand.result?.payouts[player.id] ?? 0).toLocaleString()}
