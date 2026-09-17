@@ -759,7 +759,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     */}
                     {canRematch && (
                       <Button
-                        className="h-12 w-full brass-button rounded-xl text-base font-medium tracking-[0.16em] uppercase"
+                        className="h-12 w-full brass-button rounded-[2px] text-sm font-semibold tracking-[0.24em] uppercase"
                         disabled={busy}
                         onClick={() => void playAgain()}
                         data-testid="play-again"
