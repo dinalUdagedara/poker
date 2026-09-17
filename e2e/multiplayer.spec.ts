@@ -90,6 +90,45 @@ test('two players find each other in the lobby and are dealt in together', async
   }
 })
 
+test('seats every player at the bottom of their own waiting room', async ({ browser }) => {
+  const [aliceContext, alice] = await newPlayer(browser)
+  const [bobContext, bob] = await newPlayer(browser)
+
+  try {
+    await alice.goto('/')
+    const tableId = await alice.evaluate(async () => {
+      const response = await fetch('/api/table', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ seatCount: 3, botCount: 0 }),
+      })
+      return (await response.json()).tableId as string
+    })
+
+    await bob.goto(`/table/${tableId}`)
+    await expect(bob.getByTestId('waiting-room')).toBeVisible()
+
+    // One place to sit, and it is in front of him: the next free chair.
+    await expect(bob.getByTestId('take-seat')).toHaveCount(1)
+    await expect(bob.locator('[data-seat="1"]')).toHaveAttribute('data-position', '0')
+    await expect(bob.getByTestId('open-seat-2')).toBeVisible()
+
+    await bob.getByTestId('take-seat').click()
+    await expect(bob.locator('[data-seat="1"] [data-testid="you-tag"]')).toBeVisible()
+    await expect(bob.locator('[data-seat="1"]')).toHaveAttribute('data-position', '0')
+    await expect(bob.getByTestId('take-seat')).toHaveCount(0)
+
+    // Alice sees herself at the bottom of the same room, with Bob next along.
+    await alice.goto(`/table/${tableId}`)
+    await expect(alice.locator('[data-seat="0"] [data-testid="you-tag"]')).toBeVisible()
+    await expect(alice.locator('[data-seat="0"]')).toHaveAttribute('data-position', '0')
+    await expect(alice.locator('[data-seat="1"][data-state="taken"]')).toHaveAttribute('data-position', '1')
+  } finally {
+    await aliceContext.close()
+    await bobContext.close()
+  }
+})
+
 test('sends both players from one table to the same room when they play again', async ({
   browser,
 }) => {

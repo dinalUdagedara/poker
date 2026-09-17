@@ -617,7 +617,12 @@ function asPlaying(table: StoredTable): PlayingTable {
 }
 
 /**
- * Take a free seat in a room, dealing if that was the last one.
+ * Take a seat in a room, dealing if that was the last one.
+ *
+ * `seat` is the chair somebody tapped in the waiting room. Without one they get
+ * the first free chair, which is what joining from the lobby asks for. A player
+ * already sitting who picks another open chair moves to it, rather than being
+ * told to leave and sit down again.
  *
  * Joining is idempotent for someone already sitting: a refreshed tab or a
  * double-tapped button should return the room, not take a second chair.
@@ -626,6 +631,7 @@ export async function joinTable(
   tableId: string,
   playerId: string | null,
   playerName?: string,
+  seat?: number,
 ): Promise<AnyTableView> {
   if (!playerId) throw new TableError('This game needs cookies enabled', 400)
 
@@ -640,7 +646,19 @@ export async function joinTable(
     }
 
     const seats = [...current.seats]
-    if (!seats.includes(playerId)) {
+    const sittingAt = seats.indexOf(playerId)
+    if (seat !== undefined) {
+      if (!Number.isInteger(seat) || seat < 0 || seat >= seats.length) {
+        throw new TableError('There is no such seat', 400)
+      }
+      // Two people tapping the same chair is the ordinary race, not a bug: the
+      // loser is told plainly and the room they get back shows who won it.
+      if (seats[seat] !== null && seats[seat] !== playerId) {
+        throw new TableError('That seat was just taken', 409)
+      }
+      if (sittingAt !== -1) seats[sittingAt] = null
+      seats[seat] = playerId
+    } else if (sittingAt === -1) {
       const free = seats.indexOf(null)
       if (free === -1) throw new TableError('This room is full', 409)
       seats[free] = playerId
