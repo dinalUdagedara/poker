@@ -81,7 +81,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
               <span className="absolute inline-flex size-10 animate-ping rounded-full bg-brass/20" />
               <Users className="text-brass relative size-5" />
             </span>
-            <h1 className="wordmark text-3xl font-bold tracking-tight">
+            <h1 className="wordmark text-3xl font-medium">
               {remaining === 0 ? 'Dealing…' : 'Waiting for players'}
             </h1>
             <p className="text-muted-foreground text-sm">
@@ -131,7 +131,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
           <div className="flex flex-col gap-2">
             {!seated && (
               <Button
-                className="brass-button h-12 w-full rounded-xl text-base font-bold tracking-wide uppercase"
+                className="brass-button h-12 w-full rounded-xl text-base font-medium tracking-[0.16em] uppercase"
                 disabled={busy}
                 data-testid="take-seat"
                 onClick={() => void send(`/api/table/${room.tableId}/join`)}

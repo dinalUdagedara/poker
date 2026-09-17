@@ -128,6 +128,7 @@ export function PlayerSeat({
         ) : (
           <PlayerAvatar
             seed={player.id}
+            name={displayName(player, null, names)}
             className={cn(
               'ring-2 ring-black/45',
               hero ? 'size-16 sm:size-16' : compact ? 'size-10 sm:size-10' : 'size-11 sm:size-12',

@@ -17,7 +17,7 @@ export function GuideNext({ href }: { href: string }) {
       href={page.href}
       className="panel-well ring-border flex flex-col gap-0.5 rounded-lg p-4 ring-1 ring-inset transition-colors hover:bg-white/8"
     >
-      <span className="text-xs font-medium tracking-wide text-white/45 uppercase">Next</span>
+      <span className="text-xs font-medium tracking-[0.18em] text-white/45 uppercase">Next</span>
       <span className="text-sm font-semibold text-white">{page.label}</span>
       <span className="text-sm text-white/60">{page.blurb}</span>
     </Link>

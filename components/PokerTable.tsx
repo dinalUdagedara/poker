@@ -429,7 +429,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               than as a picture the header is carrying. */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
             <Logo className="h-5 w-auto shrink-0 sm:h-6" />
-            <span className="wordmark text-sm font-bold tracking-tight whitespace-nowrap sm:text-base">
+            <span className="wordmark text-sm font-semibold whitespace-nowrap sm:text-base">
               Showdown
             </span>
           </Link>
@@ -551,7 +551,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                       pot
                     </span>
                     <span
-                      className="font-mono text-xl font-bold tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
+                      className="font-mono text-xl font-medium tabular-nums text-white drop-shadow-[0_2px_3px_oklch(0_0_0/0.5)] sm:text-3xl"
                       data-testid="pot"
                     >
                       {table.pot.toLocaleString()}
@@ -620,7 +620,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                   data-testid="pot-award"
                 >
                   <ChipStack look="felt" size="lg" stack={award.amount} />
-                  <span className="text-brass-lit rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-bold tabular-nums shadow-lg">
+                  <span className="text-brass-lit rounded-full bg-black/70 px-2 py-0.5 font-mono text-sm font-semibold tabular-nums shadow-lg">
                     +{award.amount.toLocaleString()}
                   </span>
                 </div>
@@ -759,7 +759,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                     */}
                     {canRematch && (
                       <Button
-                        className="h-12 w-full brass-button rounded-xl text-base font-bold tracking-wide uppercase"
+                        className="h-12 w-full brass-button rounded-xl text-base font-medium tracking-[0.16em] uppercase"
                         disabled={busy}
                         onClick={() => void playAgain()}
                         data-testid="play-again"
@@ -861,10 +861,10 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             <div className="animate-win-copy flex flex-col items-center gap-1 px-4">
               {/* The one moment the house lettering is allowed to be the
                   loudest thing on the table. */}
-              <span className="wordmark text-5xl font-bold tracking-tight drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-7xl">
+              <span className="wordmark text-5xl font-medium drop-shadow-[0_3px_8px_oklch(0_0_0/0.7)] sm:text-7xl">
                 You win
               </span>
-              <span className="font-mono text-4xl font-bold tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)] sm:text-6xl">
+              <span className="font-mono text-4xl font-light tabular-nums text-white drop-shadow-[0_2px_6px_oklch(0_0_0/0.7)] sm:text-6xl">
                 {youWon.toLocaleString()}
               </span>
               {winningHand && (

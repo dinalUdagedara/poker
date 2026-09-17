@@ -11,7 +11,7 @@ import type { Card } from '@/lib/poker/cards'
 import type { RedactedTableState } from '@/lib/poker/redact'
 import { PlayingCard } from './PlayingCard'
 
-const LABEL = 'text-[10px] font-medium tracking-wide text-white/45 uppercase'
+const LABEL = 'text-[10px] font-medium tracking-[0.18em] text-white/45 uppercase'
 
 /** Which board cards each street turned over, as a slice of the five. */
 const STREET_CARDS: Partial<Record<string, [number, number]>> = {
@@ -153,7 +153,7 @@ export function HandStreets({
     return (
       <>
         <div className="flex w-7 shrink-0 flex-col items-center gap-0.5 pt-3.5">
-          <PlayerAvatar seed={playerId} className="size-7" />
+          <PlayerAvatar seed={playerId} name={seatName(playerId, hand.names, null)} className="size-7" />
           {position && (
             <span
               className={cn(

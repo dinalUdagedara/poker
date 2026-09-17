@@ -53,7 +53,7 @@ export default function RoomsPage() {
     <>
       <div className="flex flex-col items-center gap-2 py-8 text-center">
         <Hand cards="KsKh" className="mb-2" />
-        <h1 className="wordmark text-4xl font-bold tracking-tight drop-shadow-sm">With people</h1>
+        <h1 className="wordmark text-4xl font-medium drop-shadow-sm">With people</h1>
         <p className="max-w-md text-sm text-white/70 drop-shadow-sm">
           The same game, with your friends in the seats. A room is a link — there is nothing to
           install and nobody has to make an account.
@@ -150,7 +150,7 @@ export default function RoomsPage() {
           href="/rooms"
           className={cn(
             buttonVariants(),
-            'brass-button h-14 w-full max-w-sm rounded-xl text-base font-bold tracking-wide uppercase',
+            'brass-button h-14 w-full max-w-sm rounded-xl text-base font-medium tracking-[0.16em] uppercase',
           )}
         >
           Open a room
