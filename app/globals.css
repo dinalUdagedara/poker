@@ -386,15 +386,24 @@
   object-fit: fill;
 }
 
+/*
+ * The still's floor shadow went with the JPEG fill. Drop-shadow follows the
+ * cut-out oval, so the table still sits on the room.
+ *
+ * The phone still came out of an image model and cannot be re-rendered, so it
+ * is graded here from lit baize towards the Salon's green. The desktop still is
+ * rendered in the Salon skin and already carries its colours, so from `sm` up
+ * it takes the shadow alone — grading it too would sink the cloth and dull the
+ * champagne line.
+ */
 .table-body img {
-  /* The still's floor shadow went with the JPEG fill. Drop-shadow follows
-     the cut-out oval, so the table still sits on the room.
-
-     The grade before it takes both stills from lit baize to bottle green.
-     Done here rather than in the renders because the phone still is not
-     scripted, and one filter cannot let the two drift apart. The rail is
-     near-black and barely moves under it. */
   filter: saturate(0.8) hue-rotate(14deg) brightness(0.76) drop-shadow(0 18px 28px oklch(0 0 0 / 0.55));
+}
+
+@media (min-width: 640px) {
+  .table-body img {
+    filter: drop-shadow(0 18px 28px oklch(0 0 0 / 0.55));
+  }
 }
 
 .table-felt {
