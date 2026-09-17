@@ -3,12 +3,17 @@ Render the desktop table still (public/table-desktop.png).
 
 The phone still came out of an image model on a pure black void, so it cut out
 cleanly. The desktop one came back on a lit grey floor the same tone as the
-rail, and the knock-out chewed the rim. This draws the table instead: a
-stadium-shaped felt and a padded rail, ray-marched as a heightfield through a
-tilted camera so the near rail reads fat and the far rail recedes. It lands on
+rail, and the knock-out chewed the rim. This draws the table instead: an oval
+felt and a padded rail, ray-marched as a heightfield through a tilted camera so
+the near rail reads a little fuller and the far rail recedes. It lands on
 transparency, so there is nothing to knock out.
 
-Colours are sampled from public/table-mobile.png so both poses match.
+The look is a card room's, not a render's: a slim near-black leather rail with
+one thin catch of light along its inner lip, rather than a puffy grey tube, and
+a rich green cloth lit brightest in the middle with its weave showing. The ends
+are elliptical rather than half-circles, which rounds the oval off without
+changing its width or depth — so the felt still lands where the seat ring
+expects it.
 
     python3 scripts/render-table-desktop.py [--out public/table-desktop.png]
 """
@@ -23,33 +28,49 @@ from scipy.ndimage import gaussian_filter
 OUT_W, OUT_H = 1280, 640
 SS = 2  # supersampling
 
-# Table, in plane units (≈ output px at the table's centre).
-HALF_STRAIGHT = 300  # half the straight run of the stadium
-RADIUS = 238  # felt end radius
-RAIL = 50  # rail width
-RAIL_H = 30  # rail height
-LINE_INSET = 62  # betting line distance inside the rail
+# Table, in plane units (≈ output px at the table's centre). The felt spans
+# HALF_STRAIGHT + END_X either side and END_Z front and back — the same
+# extents as before the ends were rounded.
+HALF_STRAIGHT = 230  # half the straight run along the sides
+END_X = 308  # each end's semi-axis across the table
+END_Z = 238  # each end's semi-axis front to back
+RAIL = 40  # rail width
+RAIL_H = 22  # rail height
+LINE_INSET = 48  # betting line distance inside the rail
 
 # Camera.
-PERSPECTIVE = 0.00055  # far side shrinks, near side grows
+PERSPECTIVE = 0.00045  # far side shrinks, near side grows
 TILT = 0.90  # vertical squash of the plane
 HEIGHT_SCALE = 1.0  # how far a raised point climbs the screen
 CENTER_Y = 0.5  # table centre as a fraction of height
 
-FELT_EDGE = np.array([30, 74, 29], np.float32)
-FELT_HOT = np.array([66, 128, 62], np.float32)
-LINE = np.array([150, 185, 140], np.float32)
-RAIL_DARK = np.array([14, 14, 15], np.float32)
-RAIL_LIT = np.array([128, 126, 127], np.float32)
+FELT_EDGE = np.array([22, 66, 26], np.float32)
+FELT_HOT = np.array([70, 142, 64], np.float32)
+LINE = np.array([150, 196, 140], np.float32)
+RAIL_DARK = np.array([8, 8, 9], np.float32)
+RAIL_LIT = np.array([112, 110, 110], np.float32)
 
 
-def stadium(X, Z):
-    """Signed distance to the felt edge, and its unit gradient."""
+def felt_edge(X, Z):
+    """Signed distance to the felt edge: a stadium whose ends are ellipses.
+
+    iq's approximation for an ellipse, applied past the straight run. Exact along
+    the sides and at the tips, and close enough between them that the rail's
+    width does not visibly swell round the ends.
+    """
     qx = np.maximum(np.abs(X) - HALF_STRAIGHT, 0.0)
-    length = np.hypot(qx, Z)
-    d = length - RADIUS
-    safe = np.maximum(length, 1e-6)
-    return d, np.sign(X) * qx / safe, Z / safe
+    k0 = np.hypot(qx / END_X, Z / END_Z)
+    k1 = np.hypot(qx / (END_X * END_X), Z / (END_Z * END_Z))
+    return k0 * (k0 - 1.0) / np.maximum(k1, 1e-9)
+
+
+def felt_normal(X, Z):
+    """Unit gradient of the felt edge distance, taken numerically."""
+    e = 0.5
+    gx = (felt_edge(X + e, Z) - felt_edge(X - e, Z)) / (2 * e)
+    gz = (felt_edge(X, Z + e) - felt_edge(X, Z - e)) / (2 * e)
+    length = np.maximum(np.hypot(gx, gz), 1e-6)
+    return gx / length, gz / length
 
 
 def rail_profile(d):
@@ -89,16 +110,18 @@ def main():
     steps = 96
     for h in np.linspace(RAIL_H, 0.0, steps):
         X, Z = plane_at(h)
-        d, _, _ = stadium(X, Z)
+        d = felt_edge(X, Z)
         new = ~hit & (rail_profile(d) >= h - RAIL_H / steps)
         HX[new], HZ[new] = X[new], Z[new]
         hit |= new
 
-    d, gx, gz = stadium(HX, HZ)
+    d = felt_edge(HX, HZ)
+    gx, gz = felt_normal(HX, HZ)
     on_rail = hit & (d >= 0)
     on_felt = hit & (d < 0)
 
-    # Rail: Blinn–Phong on the profile's normal, plus a leather grain.
+    # Rail: matte leather. Mostly dark, one thin catch of light on the inner
+    # lip, a soft sheen on the crown, and a grain at two scales.
     eps = 0.5
     slope = (rail_profile(d + eps) - rail_profile(np.maximum(d - eps, 0))) / (2 * eps)
     n = np.stack([-slope * gx, np.ones_like(d), -slope * gz], -1)
@@ -110,26 +133,35 @@ def main():
     half = light + view
     half /= np.linalg.norm(half)
     lambert = np.clip(n @ light, 0, 1)
-    spec = np.clip(n @ half, 0, 1) ** 70
+    spec = np.clip(n @ half, 0, 1) ** 60
     t = np.clip(d / RAIL, 0, 1)
-    crease = 1.0 - 0.6 * np.exp(-t / 0.05)  # where the cushion meets the felt
-    skirt = 1.0 - 0.55 * np.clip((t - 0.72) / 0.28, 0, 1)  # outer edge falls away
-    # The phone still's silver catch sits on the inner lip, not the crown.
-    lip = np.exp(-(((t - 0.3) / 0.12) ** 2)) * np.clip(n @ light, 0, 1)
-    grain = gaussian_filter(rng.normal(0, 1, (H, W)).astype(np.float32), 1.2) * 0.05
-    shade = (0.16 + 0.42 * lambert**2 + 0.6 * spec + 0.85 * lip) * crease * skirt
+    crease = 1.0 - 0.7 * np.exp(-t / 0.05)  # where the cushion meets the felt
+    skirt = 1.0 - 0.6 * np.clip((t - 0.7) / 0.3, 0, 1)  # outer edge falls away
+    lip = np.exp(-(((t - 0.17) / 0.06) ** 2)) * np.clip(n @ light, 0, 1)
+    # A fainter catch along the outer rim, so the rail reads as a cushion with
+    # an edge on both sides rather than a black band.
+    rim = np.exp(-(((t - 0.8) / 0.07) ** 2)) * np.clip(n @ light, 0, 1)
+    grain = (
+        gaussian_filter(rng.normal(0, 1, (H, W)).astype(np.float32), 1.0) * 0.07
+        + gaussian_filter(rng.normal(0, 1, (H, W)).astype(np.float32), 3.0) * 0.05
+    )
+    shade = (0.10 + 0.22 * lambert**2 + 0.28 * spec + 1.05 * lip + 0.3 * rim) * crease * skirt
     shade = np.clip(shade + grain, 0, 1)
     rail = RAIL_DARK + (RAIL_LIT - RAIL_DARK) * shade[..., None]
 
-    # Felt: an overhead spotlight, darkening into the rail, one betting line.
-    spot = np.exp(-((HX / 560) ** 2 + (HZ / 300) ** 2))
+    # Felt: an overhead light brightest in the middle, falling off to a deep
+    # green under the rail, one betting line, and the cloth's weave.
+    spot = np.exp(-((HX / 620) ** 2 + (HZ / 340) ** 2))
     felt = FELT_EDGE + (FELT_HOT - FELT_EDGE) * spot[..., None]
-    occlusion = 1.0 - 0.55 * np.exp(np.minimum(d, 0) / 16)
+    occlusion = 1.0 - 0.6 * np.exp(np.minimum(d, 0) / 14)
     felt *= occlusion[..., None]
-    line = np.clip(1.4 - np.abs(d + LINE_INSET) / 0.9, 0, 1) * 0.28
+    line = np.clip(1.4 - np.abs(d + LINE_INSET) / 0.9, 0, 1) * 0.22
     felt += (LINE - felt) * line[..., None]
-    fibre = rng.normal(0, 2.2, (H, W)).astype(np.float32)
-    felt += fibre[..., None]
+    weave = (
+        rng.normal(0, 3.2, (H, W)).astype(np.float32)
+        + gaussian_filter(rng.normal(0, 1, (H, W)).astype(np.float32), 0.7) * 5.0
+    )
+    felt += weave[..., None] * np.array([0.6, 1.0, 0.6], np.float32)
 
     rgb = np.zeros((H, W, 3), np.float32)
     rgb[on_felt] = felt[on_felt]
