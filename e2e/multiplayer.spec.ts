@@ -112,6 +112,10 @@ test('lets a player pick their own chair in the waiting room', async ({ browser 
     await bob.getByTestId('take-seat-2').click()
     await expect(bob.locator('[data-seat="2"] [data-testid="you-tag"]')).toBeVisible()
     await expect(bob.locator('[data-seat="1"][data-state="open"]')).toBeVisible()
+    // Sitting down quiets the other open chairs: they wait for other people,
+    // and are not somewhere else Bob could also be.
+    await expect(bob.getByTestId('open-seat-1')).toBeVisible()
+    await expect(bob.getByTestId('take-seat-1')).toHaveCount(0)
 
     // Alice, already sitting, sees Bob in the chair he picked.
     await alice.goto(`/table/${tableId}`)

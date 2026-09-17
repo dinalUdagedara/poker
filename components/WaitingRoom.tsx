@@ -21,9 +21,11 @@ import { TableBody } from './TableBody'
  * The room before the cards come out, drawn as the table it is about to be.
  *
  * Every chair is where it will be once the game deals: the room's seats first,
- * then one for each bot. An open chair is a button that sits you down in it, so
- * choosing where to sit is the same gesture as sitting — and a player already
- * sitting can tap another open chair to move there.
+ * then one for each bot. Before you sit, an open chair is a button that sits you
+ * down in it, so choosing where to sit is the same gesture as sitting. Once you
+ * are sitting, the open chairs go quiet: they are waiting for other people, and
+ * a button on them read as more places you could somehow also be. Changing
+ * chairs is leaving, then taking the other one.
  *
  * Everything here is a request the server can refuse — taking a seat, starting
  * early, leaving — so the screen only ever shows what came back, never what was
@@ -185,13 +187,22 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                           </span>
                         )}
                       </div>
+                    ) : seated ? (
+                      <div
+                        className="grid size-16 place-items-center rounded-full border border-dashed border-white/15 bg-black/30 sm:size-20"
+                        data-testid={`open-seat-${index}`}
+                      >
+                        <span className="text-[10px] leading-tight font-medium text-white/40 sm:text-xs">
+                          Open seat
+                        </span>
+                      </div>
                     ) : (
                       <button
                         type="button"
                         disabled={busy}
                         onClick={() => void send(`/api/table/${room.tableId}/join`, { seat: index })}
                         className="group grid size-16 place-items-center rounded-full border border-white/25 bg-black/60 text-white shadow-lg backdrop-blur-sm transition-colors hover:border-brass/70 hover:bg-black/75 disabled:opacity-50 sm:size-20"
-                        aria-label={seated ? `Move to seat ${index + 1}` : `Take seat ${index + 1}`}
+                        aria-label={`Take seat ${index + 1}`}
                         data-testid={`take-seat-${index}`}
                       >
                         <span className="flex flex-col items-center gap-0.5">
@@ -200,7 +211,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
                             aria-hidden
                           />
                           <span className="text-[10px] leading-tight font-semibold sm:text-xs">
-                            {seated ? 'Move here' : 'Take seat'}
+                            Take seat
                           </span>
                         </span>
                       </button>
