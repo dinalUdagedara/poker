@@ -143,10 +143,12 @@ export function PlayerSeat({
           'seat-plate relative gap-0 rounded-[4px] border py-1 transition-all duration-200 sm:py-1.5',
           'overflow-visible',
           hero
-            ? '[--medal:3.5rem] sm:[--medal:4rem]'
+            ? '[--medal:3.5rem] sm:[--medal:4.75rem]'
             : compact
-              ? '[--medal:2.75rem] sm:[--medal:3.5rem]'
-              : '[--medal:3rem] sm:[--medal:3.75rem]',
+              ? // A phone's side seats sit a hair from the board, so the
+                // medallion only grows once there is width for it.
+                '[--medal:2.75rem] sm:[--medal:4.25rem]'
+              : '[--medal:3rem] sm:[--medal:4.5rem]',
           'ml-[calc(var(--medal)/2)] pr-2.5 pl-[calc(var(--medal)/2+0.4rem)] sm:pr-3.5',
           isActing && 'animate-turn-ring border-brass-lit',
           isWinner && 'animate-winner border-win',

@@ -116,9 +116,14 @@ function CardFace({
       <span className={cn(ink, 'absolute top-[1%] left-[10%] flex flex-col items-start leading-[0.85]')}>
         {/* Tall and condensed, so the rank is read by its shape across the table. */}
         <span className="font-(family-name:--font-index) text-[1.6em] font-medium tracking-[-0.04em]">{rank}</span>
-        <span className="text-[0.95em] leading-none">{pip}</span>
+        <span className="text-[1.15em] leading-none">{pip}</span>
       </span>
-      <span className={cn(ink, 'absolute right-[5%] bottom-[1%] text-[2.15em] leading-[0.85]')}>{pip}</span>
+      {/*
+        The large pip rides high on the right rather than in the bottom corner.
+        The bottom of a hand is exactly where the nameplate overlaps the cards,
+        so a corner pip was hidden on the one pair a player reads every hand.
+      */}
+      <span className={cn(ink, 'absolute top-[36%] right-[6%] text-[2.5em] leading-[0.85]')}>{pip}</span>
     </div>
   )
 }
