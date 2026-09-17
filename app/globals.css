@@ -478,6 +478,50 @@
     var(--edge);
 }
 
+/*
+ * A seat's nameplate, standing off the table.
+ *
+ * A step lighter than the rail it sits on, ringed in black before its
+ * champagne edge so it separates from the leather, with a long soft shadow.
+ * Like `.panel-milled` it sets no border colour, so the plate can still turn
+ * champagne-lit on a turn or ivory on a win from the utility classes.
+ */
+.seat-plate {
+  background: linear-gradient(180deg, var(--plate) 0%, var(--plate-deep) 100%);
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.65),
+    0 16px 30px -8px oklch(0 0 0 / 0.95),
+    0 4px 10px -2px oklch(0 0 0 / 0.6),
+    var(--edge);
+}
+
+/* The monogram's bezel: black, champagne, black, and a shadow under it all. */
+.seat-medallion {
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.7),
+    0 0 0 3px oklch(0.82 0.06 88),
+    0 0 0 4px oklch(0 0 0 / 0.5),
+    0 10px 20px -4px oklch(0 0 0 / 0.9);
+}
+
+/* An ivory disc in a champagne bezel, lettered in the didone. */
+.dealer-button {
+  color: oklch(0.2 0.012 85);
+  background: radial-gradient(circle at 40% 35%, oklch(0.986 0.014 85), oklch(0.879 0.036 85));
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.3),
+    0 2px 0 oklch(0.723 0.049 86),
+    0 4px 8px oklch(0 0 0 / 0.5),
+    inset 0 0 0 3px oklch(0.96 0.018 86),
+    inset 0 0 0 4px oklch(0.6 0.07 80 / 0.5);
+}
+
+/* What a player just did, on a champagne tag. */
+.callout-tag {
+  color: oklch(0.192 0.014 88);
+  background: oklch(0.824 0.064 89);
+}
+
 /* The opposite gesture: something set into a panel rather than onto it. */
 .panel-well {
   background: oklch(0 0 0 / 0.28);

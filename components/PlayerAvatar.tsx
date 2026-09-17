@@ -30,7 +30,7 @@ export function initials(name: string): string {
 }
 
 /**
- * A seat's face: the player's monogram in the house lettering, gold on lacquer.
+ * A seat's face: the player's monogram in the house italic, champagne on lacquer.
  *
  * The lacquer is seeded on the id and never the display name. Names are
  * decoration here — `lib/names.ts` allows two players to share one — so two
@@ -70,7 +70,12 @@ export function PlayerAvatar({
           dy="0.35em"
           textAnchor="middle"
           fill="var(--brass-lit)"
-          style={{ fontFamily: 'var(--font-display)', fontSize: letters.length > 1 ? 36 : 46, fontWeight: 500 }}
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: letters.length > 1 ? 36 : 46,
+            fontStyle: 'italic',
+            fontWeight: 500,
+          }}
         >
           {letters}
         </text>

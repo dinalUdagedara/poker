@@ -87,23 +87,19 @@ export function PlayerSeat({
   return (
     <div className="relative flex flex-col items-center gap-1 sm:gap-1.5" data-testid={`seat-${player.id}`}>
       {/*
-        One slot above the plate, holding either the cards or the player.
-        
-        Showing both is what made a seat tall, and tall seats are why five
-        opponents have to be shrunk to fit round the felt. A player is only ever
-        one of two things here — someone still in the hand, who is their cards,
-        or someone who is not, who is just a face — so the two never need to be
-        on screen at once. Folding swaps one for the other, which also means a
-        seat that is out of the hand reads as out from across the table rather
-        than from the badge underneath it.
+        The cards, above the plate.
+
+        The player's face lives on the plate itself now, as a medallion, so this
+        slot only ever holds cards. A seat with none keeps the slot at the height
+        the portrait used to take here, so every seat keeps the footprint the
+        seat rings and the overlap tests were measured against.
       */}
       <div
         className={cn(
           'flex items-end justify-center',
           hero ? '-mb-5 sm:-mb-4' : shown ? '-mb-6 sm:-mb-5' : '-mb-4 sm:-mb-4',
-          // Whichever of the two is showing. A folded seat has to recede, and a
-          // portrait left at full strength does the opposite of that — the
-          // brightest thing on the felt became the people no longer in the hand.
+          // A folded seat has to recede, or the people no longer in the hand
+          // become the brightest thing on the felt.
           isOut && 'opacity-45 saturate-50',
         )}
       >
@@ -126,32 +122,48 @@ export function PlayerSeat({
             />
           ))
         ) : (
-          <PlayerAvatar
-            seed={player.id}
-            name={displayName(player, null, names)}
-            className={cn(
-              'ring-2 ring-black/45',
-              hero ? 'size-16 sm:size-16' : compact ? 'size-10 sm:size-10' : 'size-11 sm:size-12',
-            )}
+          <span
+            className={cn('block', hero ? 'h-16' : compact ? 'h-10' : 'h-11 sm:h-12')}
+            aria-hidden
           />
         )}
       </div>
 
+      {/*
+        The plate stands off the table rather than lying on it: a step lighter
+        than the rail, ringed in black inside its champagne edge, with a long
+        shadow (`.seat-plate`). The medallion hangs half off its left end, the
+        way a portrait breaks out of a ClubGG plate, so the player is the first
+        shape found at every seat. `--medal` is its size; the plate's margin and
+        padding each give back half of it, so the medallion is inside the seat's
+        box and clear of the name.
+      */}
       <Card
         className={cn(
-          'relative gap-0 rounded-xl border transition-all duration-200',
-          'panel-milled overflow-visible backdrop-blur-sm',
-          hero ? 'px-3 py-1.5 sm:px-3 sm:py-1.5' : 'px-2 py-1 sm:px-3 sm:py-1.5',
-          isActing && 'animate-turn-ring border-brass/80',
+          'seat-plate relative gap-0 rounded-[4px] border py-1 transition-all duration-200 sm:py-1.5',
+          'overflow-visible',
+          hero
+            ? '[--medal:3.5rem] sm:[--medal:4rem]'
+            : compact
+              ? '[--medal:2.75rem] sm:[--medal:3.5rem]'
+              : '[--medal:3rem] sm:[--medal:3.75rem]',
+          'ml-[calc(var(--medal)/2)] pr-2.5 pl-[calc(var(--medal)/2+0.4rem)] sm:pr-3.5',
+          isActing && 'animate-turn-ring border-brass-lit',
           isWinner && 'animate-winner border-win',
-          !isActing && !isWinner && 'border-border',
+          !isActing && !isWinner && 'border-brass/50',
           isOut && 'opacity-50',
         )}
         data-testid={isActing ? `turn-${player.id}` : undefined}
       >
+        <PlayerAvatar
+          seed={player.id}
+          name={displayName(player, null, names)}
+          className="seat-medallion absolute top-1/2 left-0 size-(--medal) -translate-x-1/2 -translate-y-1/2"
+        />
+
         {isButton && (
           <span
-            className="absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full bg-linear-to-b from-white to-[oklch(0.88_0.01_80)] font-(family-name:--font-display) text-[11px] font-bold text-[oklch(0.2_0.02_30)] ring-2 ring-[var(--rail-deep)]/80 shadow-md"
+            className="dealer-button absolute -top-2.5 -right-2.5 grid size-6 place-items-center rounded-full font-(family-name:--font-display) text-[12px] font-semibold"
             title="dealer button"
             data-testid="dealer-button"
           >
@@ -165,7 +177,8 @@ export function PlayerSeat({
           className={cn(
             'absolute top-1/2 -translate-y-1/2',
             !hero && 'max-sm:hidden',
-            chipSide === 'left' ? 'right-full mr-1.5' : 'left-full ml-1.5',
+            // Clear of the medallion when the pile sits on the plate's left.
+            chipSide === 'left' ? 'right-full mr-[calc(var(--medal)/2+0.375rem)]' : 'left-full ml-1.5',
             isOut && 'opacity-60',
           )}
         />
@@ -175,7 +188,7 @@ export function PlayerSeat({
           then what have they got. The stack is the louder of the two because it
           is the one being re-read every street.
         */}
-        <div className="text-center leading-tight">
+        <div className="min-w-0 text-left leading-tight">
           <div
             className={cn(
               'truncate font-medium',
@@ -222,7 +235,7 @@ export function PlayerSeat({
             data-testid={`bet-${player.id}`}
           >
             <ChipStack look="felt" stack={player.currentBet} />
-            <span className="text-brass-lit pb-0.5 font-mono text-[11px] font-semibold tabular-nums drop-shadow-[0_1px_2px_oklch(0_0_0/0.75)]">
+            <span className="text-foreground pb-0.5 font-mono text-[11px] font-semibold tabular-nums drop-shadow-[0_1px_2px_oklch(0_0_0/0.75)]">
               {player.currentBet.toLocaleString()}
             </span>
           </span>
@@ -244,18 +257,19 @@ export function PlayerSeat({
           )}
           data-testid={`callout-${player.id}`}
         >
-          <span className="relative block rounded-md border border-border bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground shadow-lg">
+          {/* A champagne tag rather than a speech bubble: what they did, set in caps. */}
+          <span className="callout-tag relative block rounded-[2px] px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] uppercase shadow-lg">
             {callout}
             <span
               className={cn(
-                'absolute size-2 rotate-45 bg-secondary',
+                'callout-tag absolute size-2 rotate-45',
                 calloutSide === 'right'
-                  ? 'top-1/2 -left-1 -translate-y-1/2 border-b border-l border-border'
+                  ? 'top-1/2 -left-1 -translate-y-1/2'
                   : calloutSide === 'left'
-                    ? 'top-1/2 -right-1 -translate-y-1/2 border-t border-r border-border'
+                    ? 'top-1/2 -right-1 -translate-y-1/2'
                     : calloutSide === 'above'
-                      ? '-bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-border'
-                      : '-top-1 left-1/2 -translate-x-1/2 border-t border-l border-border',
+                      ? '-bottom-1 left-1/2 -translate-x-1/2'
+                      : '-top-1 left-1/2 -translate-x-1/2',
               )}
             />
           </span>
