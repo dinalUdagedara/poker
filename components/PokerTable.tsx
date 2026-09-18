@@ -672,6 +672,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                         isActing={table.actingPlayerId === player.id}
                         isButton={table.buttonSeat === player.seat}
                         isWinner={winners.has(player.id)}
+                        winAmount={table.result?.payouts[player.id] ?? 0}
                         handOver={Boolean(table.result)}
                         compact={!isYou}
                         hero={isYou}
