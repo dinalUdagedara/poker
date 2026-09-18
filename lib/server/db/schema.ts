@@ -266,3 +266,77 @@ export const chipRequests = pgTable(
     check('chip_requests_status_check', sql`${table.status} in ('pending', 'approved', 'rejected')`),
   ],
 )
+
+/**
+ * A club's table, as the club knows it.
+ *
+ * The game itself — seats, hands, stacks — lives in Redis under the same id
+ * (`cash-table.ts`). This row is what lasts: which club it belongs to, what it
+ * was set up as, and when it closes, so the club can list its tables and a job
+ * can find the ones that ought to have closed.
+ */
+export const clubTables = pgTable(
+  'club_tables',
+  {
+    id: text('id').primaryKey(),
+    clubId: text('club_id')
+      .notNull()
+      .references(() => clubs.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    smallBlind: bigint('small_blind', { mode: 'number' }).notNull(),
+    bigBlind: bigint('big_blind', { mode: 'number' }).notNull(),
+    minBuyIn: bigint('min_buy_in', { mode: 'number' }).notNull(),
+    maxBuyIn: bigint('max_buy_in', { mode: 'number' }).notNull(),
+    seatCount: integer('seat_count').notNull(),
+    actionSeconds: integer('action_seconds').notNull(),
+    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    closesAt: timestamp('closes_at').notNull(),
+    status: text('status', { enum: ['open', 'closed'] }).notNull().default('open'),
+    closedAt: timestamp('closed_at'),
+  },
+  (table) => [
+    index('club_tables_club_status_idx').on(table.clubId, table.status),
+    check('club_tables_status_check', sql`${table.status} in ('open', 'closed')`),
+  ],
+)
+
+/**
+ * One sitting at a club table: from the buy-in to the cash-out.
+ *
+ * Opened in the same transaction as the buy-in's ledger row, and closed in the
+ * same transaction as the cash-out's. A session still open is chips on a table,
+ * which is what stops a member being removed while seated and what a closing
+ * job pays out. Its id is the key both ledger rows are made unique on.
+ */
+export const seatSessions = pgTable(
+  'seat_sessions',
+  {
+    id: text('id').primaryKey(),
+    tableId: text('table_id')
+      .notNull()
+      .references(() => clubTables.id, { onDelete: 'cascade' }),
+    clubId: text('club_id')
+      .notNull()
+      .references(() => clubs.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    boughtIn: bigint('bought_in', { mode: 'number' }).notNull(),
+    /**
+     * Their stack as last seen, kept as they play. If the live table in Redis
+     * were ever lost, this is what they are paid back — not what they sat
+     * down with, which could be far from what they had.
+     */
+    lastStack: bigint('last_stack', { mode: 'number' }).notNull(),
+    cashedOut: bigint('cashed_out', { mode: 'number' }),
+    openedAt: timestamp('opened_at').notNull().defaultNow(),
+    closedAt: timestamp('closed_at'),
+  },
+  (table) => [
+    index('seat_sessions_table_idx').on(table.tableId),
+    index('seat_sessions_club_user_idx').on(table.clubId, table.userId),
+    check('seat_sessions_bought_in_check', sql`${table.boughtIn} > 0`),
+    check('seat_sessions_cashed_out_check', sql`${table.cashedOut} is null or ${table.cashedOut} >= 0`),
+  ],
+)

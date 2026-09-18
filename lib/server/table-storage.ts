@@ -245,6 +245,16 @@ type Envelope = {
  * outside Vercel is local, which includes this machine and the test suites.
  * Read per call rather than once at import, so a test can pin it.
  */
+/**
+ * A lifetime in whole seconds, never less than one, as Redis insists.
+ *
+ * Every lifetime used to be a round number of minutes, so dividing by a
+ * thousand always came out whole. A club table lives until a moment on the
+ * clock — its closing time — and that divides into fractions, which Redis
+ * refuses outright ("value is not an integer") rather than rounding.
+ */
+const seconds = (ms: number) => Math.max(1, Math.ceil(ms / 1000))
+
 const keyFor = (tableId: string) => `table:${process.env.VERCEL_ENV ?? 'local'}:${tableId}`
 
 /**
@@ -276,7 +286,7 @@ export function redisStorage(redis: Redis): TableStorage {
       // session, so a read pushes the expiry out exactly as a move would — by
       // the record's own lifetime, since a waiting room's is much shorter.
       const envelope = JSON.parse(stored) as Envelope
-      await redis.expire(key, envelope.ttlMs / 1000)
+      await redis.expire(key, seconds(envelope.ttlMs))
       return { table: envelope.table, version: envelope.version }
     },
 
@@ -287,7 +297,7 @@ export function redisStorage(redis: Redis): TableStorage {
         1,
         keyFor(tableId),
         JSON.stringify(envelope),
-        String(ttlMs / 1000),
+        String(seconds(ttlMs)),
         expectedVersion === null ? '' : String(expectedVersion),
       )
       if (applied !== 1) return false

@@ -28,6 +28,8 @@ export const ACTIONS = [
   'moveChips',
   /** Ask the admin for chips. */
   'requestChips',
+  /** Open tables, give them longer, and close them. */
+  'runTables',
 ] as const
 export type ClubAction = (typeof ACTIONS)[number]
 

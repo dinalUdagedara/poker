@@ -15,8 +15,8 @@ decisions it links to first, then this.**
 | 1 | Accounts | **Done, bar email** — on `feat/clubs`; Google sign-in tried by hand |
 | 2 | Clubs and membership | **Done** — on `feat/clubs`; tried by hand |
 | 3 | Ledger and counter | **Done** — on `feat/clubs`; walked through in a browser |
-| 4 | Cash-game lifecycle | **Done** — on `feat/clubs`; no screen until phase 5 |
-| 5 | Club tables | Not started |
+| 4 | Cash-game lifecycle | **Done** — on `feat/clubs` |
+| 5 | Club tables | **Done** — on `feat/clubs`; an evening played in a browser |
 | 6 | Finishing | Not started |
 
 ## Setup, outside the code
@@ -39,7 +39,8 @@ repository.
   and Preview; Node.js set to 24.x.
 
 Still to do by hand: `BETTER_AUTH_SECRET` in Vercel (Production and Preview,
-different values), and — when email is wired — a Resend account.
+different values), `CRON_SECRET` in Vercel (Production), and — when email is
+wired — a Resend account.
 
 ## Phase 0 — infrastructure
 
@@ -294,3 +295,76 @@ now compared with the table as stored, not as already folded.
 - Routes and a screen for cash tables. Nothing opens one yet except the tests.
 - Buy-in and cash-out through the ledger, the outbox drained, the cron job.
 - Top-up between hands.
+
+## Phase 5 — club tables
+
+**Decisions taken**
+
+- *Two records per table.* The game lives in Redis as a cash table
+  (phase 4); `club_tables` in Postgres is what lasts — the club it belongs to,
+  its settings, when it closes. `seat_sessions` is one row per sitting.
+- *Buy-in charges first, seats second, refunds on failure.* The balance, the
+  session and the `buy_in` ledger row go in one transaction; then the player is
+  seated; if seating fails the buy-in is refunded under a `refund:<session>`
+  key. Proved by accident on the dev database: a Redis error failed two buy-ins
+  after charging, and both were refunded exactly once.
+- *The browser's operation id is the session id*, so a retried buy-in finds its
+  own session and charges nothing more.
+- *Cash-outs are paid by `settle`*, which drains the table's outbox into the
+  ledger keyed `cash_out:<session>`, closing the session in the same
+  transaction, and only then clears the outbox. It runs after every action at a
+  club table, whenever the club's tables are listed, whenever an open stream
+  sees the table owes someone, and from the cron job.
+- *Each sitting keeps its last known stack* (`seat_sessions.last_stack`),
+  updated as players act. If the live table is ever lost from Redis, everyone
+  is paid what they last had rather than what they sat down with.
+- *The cron runs once a day* (`vercel.json`), the most often Vercel's Hobby plan
+  allows. It is the backstop for a table everyone has walked away from; tables
+  otherwise settle whenever anyone plays at them, opens the club, or has the
+  table open. On a paid plan, every few minutes would be better.
+- *A club table is for its members.* The table API, the stream and the hand
+  history answer 404 to anyone else (`mayWatch`).
+- *A member sitting at a table cannot be removed*; they stand up first, so no
+  seat is ever left with nobody to pay.
+- *The felt is shared.* `TableFelt` was lifted out of the quick game's screen
+  unchanged; `feltOf` draws a cash table in its shape, with players who were
+  not dealt in shown as sitting out. The club table screen adds its own dock:
+  buy-in, the betting controls, sit out, "I'm back", stand up, and the host's
+  "+1 hour" and "close table".
+- *Limits*: ten open tables per club, up to 24 hours each.
+
+**Found and fixed on the way**
+
+- *Redis refuses a fractional expiry.* A club table's lifetime runs to a moment
+  on the clock, which is rarely a whole number of seconds, and every buy-in
+  failed with "value is not an integer". The in-memory store the tests use
+  accepts fractions, so only running against real Redis found it. Lifetimes are
+  now rounded up to whole seconds in the storage layer, with a contract test.
+
+**Done**
+
+- Schema (`drizzle/0003_club_tables.sql`): `club_tables` and `seat_sessions`.
+- `lib/server/club-tables.ts` — open, list, view, buy in, act, stand, sit out
+  and in, extend, disband; `settle`, `settleIfOwed`, `sweepTables`, `mayWatch`.
+- Routes: `/api/clubs/:code/tables`, `/api/clubs/:code/tables/:tableId`,
+  `/api/cron/tables`; members-only checks on `/api/table/:id`, its stream and its
+  hands, and on the hand history page.
+- Screens: "Open a table" (seats, blinds, buy-in range in big blinds, time to
+  act, auto-start, game length); the tables list on the club page; the table.
+- Tests: `club-tables.test.ts` — twelve cases against PGlite and the in-memory
+  table store, every one checking that member balances plus chips on tables
+  equal what the admin sent out. `felt.test.ts` for the adapter.
+
+**Walked through in a browser** as two players on the `dev` database: open a
+table, both buy in, a hand dealt with blinds and the button, betting, a player
+standing up mid-hand and being paid when it ended, a timeout sitting the owner
+out with the "I'm back" prompt, closing the table. Both buy-ins of 10,000 came
+back as 10,050 and 9,950. No errors in either browser.
+
+**Not done yet** — phase 6:
+
+- Top-up between hands.
+- Asking for chips from the buy-in screen when the balance is short (today it
+  says to ask the admin).
+- Profit and loss per member on the member page.
+- An end-to-end test of a club evening in the Playwright suite.

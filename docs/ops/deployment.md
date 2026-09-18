@@ -92,6 +92,19 @@ GOOGLE_CLIENT_ID=…            Google Cloud → Google Auth Platform → Client
 GOOGLE_CLIENT_SECRET=…
 ```
 
+### Club tables' cron job
+
+```
+CRON_SECRET=…                 any long random string; Production only
+```
+
+`vercel.json` schedules `GET /api/cron/tables` once a day, which closes club
+tables past their time and pays everyone at them back into their balance.
+Vercel signs the call with `CRON_SECRET`; without it set, the route refuses
+every request and the job does nothing. Once a day is the most the Hobby plan
+allows — tables are also settled whenever anyone plays at them or opens their
+club, so the job only matters for a table everyone has left.
+
 The Google client lists the redirect URI for every address the app answers on:
 `http://localhost:3000`, `https://poker-pearl-gamma.vercel.app` and
 `https://poker.dinaludagedara.com`, each with `/api/auth/callback/google`.

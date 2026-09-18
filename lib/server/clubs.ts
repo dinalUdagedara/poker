@@ -14,13 +14,13 @@ import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
 
-import { and, asc, count, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm'
 
 import { can, type ClubAction, type ClubRole } from '../clubs/permissions'
 import { cleanLine, cleanText, LIMITS, normaliseCode, normalisePublicId } from '../clubs/text'
 import { AVATAR_COUNT, lacquerOf } from '../profile'
 import { db } from './db'
-import { chipRequests, clubMembers, clubs, users } from './db/schema'
+import { chipRequests, clubMembers, clubs, seatSessions, users } from './db/schema'
 import { claimEverything } from './ledger'
 
 export class ClubError extends Error {
@@ -481,6 +481,17 @@ export async function removeMember(viewer: Viewer, rawCode: unknown, rawPublicId
   const row = await memberRow(club.id, rawPublicId)
   if (row.role === 'owner') throw new ClubError('The owner cannot be removed', 409)
   if (row.status !== 'active') throw new ClubError('That player is not in this club', 404)
+
+  // Their chips are on a table. Removing them now would leave a seat with no
+  // member behind it to be paid; they stand up first, and then they can go.
+  const [seated] = await db()
+    .select({ id: seatSessions.id })
+    .from(seatSessions)
+    .where(
+      and(eq(seatSessions.clubId, club.id), eq(seatSessions.userId, row.userId), isNull(seatSessions.cashedOut)),
+    )
+    .limit(1)
+  if (seated) throw new ClubError(`${row.nickname ?? 'That player'} is sitting at a table. They need to stand up first.`, 409)
 
   // The chips come back to the club in the same transaction that removes the
   // member, so there is no moment when they are out of the club and still hold

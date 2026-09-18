@@ -629,6 +629,10 @@ export function cashViewOf(table: CashTable, viewerId: string | null): CashTable
             leaving: seat.leaving,
             sitOutNext: seat.sitOutNext,
             inHand: inLiveHand(table, chair),
+            dealt:
+              table.hand !== null &&
+              table.handSessions[engineId(chair)] === seat.sessionId &&
+              table.hand.players.some((p) => p.id === engineId(chair) && p.status !== 'sitting-out'),
             you: chair === you,
           }
         : null,

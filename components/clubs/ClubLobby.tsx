@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { ArrowRight, Coins, Settings, Share2, Users } from 'lucide-react'
+import { ArrowRight, Clock, Coins, Plus, Settings, Share2, Users } from 'lucide-react'
 
 import { SalonFrame } from '@/components/LandingShell'
-import { formatClubCode } from '@/lib/clubs/api'
+import { formatChips, formatClubCode } from '@/lib/clubs/api'
 import { can, isAdmin } from '@/lib/clubs/permissions'
 import type { ClubView } from '@/lib/server/clubs'
 import type { MyChips } from '@/lib/server/counter'
+import type { ClubTableSummary } from '@/lib/server/club-tables'
+import { cn } from '@/lib/utils'
 import { ClubCrest } from './ClubCrest'
 import { ClubPage, ROW, SectionLabel } from './ClubPage'
 import { MyChipsPanel } from './MyChipsPanel'
@@ -35,7 +37,23 @@ function useInvite(code: string) {
 }
 
 /** A club's own page: who it is, what the admin has to say, and its tables. */
-export function ClubLobby({ club, chips }: { club: ClubView; chips: MyChips }) {
+/** "3h 20m left", or "closing" once it is down to the last hand. */
+function timeLeft(closesAt: string): string {
+  const minutes = Math.max(0, Math.round((new Date(closesAt).getTime() - Date.now()) / 60_000))
+  if (minutes < 1) return 'closing'
+  const hours = Math.floor(minutes / 60)
+  return hours > 0 ? `${hours}h ${minutes % 60}m left` : `${minutes}m left`
+}
+
+export function ClubLobby({
+  club,
+  chips,
+  tables,
+}: {
+  club: ClubView
+  chips: MyChips
+  tables: ClubTableSummary[]
+}) {
   const invite = useInvite(club.code)
   const admin = isAdmin(club.role)
 
@@ -122,9 +140,54 @@ export function ClubLobby({ club, chips }: { club: ClubView; chips: MyChips }) {
 
       <section className="flex flex-col gap-2">
         <SectionLabel>Tables</SectionLabel>
-        <p className="text-muted-foreground py-3 text-[14px]">
-          {admin ? 'Tables you open will appear here.' : `No tables are open yet. ${club.ownerNickname} will open them here.`}
-        </p>
+        {tables.length === 0 ? (
+          <p className="text-muted-foreground py-3 text-[14px]">
+            {can(club.role, 'runTables')
+              ? 'No tables are open. Open one below.'
+              : `No tables are open yet. ${club.ownerNickname} will open them here.`}
+          </p>
+        ) : (
+          <ul>
+            {tables.map((table) => (
+              <li key={table.tableId}>
+                <Link href={`/clubs/${club.code}/tables/${table.tableId}`} className={ROW} data-testid={`table-${table.tableId}`}>
+                  <span
+                    className={cn(
+                      'flex size-11 shrink-0 flex-col items-center justify-center rounded-full border text-[12px] tabular-nums',
+                      table.seated >= table.seatCount ? 'border-foreground/20 text-muted-foreground' : 'border-brass/50 text-brass-lit',
+                    )}
+                    aria-label={`${table.seated} of ${table.seatCount} seats taken`}
+                  >
+                    {table.seated}/{table.seatCount}
+                  </span>
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-foreground truncate text-[15px] font-medium">{table.name}</span>
+                    <span className="text-muted-foreground text-[13px] tabular-nums">
+                      {formatChips(table.smallBlind)}/{formatChips(table.bigBlind)} · buy-in {formatChips(table.minBuyIn)}–
+                      {formatChips(table.maxBuyIn)}
+                    </span>
+                    {/* Worked out from the clock on each side, which can differ by a
+                        second between the server render and the browser. */}
+                    <span className="text-muted-foreground flex items-center gap-1 text-[12px]" suppressHydrationWarning>
+                      <Clock className="size-3" aria-hidden /> {timeLeft(table.closesAt)}
+                      {table.running ? ' · playing' : ''}
+                    </span>
+                  </span>
+                  <ArrowRight className="text-brass ml-auto size-[18px] shrink-0" strokeWidth={1.25} aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {can(club.role, 'runTables') && (
+          <Link href={`/clubs/${club.code}/tables/new`} className={ROW} data-testid="open-table">
+            <span className="border-brass/50 text-brass flex size-11 items-center justify-center rounded-full border">
+              <Plus className="size-5" strokeWidth={1.25} aria-hidden />
+            </span>
+            <span className="text-foreground text-[15px] font-medium">Open a table</span>
+            <ArrowRight className="text-brass ml-auto size-[18px]" strokeWidth={1.25} aria-hidden />
+          </Link>
+        )}
       </section>
     </ClubPage>
   )

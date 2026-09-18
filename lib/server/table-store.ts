@@ -505,7 +505,8 @@ function updateFrom(
 function lifetimeOf(table: StoredTable): number {
   if (table.stage === 'waiting') return WAITING_TTL_MS
   if (table.stage === 'cash' && !table.closed) {
-    return Math.max(TABLE_TTL_MS, table.closesAt - Date.now() + TABLE_TTL_MS)
+    // Whole seconds: Redis takes nothing finer, and refuses a fraction.
+    return Math.ceil(Math.max(TABLE_TTL_MS, table.closesAt - Date.now() + TABLE_TTL_MS) / 1000) * 1000
   }
   return TABLE_TTL_MS
 }

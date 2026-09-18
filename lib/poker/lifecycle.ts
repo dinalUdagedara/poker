@@ -121,6 +121,11 @@ export type CashSeatView = {
   sitOutNext: boolean
   /** Dealt into the hand being played. */
   inHand: boolean
+  /**
+   * Dealt into the hand on the felt — the one being played, or the one whose
+   * result is still showing — even if they have since folded.
+   */
+  dealt: boolean
   you: boolean
 }
 
