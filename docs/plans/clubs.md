@@ -213,9 +213,9 @@ club_members     club_id, user_id, PK(club_id, user_id)
                  referred_by NULL                   -- reserved for agents
                  requested_at, joined_at
 
-ledger           id, club_id, user_id, amount (signed integer),
-                 kind  'send' | 'claim' | 'buy_in' | 'cash_out' | 'removal'
-                 actor_id, table_id NULL, session_id NULL,
+ledger           id, club_id, user_id, amount (signed bigint), balance_after,
+                 kind  'send' | 'claim' | 'removal' | 'buy_in' | 'cash_out' | 'refund'
+                 actor_id, request_id NULL, table_id NULL, session_id NULL,
                  idempotency_key UNIQUE, created_at
 
 chip_requests    id, club_id, user_id, amount,

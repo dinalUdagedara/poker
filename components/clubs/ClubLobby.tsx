@@ -2,14 +2,16 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { ArrowRight, Settings, Share2, Users } from 'lucide-react'
+import { ArrowRight, Coins, Settings, Share2, Users } from 'lucide-react'
 
 import { SalonFrame } from '@/components/LandingShell'
 import { formatClubCode } from '@/lib/clubs/api'
-import { can } from '@/lib/clubs/permissions'
+import { can, isAdmin } from '@/lib/clubs/permissions'
 import type { ClubView } from '@/lib/server/clubs'
+import type { MyChips } from '@/lib/server/counter'
 import { ClubCrest } from './ClubCrest'
 import { ClubPage, ROW, SectionLabel } from './ClubPage'
+import { MyChipsPanel } from './MyChipsPanel'
 
 /**
  * Hand the invite link on: the phone's own share sheet where there is one —
@@ -33,9 +35,9 @@ function useInvite(code: string) {
 }
 
 /** A club's own page: who it is, what the admin has to say, and its tables. */
-export function ClubLobby({ club }: { club: ClubView }) {
+export function ClubLobby({ club, chips }: { club: ClubView; chips: MyChips }) {
   const invite = useInvite(club.code)
-  const admin = can(club.role, 'approveMembers') || can(club.role, 'editClub')
+  const admin = isAdmin(club.role)
 
   return (
     <ClubPage back="/clubs" backLabel="Clubs">
@@ -75,6 +77,8 @@ export function ClubLobby({ club }: { club: ClubView }) {
         </div>
       </SalonFrame>
 
+      <MyChipsPanel code={club.code} chips={chips} canRequest={can(club.role, 'requestChips')} />
+
       {admin && (
         <section className="flex flex-col">
           <SectionLabel>Run the club</SectionLabel>
@@ -91,6 +95,20 @@ export function ClubLobby({ club }: { club: ClubView }) {
                 <ArrowRight className="text-brass ml-auto size-[18px]" strokeWidth={1.25} aria-hidden />
               </Link>
             </li>
+            {can(club.role, 'moveChips') && (
+              <li>
+                <Link href={`/clubs/${club.code}/counter`} className={ROW} data-testid="admin-counter">
+                  <Coins className="text-brass size-5" strokeWidth={1.25} aria-hidden />
+                  <span className="text-foreground text-[15px] font-medium">Counter</span>
+                  {club.chipRequestCount > 0 && (
+                    <span className="bg-brass text-background rounded-full px-2 py-0.5 text-[11px] font-semibold" data-testid="chip-request-badge">
+                      {club.chipRequestCount} {club.chipRequestCount === 1 ? 'request' : 'requests'}
+                    </span>
+                  )}
+                  <ArrowRight className="text-brass ml-auto size-[18px]" strokeWidth={1.25} aria-hidden />
+                </Link>
+              </li>
+            )}
             <li>
               <Link href={`/clubs/${club.code}/settings`} className={ROW} data-testid="admin-settings">
                 <Settings className="text-brass size-5" strokeWidth={1.25} aria-hidden />

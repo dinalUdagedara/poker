@@ -13,8 +13,8 @@ decisions it links to first, then this.**
 | --- | --- | --- |
 | 0 | Infrastructure: Neon, Drizzle, migrations | **Done** — on `feat/clubs` |
 | 1 | Accounts | **Done, bar email** — on `feat/clubs`; Google sign-in tried by hand |
-| 2 | Clubs and membership | **Done** — on `feat/clubs` |
-| 3 | Ledger and counter | Not started |
+| 2 | Clubs and membership | **Done** — on `feat/clubs`; tried by hand |
+| 3 | Ledger and counter | **Done** — on `feat/clubs` |
 | 4 | Cash-game lifecycle | Not started |
 | 5 | Club tables | Not started |
 | 6 | Finishing | Not started |
@@ -169,3 +169,54 @@ player and a guest. The accounts and the club were deleted afterwards.
 - **Leaving a club** from the player's side. Removal is admin-only for now.
 - **Handing a club to someone else**, and deleting a club.
 - The lobby's **tables** section is a placeholder until phase 5.
+
+## Phase 3 — the ledger and the counter
+
+**Decisions taken**
+
+- *One function changes balances.* `move()` in `lib/server/ledger.ts` is the
+  only code that writes `club_members.balance`, and it writes the ledger row in
+  the same transaction — a savepoint when the caller already has one open.
+- *Idempotency is held by the database.* The browser makes an operation id per
+  tap of Send or Claim, and each member's move is keyed on it. A retry with the
+  same id finds the row and moves nothing; two copies racing past that check
+  are settled by the unique index, and the loser returns as "already done".
+  Tried against Neon with three identical sends fired at once: one moved.
+- *A chip request is paid by a send keyed on the request*, after the request
+  has been moved out of `pending` in the same transaction — so two admins, or
+  one tapping twice, cannot pay it twice.
+- *Batches are all or none.* Sending to several members, or claiming from
+  several, happens in one transaction; a claim one member cannot cover refuses
+  the whole claim rather than half of it.
+- *Removal claims the balance back* in the transaction that removes the member,
+  keyed on that membership, so chips never leave with a player.
+- *Chips are `bigint`* in the database and whole numbers everywhere, with a
+  ceiling of a billion per move (`MAX_MOVE`).
+- *A member may leave five requests waiting* (`MAX_PENDING_REQUESTS`); a request
+  from someone who has since left is rejected, not paid.
+- *The record shows the latest 100 moves*, searchable on the page. Paging and
+  date filters, as ClubGG has, can follow when a club has that much history.
+- *Tests run against real Postgres.* PGlite runs the app's own migrations in the
+  test process, so the unique index, the no-negative-balance check and the
+  transactions are all tested as Neon will enforce them.
+
+**Done**
+
+- Schema (`drizzle/0002_ledger.sql`): `club_members.balance`, `ledger` and
+  `chip_requests`, with checks that a balance and every recorded balance stay
+  at or above zero, and that no move is for nothing.
+- `lib/server/ledger.ts` — `move()` and `claimEverything()`.
+- `lib/server/counter.ts` — send, claim, requests, the record, member chip
+  figures and a member's own chips.
+- `POST /api/clubs/:code/chips` — send, claim, request and decide.
+- The club page shows your chips and lets you ask for more; admins get the
+  Counter, with a badge for waiting requests. The counter has Trade (pick
+  members, send out, claim back, claim all), Requests and Record. A member's
+  page shows balance, sent out and claimed back.
+- `lib/server/__tests__/counter.test.ts` — sixteen tests, every one ending on
+  the invariant that each balance equals the sum of its ledger.
+
+**Not done yet**
+
+- **Profit and loss** per member, which needs buy-ins and cash-outs (phase 5).
+- **Paging and filters** on the record beyond the latest hundred.

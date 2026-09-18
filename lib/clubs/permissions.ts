@@ -24,19 +24,26 @@ export const ACTIONS = [
   'annotateMembers',
   /** Change the club's name, crest and notice. */
   'editClub',
+  /** Send chips out, claim them back, answer chip requests and read the record. */
+  'moveChips',
+  /** Ask the admin for chips. */
+  'requestChips',
 ] as const
 export type ClubAction = (typeof ACTIONS)[number]
 
 const PERMISSIONS: Record<ClubRole, ReadonlySet<ClubAction>> = {
   owner: new Set(ACTIONS),
-  player: new Set(['view']),
+  player: new Set(['view', 'requestChips']),
 }
 
 export function can(role: ClubRole | null | undefined, action: ClubAction): boolean {
   return role != null && PERMISSIONS[role].has(action)
 }
 
+/** What every member may do. Anything beyond these is running the club. */
+const EVERY_MEMBER: ReadonlySet<ClubAction> = new Set(['view', 'requestChips'])
+
 /** Whether a role can do anything beyond playing — and so gets the admin menu. */
 export function isAdmin(role: ClubRole | null | undefined): boolean {
-  return ACTIONS.some((action) => action !== 'view' && can(role, action))
+  return ACTIONS.some((action) => !EVERY_MEMBER.has(action) && can(role, action))
 }

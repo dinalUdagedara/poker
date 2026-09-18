@@ -7,11 +7,12 @@ import { Field, PRIMARY_BUTTON, SECONDARY_BUTTON } from '@/components/account/Fi
 import { SalonFrame } from '@/components/LandingShell'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Button } from '@/components/ui/button'
-import { clubRequest } from '@/lib/clubs/api'
+import { clubRequest, formatChips } from '@/lib/clubs/api'
 import { can } from '@/lib/clubs/permissions'
 import { LIMITS } from '@/lib/clubs/text'
 import { formatPublicId } from '@/lib/profile'
 import type { ClubView, MemberView } from '@/lib/server/clubs'
+import type { MemberChips } from '@/lib/server/counter'
 import { ClubPage } from './ClubPage'
 
 const DATE = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -20,7 +21,15 @@ const DATE = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short'
  * One member, as the admin sees them: who they are, the admin's private alias
  * and note, and removal. The member never sees the alias or the note.
  */
-export function MemberDetailPanel({ club, member }: { club: ClubView; member: MemberView }) {
+export function MemberDetailPanel({
+  club,
+  member,
+  chips,
+}: {
+  club: ClubView
+  member: MemberView
+  chips: MemberChips
+}) {
   const router = useRouter()
   const back = `/clubs/${club.code}/members`
   const [busy, setBusy] = useState(false)
@@ -78,6 +87,21 @@ export function MemberDetailPanel({ club, member }: { club: ClubView; member: Me
             </div>
           </div>
 
+          <dl className="border-foreground/10 grid grid-cols-3 gap-3 border-y py-4" data-testid="member-chips">
+            {(
+              [
+                ['Balance', chips.balance],
+                ['Sent out', chips.sentOut],
+                ['Claimed back', chips.claimedBack],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="flex flex-col gap-1">
+                <dt className="text-muted-foreground text-[11px] font-semibold tracking-[0.18em] uppercase">{label}</dt>
+                <dd className="text-foreground text-lg font-semibold tabular-nums">{formatChips(value)}</dd>
+              </div>
+            ))}
+          </dl>
+
           <form className="flex flex-col gap-5" onSubmit={(e) => void save(e)} onChange={() => setSaved(false)}>
             <Field
               label="Alias — only you see it"
@@ -113,7 +137,8 @@ export function MemberDetailPanel({ club, member }: { club: ClubView; member: Me
             (confirming ? (
               <div className="flex flex-col gap-3" role="alertdialog" aria-label="Remove member">
                 <p className="text-center text-[14px]">
-                  Remove <span className="text-foreground font-medium">{member.nickname}</span> from {club.name}? They can
+                  Remove <span className="text-foreground font-medium">{member.nickname}</span> from {club.name}?
+                  {chips.balance > 0 && <> Their {formatChips(chips.balance)} chips come back to the club.</>} They can
                   ask to join again.
                 </p>
                 <div className="grid grid-cols-2 gap-3">

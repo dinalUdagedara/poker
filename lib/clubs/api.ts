@@ -22,3 +22,13 @@ export async function clubRequest<T = unknown>(
 export function formatClubCode(code: string): string {
   return code.length === 6 ? `${code.slice(0, 3)} ${code.slice(3)}` : code
 }
+
+/** Whole chips with thousands grouped: `12500` as `12,500`. */
+export function formatChips(chips: number): string {
+  return chips.toLocaleString('en')
+}
+
+/** A fresh id for one tap of Send or Claim, reused if that same tap is retried. */
+export function newOperationId(): string {
+  return crypto.randomUUID()
+}

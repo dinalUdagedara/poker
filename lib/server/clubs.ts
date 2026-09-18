@@ -20,7 +20,8 @@ import { can, type ClubAction, type ClubRole } from '../clubs/permissions'
 import { cleanLine, cleanText, LIMITS, normaliseCode, normalisePublicId } from '../clubs/text'
 import { AVATAR_COUNT, lacquerOf } from '../profile'
 import { db } from './db'
-import { clubMembers, clubs, users } from './db/schema'
+import { chipRequests, clubMembers, clubs, users } from './db/schema'
+import { claimEverything } from './ledger'
 
 export class ClubError extends Error {
   constructor(
@@ -56,7 +57,12 @@ export type ClubView = ClubPreview & {
   notice: string
   autoApprove: boolean
   role: ClubRole
+  /** Join requests waiting, for an admin who can answer them; otherwise 0. */
   pendingCount: number
+  /** Chip requests waiting, for an admin who can answer them; otherwise 0. */
+  chipRequestCount: number
+  /** The viewer's own chips in this club. */
+  balance: number
 }
 
 /** A club on the clubs page, with where the viewer stands in it. */
@@ -124,7 +130,7 @@ function previewOf(club: ClubRow, ownerNickname: string, memberCount: number): C
  * Throws for anyone who is not an active member, and for a member who lacks
  * `action`. Every route below starts here, so a check cannot be forgotten.
  */
-async function asMember(viewer: Viewer, rawCode: unknown, action: ClubAction = 'view') {
+export async function asMember(viewer: Viewer, rawCode: unknown, action: ClubAction = 'view') {
   const club = await clubByCode(rawCode)
   const membership = await membershipOf(club.id, viewer.id)
   if (!membership || membership.status !== 'active') {
@@ -183,12 +189,23 @@ export async function clubForMember(viewer: Viewer, rawCode: unknown): Promise<C
     pendingCount = row?.n ?? 0
   }
 
+  let chipRequestCount = 0
+  if (can(membership.role, 'moveChips')) {
+    const [row] = await db()
+      .select({ n: count() })
+      .from(chipRequests)
+      .where(and(eq(chipRequests.clubId, club.id), eq(chipRequests.status, 'pending')))
+    chipRequestCount = row?.n ?? 0
+  }
+
   return {
     ...previewOf(club, await nicknameOf(club.ownerId), counts.get(club.id) ?? 0),
     notice: club.notice,
     autoApprove: club.autoApprove,
     role: membership.role,
     pendingCount,
+    chipRequestCount,
+    balance: membership.balance,
   }
 }
 
@@ -256,7 +273,7 @@ export async function listMembers(
   }
 }
 
-async function memberRow(clubId: string, rawPublicId: unknown) {
+export async function memberRow(clubId: string, rawPublicId: unknown) {
   const publicId = normalisePublicId(rawPublicId)
   if (!publicId) throw new ClubError('A player ID is eight digits', 400)
   const [row] = await db()
@@ -456,8 +473,8 @@ export async function annotateMember(
  * The row stays, marked removed, because the ledger will point at it. The owner
  * cannot be removed — a club with no owner has nobody left who may run it.
  *
- * When chips arrive (phase 3), removal claims the member's balance back in the
- * same transaction, and is refused while they are seated at a table.
+ * Their whole balance is claimed back into the club as they go. Once tables
+ * exist (phase 5), removal is also refused while they are seated at one.
  */
 export async function removeMember(viewer: Viewer, rawCode: unknown, rawPublicId: unknown): Promise<void> {
   const { club } = await asMember(viewer, rawCode, 'removeMembers')
@@ -465,10 +482,22 @@ export async function removeMember(viewer: Viewer, rawCode: unknown, rawPublicId
   if (row.role === 'owner') throw new ClubError('The owner cannot be removed', 409)
   if (row.status !== 'active') throw new ClubError('That player is not in this club', 404)
 
-  await db()
-    .update(clubMembers)
-    .set({ status: 'removed', alias: '', note: '' })
-    .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, row.userId)))
+  // The chips come back to the club in the same transaction that removes the
+  // member, so there is no moment when they are out of the club and still hold
+  // a balance — and no moment when their chips have simply gone. The occasion
+  // is the membership as it stood, so a retried removal claims nothing twice.
+  await db().transaction(async (tx) => {
+    await claimEverything(tx, {
+      clubId: club.id,
+      userId: row.userId,
+      actorId: viewer.id,
+      occasion: `${club.id}:${row.joinedAt?.getTime() ?? 0}`,
+    })
+    await tx
+      .update(clubMembers)
+      .set({ status: 'removed', alias: '', note: '' })
+      .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, row.userId)))
+  })
 }
 
 /**

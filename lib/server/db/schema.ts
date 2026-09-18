@@ -12,7 +12,17 @@
  */
 
 import { sql } from 'drizzle-orm'
-import { boolean, check, index, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  boolean,
+  check,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
 
 const createdAt = () => timestamp('created_at').notNull().defaultNow()
 const updatedAt = () =>
@@ -141,6 +151,11 @@ export const clubs = pgTable(
  *
  * `alias` and `note` are the admin's private labels for a member and are never
  * shown to the member. `referredBy` is reserved for agents and unused in v1.
+ *
+ * `balance` is the member's chips in this club, whole chips only
+ * (docs/decisions/0008). It is a cache of the sum of their ledger entries,
+ * changed only in the same transaction as the entry that explains it, and the
+ * database refuses to let it go below zero (docs/decisions/0006).
  */
 export const clubMembers = pgTable(
   'club_members',
@@ -157,6 +172,7 @@ export const clubMembers = pgTable(
     alias: text('alias').notNull().default(''),
     note: text('note').notNull().default(''),
     referredBy: text('referred_by').references(() => users.id, { onDelete: 'set null' }),
+    balance: bigint('balance', { mode: 'number' }).notNull().default(0),
     requestedAt: timestamp('requested_at').notNull().defaultNow(),
     joinedAt: timestamp('joined_at'),
     updatedAt: updatedAt(),
@@ -166,5 +182,87 @@ export const clubMembers = pgTable(
     index('club_members_user_id_idx').on(table.userId),
     check('club_members_role_check', sql`${table.role} in ('owner', 'player')`),
     check('club_members_status_check', sql`${table.status} in ('pending', 'active', 'removed')`),
+    check('club_members_balance_check', sql`${table.balance} >= 0`),
+  ],
+)
+
+export const LEDGER_KINDS = ['send', 'claim', 'removal', 'buy_in', 'cash_out', 'refund'] as const
+export type LedgerKind = (typeof LEDGER_KINDS)[number]
+
+/**
+ * Every chip that moves, once.
+ *
+ * One row per change to one member's balance: `amount` is signed — positive
+ * into the member's balance, negative out of it — and `balanceAfter` is what it
+ * left behind, so any balance can be checked against its history. Rows are only
+ * ever added.
+ *
+ * - `send` and `claim` are the admin topping a member up and taking chips back;
+ * - `removal` is the balance claimed back when a member is removed;
+ * - `buy_in`, `cash_out` and `refund` are chips going to and from a table
+ *   (phase 5).
+ *
+ * `idempotencyKey` is what makes a move happen at most once. The same request
+ * sent twice — a double tap, a retry, a second tab — carries the same key, and
+ * the second insert is refused by the unique index before any balance changes.
+ */
+export const ledger = pgTable(
+  'ledger',
+  {
+    id: text('id').primaryKey(),
+    clubId: text('club_id')
+      .notNull()
+      .references(() => clubs.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    balanceAfter: bigint('balance_after', { mode: 'number' }).notNull(),
+    kind: text('kind', { enum: LEDGER_KINDS }).notNull(),
+    actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    requestId: text('request_id'),
+    tableId: text('table_id'),
+    sessionId: text('session_id'),
+    idempotencyKey: text('idempotency_key').notNull().unique(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index('ledger_club_created_idx').on(table.clubId, table.createdAt),
+    index('ledger_club_user_idx').on(table.clubId, table.userId),
+    check('ledger_amount_check', sql`${table.amount} <> 0`),
+    check('ledger_balance_after_check', sql`${table.balanceAfter} >= 0`),
+    check(
+      'ledger_kind_check',
+      sql`${table.kind} in ('send', 'claim', 'removal', 'buy_in', 'cash_out', 'refund')`,
+    ),
+  ],
+)
+
+/**
+ * A member asking the admin for chips.
+ *
+ * Approving one is a `send` keyed on the request, so a request can never be paid
+ * twice however many times it is approved.
+ */
+export const chipRequests = pgTable(
+  'chip_requests',
+  {
+    id: text('id').primaryKey(),
+    clubId: text('club_id')
+      .notNull()
+      .references(() => clubs.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
+    decidedBy: text('decided_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    decidedAt: timestamp('decided_at'),
+  },
+  (table) => [
+    index('chip_requests_club_status_idx').on(table.clubId, table.status),
+    check('chip_requests_amount_check', sql`${table.amount} > 0`),
+    check('chip_requests_status_check', sql`${table.status} in ('pending', 'approved', 'rejected')`),
   ],
 )

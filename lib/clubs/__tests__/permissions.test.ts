@@ -7,8 +7,8 @@ describe('club permissions', () => {
     for (const action of ACTIONS) expect(can('owner', action)).toBe(true)
   })
 
-  it('lets a player only look and play', () => {
-    expect(ACTIONS.filter((action) => can('player', action))).toEqual(['view'])
+  it('lets a player only look, play and ask for chips', () => {
+    expect(ACTIONS.filter((action) => can('player', action))).toEqual(['view', 'requestChips'])
   })
 
   it('refuses everything to someone with no role', () => {

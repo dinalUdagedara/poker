@@ -51,3 +51,12 @@ export function db(): Database {
   global.__pokerDb = drizzle({ client: new Pool({ connectionString }), schema })
   return global.__pokerDb
 }
+
+/**
+ * Point the app at a database made elsewhere — the tests' in-process Postgres
+ * (PGlite), which speaks the same SQL and enforces the same constraints as Neon.
+ * Only for tests; the app itself always goes through `db()`.
+ */
+export function useDatabaseForTests(database: unknown): void {
+  global.__pokerDb = database as Database
+}
