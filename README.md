@@ -119,7 +119,7 @@ npm run dev          # http://localhost:3000
 
 No environment variables are needed to play locally — with no `REDIS_URL` set,
 tables are kept in a process-local map. That is deliberate for development and
-a trap in production; see [DEPLOYMENT.md](DEPLOYMENT.md).
+a trap in production; see [docs/ops/deployment.md](docs/ops/deployment.md).
 
 ```bash
 npm test             # unit suite (Vitest)
@@ -143,7 +143,7 @@ crossed the wire rather than on what the interface drew.
 
 Vercel with a Redis database attached, which is what the live URL runs on. One
 environment variable, no build step beyond `next build`, no migrations.
-[DEPLOYMENT.md](DEPLOYMENT.md) is the full briefing, including how to prove
+[docs/ops/deployment.md](docs/ops/deployment.md) is the full briefing, including how to prove
 that what you deployed is really talking to Redis.
 
 ## The look
@@ -173,10 +173,12 @@ red either, and why green only ever means money.
 
 - [design-system/readme.md](design-system/readme.md) — the look, and the rules
   behind it
-- [DEPLOYMENT.md](DEPLOYMENT.md) — where it runs, and how to check it
-- [MULTIPLAYER.md](MULTIPLAYER.md) — the plan multiplayer was built to
-- [MULTIPLAYER-PROGRESS.md](MULTIPLAYER-PROGRESS.md) — what landed, what was
-  decided along the way, and what is still open
-- [texas-holdem-reference.md](texas-holdem-reference.md) — the rules the engine
-  was written against, in engineering terms
+- [docs/](docs/README.md) — plans, decisions, operations and reference; the
+  index there says what each one is and which are current
+- [docs/ops/deployment.md](docs/ops/deployment.md) — where it runs, and how to
+  check it
+- [docs/plans/clubs.md](docs/plans/clubs.md) — the plan for private clubs, in
+  progress
+- [docs/decisions/](docs/decisions/) — why things are the way they are, one
+  decision per file
 - [AGENTS.md](AGENTS.md) — read this before letting an AI touch the code
