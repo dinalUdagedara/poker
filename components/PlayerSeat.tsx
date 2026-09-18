@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { ChipStack } from './ChipStack'
 import { PlayerAvatar } from './PlayerAvatar'
 import { PlayingCard } from './PlayingCard'
+import { SeatWin } from './SeatWin'
 import { stackTone, type StackTone } from '@/lib/poker/chips'
 import type { RedactedPlayer } from '@/lib/poker/redact'
 
@@ -54,6 +55,7 @@ export function PlayerSeat({
   isActing,
   isButton,
   isWinner,
+  winAmount = 0,
   handOver = false,
   compact = false,
   callout,
@@ -68,6 +70,8 @@ export function PlayerSeat({
   isActing: boolean
   isButton: boolean
   isWinner: boolean
+  /** What this seat was paid from the pot, for the badge. */
+  winAmount?: number
   handOver?: boolean
   compact?: boolean
   bigBlind: number
@@ -96,7 +100,7 @@ export function PlayerSeat({
       */}
       <div
         className={cn(
-          'flex items-end justify-center',
+          'relative flex items-end justify-center',
           hero ? '-mb-5 sm:-mb-4' : shown ? '-mb-6 sm:-mb-5' : '-mb-4 sm:-mb-4',
           // A folded seat has to recede, or the people no longer in the hand
           // become the brightest thing on the felt.
@@ -116,7 +120,9 @@ export function PlayerSeat({
                 hero && 'w-14 sm:w-16',
                 !hero && shown && 'w-12 sm:w-14',
                 !hero && !shown && 'sm:w-10',
-                'origin-bottom transition-[width,transform] duration-500',
+                // The hand that won is lifted clear of the plate to be read.
+                isWinner && shown && '-translate-y-2 sm:-translate-y-3',
+                'origin-bottom transition-[width,transform,translate] duration-500',
                 'hover:z-10 hover:-translate-y-1 hover:rotate-0',
               )}
             />
@@ -125,6 +131,19 @@ export function PlayerSeat({
           <span
             className={cn('block', hero ? 'h-16' : compact ? 'h-10' : 'h-11 sm:h-12')}
             aria-hidden
+          />
+        )}
+
+        {/*
+          Struck across the seam between the cards and the plate, the way
+          ClubGG lays it over the portrait: the word covers the foot of the
+          cards, and the chips and amount spill onto the plate below.
+        */}
+        {isWinner && winAmount > 0 && (
+          <SeatWin
+            amount={winAmount}
+            hero={hero}
+            className="absolute top-full left-1/2 z-20 mt-[-0.8em] -translate-x-1/2"
           />
         )}
       </div>
