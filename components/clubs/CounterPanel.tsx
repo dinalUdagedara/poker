@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import { Check, X } from 'lucide-react'
 
 import { PlayerAvatar } from '@/components/PlayerAvatar'
@@ -76,7 +76,12 @@ export function CounterPanel({
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const [amount, setAmount] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [sending, setSending] = useState(false)
+  // The page is re-read after every change. Until the fresh numbers arrive the
+  // old ones are dimmed and the buttons held, so a "Sent 1,000" never sits
+  // beside balances that do not show it yet.
+  const [refreshing, startRefresh] = useTransition()
+  const busy = sending || refreshing
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
   const needle = query.trim().toLocaleLowerCase()
@@ -103,13 +108,13 @@ export function CounterPanel({
   }
 
   async function run(body: Record<string, unknown>, done: (result: never) => string) {
-    setBusy(true)
+    setSending(true)
     setNotice(null)
     try {
       const result = await clubRequest(`/${club.code}/chips`, 'POST', body)
       operation.settle()
       setNotice({ kind: 'ok', text: done(result as never) })
-      router.refresh()
+      startRefresh(() => router.refresh())
       return true
     } catch (e) {
       // An error the server gave is an answer; a thrown fetch is not.
@@ -117,7 +122,7 @@ export function CounterPanel({
       setNotice({ kind: 'error', text: (e as Error).message })
       return false
     } finally {
-      setBusy(false)
+      setSending(false)
     }
   }
 
@@ -165,7 +170,10 @@ export function CounterPanel({
         </div>
         <div className="border-foreground/10 flex flex-col gap-1 border-t pt-3">
           <span className="text-muted-foreground text-[11px] font-semibold tracking-[0.24em] uppercase">With members</span>
-          <span className="text-foreground text-xl font-semibold tabular-nums" data-testid="total-member-chips">
+          <span
+            className={cn('text-foreground text-xl font-semibold tabular-nums transition-opacity', refreshing && 'opacity-50')}
+            data-testid="total-member-chips"
+          >
             {formatChips(counter.totalMemberChips)}
           </span>
         </div>
@@ -208,7 +216,7 @@ export function CounterPanel({
             className="placeholder:text-muted-foreground/70 border-foreground/20 focus:border-brass text-foreground h-11 w-full border-b bg-transparent px-0.5 text-[15px] outline-none"
             data-testid="counter-search"
           />
-          <ul>
+          <ul className={cn('transition-opacity', refreshing && 'opacity-50')} aria-busy={refreshing}>
             {members.map((member) => {
               const selected = picked.has(member.publicId)
               return (

@@ -253,7 +253,8 @@ export async function memberChips(viewer: Viewer, rawCode: unknown, rawPublicId:
   return {
     balance: balance?.balance ?? 0,
     sentOut: totalOf('send'),
-    claimedBack: -totalOf('claim', 'removal'),
+    // Claims are stored negative; `|| 0` keeps "none" from reading as −0.
+    claimedBack: -totalOf('claim', 'removal') || 0,
   }
 }
 
