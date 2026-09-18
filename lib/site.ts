@@ -25,6 +25,14 @@ function resolveSiteUrl(): string {
 
 export const siteUrl = resolveSiteUrl()
 
+/**
+ * Where people write about their account — to have it deleted, above all.
+ *
+ * Shown on the privacy page. Null until the owner decides which address to
+ * publish, and the page words itself around its absence.
+ */
+export const CONTACT_EMAIL: string | null = null
+
 /** The house name, and the one sentence that says what the thing is. */
 export const SITE_NAME = 'Showdown'
 export const SITE_TAGLINE = 'No-limit Texas Hold’em'

@@ -6,23 +6,26 @@ checked against the code rather than assumed.
 ## What it is
 
 No-limit Texas Hold'em, against bots or against other people in a shared room.
-Next.js 16.2.12, App Router, TypeScript, Tailwind v4. No auth, no relational
-database. Table state lives in Redis; everything else is computed per request.
+Next.js 16.2.12, App Router, TypeScript, Tailwind v4. Table state lives in
+Redis. Accounts — and, as the clubs work lands, clubs and chips — live in
+Postgres. Everything else is computed per request.
 
-- `npm run build` — production build
+- `npm run build` — apply database migrations, then the production build
+- `npm run db:generate` — write a migration from changes to `lib/server/db/schema.ts`
+- `npm run db:migrate` — apply migrations without building
 - `npm start` — serve the build (`next start`)
 - `npm test` — unit suite (Vitest)
 - `npm run e2e` — end-to-end suite (Playwright; builds and serves on port 3210)
 
 ## Where it runs
 
-Vercel, with a Redis database attached. That is the live setup and the code is
-written for it.
+Vercel, with a Redis database and a Neon Postgres database attached. That is
+the live setup and the code is written for it.
 
-The only thing a host has to provide is a Node runtime and `REDIS_URL`. There is
-no build step beyond `next build`, no migration to run, and nothing to seed.
+A host provides a Node runtime, `REDIS_URL` and `DATABASE_URL`. There is nothing
+to seed; migrations run as part of the build.
 
-### The one environment variable
+### Redis
 
 ```
 REDIS_URL=redis://…
@@ -44,6 +47,60 @@ is live rather than inferring it from the app appearing to work:
 - Runtime logs should **not** contain `No Redis credentials found`.
 - The database should show keys named `table:<environment>:<uuid>` while
   anyone is playing.
+
+### Postgres
+
+```
+DATABASE_URL=postgresql://…   (Neon, pooled connection)
+```
+
+Provisioned through the Neon integration in the Vercel dashboard, connected to
+**Production and Preview only**, with a database branch created for each
+preview deployment. Production uses Neon's `main` branch; each preview gets a
+branch of its own, so a preview can migrate and write without touching
+production's data. Development is deliberately **not** connected: pulling
+Vercel's variables to a laptop would hand it production's database.
+
+Locally, `.env.local` points at a long-lived Neon branch called `dev`, made from
+`main` in the Neon console with its expiry set to never. It is the laptop's own
+copy of the database.
+
+**Migrations.** `lib/server/db/schema.ts` is the schema. `npm run db:generate`
+writes the difference from the last migration as a SQL file in `drizzle/`,
+which is committed and reviewed. `scripts/migrate.mjs` applies any that are
+new, and runs at the start of `npm run build` — so a deployment migrates its own
+database before its code is built against it. With no `DATABASE_URL` it skips
+itself, which is what the end-to-end suite relies on.
+
+A migration reaches production before the new code is serving it, while the
+previous deployment is still answering requests. Keep migrations additive — add
+a column, backfill, and only drop what the old code used in a later deploy.
+
+**Without `DATABASE_URL` the app still runs**, with no accounts: quick games and
+public rooms need nothing from Postgres. Unlike Redis there is no in-memory
+stand-in, because an account that vanished on the next cold start would be
+worse than no account at all.
+
+### Accounts
+
+Better Auth, inside the app, storing users and sessions in Postgres
+(`lib/server/auth.ts`, routes under `/api/auth`). It needs:
+
+```
+BETTER_AUTH_SECRET=…          signs session cookies; 32+ random bytes, one per environment
+GOOGLE_CLIENT_ID=…            Google Cloud → Google Auth Platform → Clients
+GOOGLE_CLIENT_SECRET=…
+```
+
+The Google client lists the redirect URI for every address the app answers on:
+`http://localhost:3000`, `https://poker-pearl-gamma.vercel.app` and
+`https://poker.dinaludagedara.com`, each with `/api/auth/callback/google`.
+Preview deployments have addresses Google cannot know in advance, so Google
+sign-in works locally and in production, and previews use email sign-in.
+
+The Google app is in **Testing** until the site has a homepage and a privacy
+policy page to list on its consent screen. Until it is published, only the test
+users listed under Google Auth Platform → Audience can sign in with Google.
 
 ## How table state is stored
 
@@ -103,8 +160,10 @@ nothing above it knows.
 ## Node version
 
 Pinned in two places, because hosts read different ones: `.nvmrc` (`22`) and the
-`engines` field in `package.json` (`>=20.9.0`, which is what Next 16.2.12 itself
-declares). Node 20.0–20.8 will not run it.
+`engines` field in `package.json` (`>=22`). Next 16.2.12 itself runs on 20.9,
+but the Postgres driver relies on the global `WebSocket` that Node 22 made
+standard, and Vercel stops building on Node 20 from October 2026. The project's
+Vercel setting is Node 24.
 
 ## What a restart costs
 
@@ -120,6 +179,9 @@ page. Nothing is corrupted; the hand is just gone.
 ## Before deploying
 
 - `npm run build` should pass with no type or lint errors.
+- Any change to `lib/server/db/schema.ts` has a migration beside it
+  (`npm run db:generate`), and the migration has been applied to the `dev`
+  branch and tried there first.
 - Both suites should be green. The e2e suite runs against a production build, so
   it is a fair smoke test of what will actually be served. It deliberately runs
   on the in-memory backend — `playwright.config.ts` blanks `REDIS_URL` — so the

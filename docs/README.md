@@ -9,7 +9,9 @@ What we set out to build, and how. A plan is written before the work and
 changes rarely; where it has a progress file, that is where things stand.
 
 - [plans/clubs.md](plans/clubs.md) — private clubs in the shape of ClubGG.
-  **Agreed, not started.**
+  **In progress.**
+- [plans/clubs-progress.md](plans/clubs-progress.md) — what has landed for
+  clubs, the setup done by hand, and the decisions taken along the way.
 - [plans/multiplayer.md](plans/multiplayer.md) — turning the single-player
   table into one several people sit at. **Done.**
 - [plans/multiplayer-progress.md](plans/multiplayer-progress.md) — what landed

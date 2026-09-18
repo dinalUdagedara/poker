@@ -197,8 +197,9 @@ Money is whole chips. The engine already refuses anything else
 game. ClubGG's `0.01/0.02` becomes blinds of `1/2`, `5/10`, `50/100` and so on.
 
 ```
-users            ← Better Auth's own tables (user, session, account)
-profiles         user_id PK, nickname, avatar, public_id UNIQUE
+users            ← Better Auth's user, with nickname, avatar, public_id UNIQUE
+                   on the same row (see clubs-progress.md for why)
+sessions, accounts, verifications   ← Better Auth's own
 
 clubs            id, code UNIQUE (six digits), name, logo, notice,
                  owner_id, auto_approve, created_at

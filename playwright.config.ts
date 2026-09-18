@@ -34,6 +34,10 @@ export default defineConfig({
       // tables, and it should not need a network or a real database to do it.
       // Drop this line to run the same tests against Redis.
       REDIS_URL: '',
+      // Likewise Postgres: with no connection string the build skips its
+      // migrations and the app runs without accounts, which is all a quick
+      // game needs. Nothing here writes to the database a developer uses.
+      DATABASE_URL: '',
       // Built into its own directory. A production build over `.next` swaps the
       // chunks a running dev server is serving, and its open tabs quietly keep
       // showing the code from before.

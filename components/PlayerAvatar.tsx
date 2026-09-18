@@ -1,14 +1,5 @@
+import { LACQUER_HUES } from '@/lib/profile'
 import { cn } from '@/lib/utils'
-
-/**
- * The lacquer a monogram is set on, as hues.
- *
- * Jewel tones held dark and quiet — emerald, oxblood, sapphire, aubergine,
- * tobacco, teal — so a seat looks engraved rather than printed. Every one sits
- * at the same lightness and chroma, so no player's face is louder than another
- * and the gold lettering has the same contrast on all of them.
- */
-const LACQUER_HUES = [158, 25, 262, 322, 55, 205]
 
 /** A small, stable hash, so the same id always lands on the same lacquer. */
 function hash(value: string): number {
@@ -44,13 +35,16 @@ export function initials(name: string): string {
 export function PlayerAvatar({
   seed,
   name,
+  lacquer,
   className,
 }: {
   seed: string
   name: string
+  /** The lacquer an account chose, as an index into LACQUER_HUES. Guests have none. */
+  lacquer?: number | null
   className?: string
 }) {
-  const hue = LACQUER_HUES[hash(seed) % LACQUER_HUES.length]
+  const hue = LACQUER_HUES[lacquer ?? hash(seed) % LACQUER_HUES.length]
   const letters = initials(name)
 
   return (
