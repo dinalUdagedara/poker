@@ -54,4 +54,4 @@ Worth checking properly — without Redis the site still *looks* fine, it just q
 
 ---
 
-More detail if needed: `DEPLOYMENT.md` in the repo.
+More detail if needed: [`deployment.md`](deployment.md), next to this file.

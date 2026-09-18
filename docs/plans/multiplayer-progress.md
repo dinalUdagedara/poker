@@ -1,12 +1,12 @@
 # Multiplayer: state of the work
 
-Living status for the multiplayer work. `MULTIPLAYER.md` is the plan and does
+Living status for the multiplayer work. [`multiplayer.md`](multiplayer.md) is the plan and does
 not change often; this file is where things stand and is updated as work lands.
 The phase sections below are kept as they were written, as a record of what was
 decided and why — where a later section contradicts one, the later one is what
 the code does.
 
-**If you are picking this up cold: read `MULTIPLAYER.md` first, then this.**
+**If you are picking this up cold: read [`multiplayer.md`](multiplayer.md) first, then this.**
 Everything below assumes the plan's phase numbering.
 
 ## Status
