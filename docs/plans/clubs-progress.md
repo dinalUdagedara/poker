@@ -14,8 +14,8 @@ decisions it links to first, then this.**
 | 0 | Infrastructure: Neon, Drizzle, migrations | **Done** — on `feat/clubs` |
 | 1 | Accounts | **Done, bar email** — on `feat/clubs`; Google sign-in tried by hand |
 | 2 | Clubs and membership | **Done** — on `feat/clubs`; tried by hand |
-| 3 | Ledger and counter | **Done** — on `feat/clubs` |
-| 4 | Cash-game lifecycle | Not started |
+| 3 | Ledger and counter | **Done** — on `feat/clubs`; walked through in a browser |
+| 4 | Cash-game lifecycle | **Done** — on `feat/clubs`; no screen until phase 5 |
 | 5 | Club tables | Not started |
 | 6 | Finishing | Not started |
 
@@ -220,3 +220,77 @@ player and a guest. The accounts and the club were deleted afterwards.
 
 - **Profit and loss** per member, which needs buy-ins and cash-outs (phase 5).
 - **Paging and filters** on the record beyond the latest hundred.
+
+## Phase 4 — the cash-game lifecycle
+
+**Decisions taken**
+
+- *The rules are a pure module.* `lib/server/cash-table.ts` takes a table and
+  the time and returns the next table: sitting down, standing up, sitting out
+  and back in, acting, timing out, settling a hand, releasing seats, closing,
+  and dealing. No storage, no clock of its own — the tests step time by hand.
+  `table-store.ts` stores the result as a third stage beside `waiting` and
+  `playing`; quick games and rooms are untouched and refuse club tables.
+- *`tick` applies everything that has come due*, in order, and returns the same
+  object when nothing has. It runs before every change and on every look, and a
+  look that finds something due writes it — so the table deals its next hand,
+  folds for the absent and closes on time through whichever open stream checks
+  next (every five seconds at most). No timer, no job.
+- *Chips leave through an outbox.* Standing up, being stood up, and closing add
+  the player's stack to `cashOuts`, keyed on their seat session. The table pays
+  nobody itself; phase 5 drains the outbox into the ledger, idempotently on the
+  session, and clears what it paid.
+- *A player is paid what is in front of them now.* Someone who folds and stands
+  up mid-hand leaves what they put in the pot behind. The first version paid
+  their pre-hand stack — a big blind made from nothing — and the conservation
+  test caught it on its first run.
+- *Each hand remembers which sitting each engine seat was* (`handSessions`). The
+  engine calls a chair `s<n>` whoever sits in it, and a chair can change hands
+  mid-hand; stacks are only read back into the sitting that was dealt, and the
+  hand history shows a player their cards only in hands dealt to their own
+  sitting — never the previous occupant's.
+- *Leaving mid-hand folds for you when your turn comes*, and you are stood up
+  with what is left when the hand ends. Asking to sit out mid-hand takes effect
+  from the next hand.
+- *Timing out* checks or folds for you and sits you out on the spot; the rest of
+  the hand plays itself for you. You have a minute (`TIMEOUT_GRACE_MS`) to say
+  you are back before you are stood up. A chosen sit-out holds the seat ten
+  minutes; a player with no chips left keeps it ten minutes to top up.
+- *Fixed blinds, a button that moves to the next chair dealt in*, the first deal
+  waiting for the table's auto-start count and later ones for any two. No dead
+  blinds for latecomers — a refinement to add if clubs ask.
+- *The result stays on the felt for four seconds* (`NEXT_HAND_MS`) before the
+  next deal, as the quick game's does.
+- *A closing table finishes the hand in progress* — at closing time or on
+  disband — then stands everyone up and deals no more.
+- *Cash tables are kept in Redis until two hours after closing time*, however
+  quiet they go, so an expiry can never take chips with it.
+
+**Also fixed in passing:** a quick-game hand that ended because a player's clock
+ran out could be left out of the hand history. The write that folds for them is
+now compared with the table as stored, not as already folded.
+
+**Done**
+
+- `lib/server/cash-table.ts` — the lifecycle, and `cashViewOf`, the table as one
+  player sees it: their own cards only, everyone else's hidden until a showdown.
+- `CashTableView` in `lib/poker/lifecycle.ts`.
+- `table-store.ts` — the cash stage in versioned writes, the stream, the
+  archive and the history; `openCashGame`, `sitAtCashTable`, `standAtCashTable`,
+  `sitOutAtCashTable`, `sitInAtCashTable`, `actAtCashTable`, `disbandCashTable`,
+  `extendCashTable`, `readCashTable`, `clearPaidCashOuts`.
+- `lib/server/__tests__/cash-table.test.ts` — the rules, and five seeded random
+  evenings of 1,500 steps each — people joining, leaving, sitting out, timing
+  out, busting, betting at random — checking after every step that the chips in
+  front of players, in the pot and paid out add up to exactly what was bought
+  in, and that every sitting is paid out once.
+- `lib/server/__tests__/cash-store.test.ts` — through the store: each player
+  sees only their own cards, looking deals the next hand and writes it, a new
+  occupant of a chair sees none of the previous one's cards in the history, and
+  the quick-game routes refuse a club table.
+
+**Not done yet** — all phase 5:
+
+- Routes and a screen for cash tables. Nothing opens one yet except the tests.
+- Buy-in and cash-out through the ledger, the outbox drained, the cron job.
+- Top-up between hands.

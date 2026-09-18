@@ -19,6 +19,7 @@ import 'server-only'
 import Redis from 'ioredis'
 
 import type { TableState } from '../poker/types'
+import type { CashTable } from './cash-table'
 import type { TableSettings } from './table-store'
 
 /**
@@ -89,7 +90,13 @@ export type PlayingTable = {
   rematchId?: string
 }
 
-export type StoredTable = WaitingTable | PlayingTable
+/**
+ * A club's cash table — its own lifecycle, in `cash-table.ts`. Stored beside the
+ * other two so it gets the same versioned writes, pub/sub and archive.
+ */
+export type { CashTable }
+
+export type StoredTable = WaitingTable | PlayingTable | CashTable
 
 /**
  * A hand that has been played out, kept so it can be read back.
@@ -110,6 +117,12 @@ export type ArchivedHand = {
   /** What to call each seat, by engine seat id, as it was at the time. */
   names: Record<string, string>
   state: TableState
+  /**
+   * At a cash table, which sitting each engine seat was. A chair changes hands
+   * over an evening, and the history must show a player their own cards, not
+   * the cards of whoever sat in that chair before them.
+   */
+  sessions?: Record<string, string>
 }
 
 /**

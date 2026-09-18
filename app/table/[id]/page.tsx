@@ -46,5 +46,9 @@ export default async function TablePage({ params }: PageProps<'/table/[id]'>) {
   // table without them going anywhere.
   if (initial.stage === 'waiting') return <WaitingRoom initial={initial} />
 
+  // A club's cash table is played from inside its club, where who may sit is
+  // known; its own screen arrives with club tables.
+  if (initial.stage === 'cash') notFound()
+
   return <PokerTable tableId={id} initial={initial} />
 }

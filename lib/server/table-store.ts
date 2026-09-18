@@ -17,6 +17,7 @@ import { decideAction } from '../poker/bots/equity'
 import {
   tableOutcome,
   type AnyTableView,
+  type CashTableView,
   type RoomSummary,
   type RoomView,
   type TableUpdate,
@@ -28,6 +29,27 @@ import type { HandView } from '../poker/archive'
 import { redactFor } from '../poker/redact'
 import { applyAction, legalActions, startHand, type SeatConfig } from '../poker/state-machine'
 import type { Action, TableState } from '../poker/types'
+import {
+  act as cashAct,
+  cashViewOf,
+  CashTableError,
+  chairOf,
+  clearCashOuts,
+  disband,
+  engineId,
+  extend,
+  namesOf,
+  openCashTable,
+  resolveCashSettings,
+  sitDown,
+  sitIn,
+  sitOut,
+  standUp,
+  tick,
+  type ActionIntent,
+  type CashSettings,
+  type CashTable,
+} from './cash-table'
 import {
   storage,
   TABLE_TTL_MS,
@@ -380,6 +402,19 @@ function outOfTime(table: StoredTable, now: number): boolean {
   return Boolean(acting && acting in table.owners)
 }
 
+/**
+ * Whether looking at this table should also move it along.
+ *
+ * A quick game only ever has its clock to enforce. A cash table has more to
+ * come due — the next deal, a seat held too long, closing time — and anything
+ * `tick` would change is worth writing, so the next person to look sees the
+ * same table as this one.
+ */
+function hasDue(table: StoredTable, now: number): boolean {
+  if (table.stage === 'cash') return tick(table, now) !== table
+  return outOfTime(table, now)
+}
+
 function enforceClock(table: PlayingTable, now: number): PlayingTable {
   if (!outOfTime(table, now)) return table
 
@@ -459,9 +494,21 @@ function updateFrom(
   }
 }
 
-/** How long a record of this stage may sit untouched. */
-const lifetimeOf = (table: StoredTable) =>
-  table.stage === 'waiting' ? WAITING_TTL_MS : TABLE_TTL_MS
+/**
+ * How long a record of this stage may sit untouched.
+ *
+ * A cash table is kept until well after its closing time, however quiet it
+ * goes: it holds people's chips, and an expiry that fired while it was still
+ * open would take them with it. Once closed it keeps the ordinary two hours,
+ * which is ample for its outbox to be paid (phase 5).
+ */
+function lifetimeOf(table: StoredTable): number {
+  if (table.stage === 'waiting') return WAITING_TTL_MS
+  if (table.stage === 'cash' && !table.closed) {
+    return Math.max(TABLE_TTL_MS, table.closesAt - Date.now() + TABLE_TTL_MS)
+  }
+  return TABLE_TTL_MS
+}
 
 /** Attempts before a caller is told the table is too busy to change. */
 const MAX_ATTEMPTS = 4
@@ -489,6 +536,7 @@ type Change<T> = { table: StoredTable | null; result: T }
  * from a state the table never actually reached.
  */
 async function fileFinishedHand(tableId: string, before: StoredTable, after: StoredTable) {
+  if (after.stage === 'cash') return fileFinishedCashHand(tableId, before, after)
   if (after.stage !== 'playing' || !after.state.result) return
 
   // Only the write that ends a hand files it. A finished hand sits on the table
@@ -522,6 +570,37 @@ async function fileFinishedHand(tableId: string, before: StoredTable, after: Sto
 }
 
 /**
+ * The same for a cash table, which keeps the hand it just settled on the felt.
+ *
+ * Names are taken from before the write as well as after it: the write that
+ * ends a hand is also the one that stands up whoever was leaving, and their
+ * name should stay on the hand they played.
+ */
+async function fileFinishedCashHand(tableId: string, before: StoredTable, after: CashTable) {
+  const hand = after.hand
+  if (!hand?.result) return
+  if (before.stage === 'cash' && before.hand?.handNumber === hand.handNumber && before.hand.result) return
+
+  try {
+    await storage.archive(tableId, {
+      endedAt: Date.now(),
+      names: { ...(before.stage === 'cash' ? namesOf(before) : {}), ...namesOf(after) },
+      state: { ...hand, deck: [], burned: [] },
+      sessions: after.handSessions,
+    })
+  } catch (error) {
+    console.error(`[table-store] could not file hand ${hand.handNumber} of ${tableId}`, error)
+  }
+}
+
+/** Everything that has come due at a table, whichever kind it is. */
+function current(table: StoredTable, now: number): StoredTable {
+  if (table.stage === 'playing') return enforceClock(table, now)
+  if (table.stage === 'cash') return tick(table, now)
+  return withPresent(table, now)
+}
+
+/**
  * Change a table, safely, against everyone else trying to do the same.
  *
  * Read, decide, write only if nothing moved underneath — and if it did, read
@@ -545,19 +624,16 @@ async function mutate<T>(
     // free. Both belong here rather than in every caller, because the change
     // about to be decided has to be decided against them.
     const now = Date.now()
-    const current =
-      record.table.stage === 'playing'
-        ? enforceClock(record.table, now)
-        : withPresent(record.table, now)
+    const due = current(record.table, now)
 
-    const { table, result } = await change(current)
+    const { table, result } = await change(due)
 
     // Nothing to write. Writing anyway would bump the version and take the
     // conflict from somebody who really is changing something.
     if (table === null) return result
 
     if (await storage.write(tableId, table, lifetimeOf(table), record.version, options.announce)) {
-      await fileFinishedHand(tableId, current, table)
+      await fileFinishedHand(tableId, record.table, table)
       return result
     }
   }
@@ -613,7 +689,14 @@ function asPlaying(table: StoredTable): PlayingTable {
   if (table.stage === 'waiting') {
     throw new TableError('This table has not started yet', 409)
   }
+  if (table.stage === 'cash') throw new TableError('This is a club table', 409)
   return table
+}
+
+/** A room or a game, but not a club's cash table, whose seats are bought. */
+function notCash<T extends StoredTable>(table: T): Exclude<T, CashTable> {
+  if (table.stage === 'cash') throw new TableError('This is a club table', 409)
+  return table as Exclude<T, CashTable>
 }
 
 /**
@@ -629,7 +712,8 @@ export async function joinTable(
 ): Promise<AnyTableView> {
   if (!playerId) throw new TableError('This game needs cookies enabled', 400)
 
-  return mutate<AnyTableView>(tableId, (current) => {
+  return mutate<AnyTableView>(tableId, (stored) => {
+    const current = notCash(stored)
     if (current.stage === 'playing') {
       // Not an error. They arrived late and can watch, which is what a seatless
       // viewer gets anyway.
@@ -666,7 +750,8 @@ export async function joinTable(
 
 /** Give up a seat before the room deals. */
 export async function leaveTable(tableId: string, playerId: string | null): Promise<RoomView> {
-  return mutate(tableId, (current) => {
+  return mutate(tableId, (stored) => {
+    const current = notCash(stored)
     if (current.stage === 'playing') {
       throw new TableError('This table has already started', 409)
     }
@@ -689,7 +774,8 @@ export async function leaveTable(tableId: string, playerId: string | null): Prom
  * the people still on their way to it.
  */
 export async function startEarly(tableId: string, playerId: string | null): Promise<TableView> {
-  return mutate(tableId, (current) => {
+  return mutate(tableId, (stored) => {
+    const current = notCash(stored)
     if (current.stage === 'playing') {
       throw new TableError('This table has already started', 409)
     }
@@ -762,9 +848,9 @@ export async function publicRooms(): Promise<RoomSummary[]> {
 
 /** How a table looks to this player, whichever stage it is at. */
 function anyViewOf(tableId: string, table: StoredTable, playerId: string | null): AnyTableView {
-  return table.stage === 'waiting'
-    ? roomViewOf(tableId, withPresent(table, Date.now()), playerId)
-    : viewOf(table.state, seatOf(table, playerId), table.names)
+  if (table.stage === 'waiting') return roomViewOf(tableId, withPresent(table, Date.now()), playerId)
+  if (table.stage === 'cash') return cashViewOf(tick(table, Date.now()), playerId)
+  return viewOf(table.state, seatOf(table, playerId), table.names)
 }
 
 /**
@@ -824,7 +910,7 @@ export async function findTable(
   // A table nobody is acting on has to be moved along by whoever looks at it,
   // since nothing else is running. The write is only attempted when the clock
   // has actually run out, so the ordinary read stays a read.
-  if (outOfTime(record.table, Date.now())) {
+  if (hasDue(record.table, Date.now())) {
     await mutate(tableId, (table) => ({ table, result: null })).catch(() => null)
     const settled = await storage.read(tableId)
     return settled ? anyViewOf(tableId, settled.table, playerId) : null
@@ -850,9 +936,22 @@ export async function listHands(tableId: string, playerId: string | null): Promi
   const record = await storage.read(tableId)
   if (!record) throw new TableError('No such table', 404)
 
-  const seat = record.table.stage === 'playing' ? seatOf(record.table, playerId) : null
+  const table = record.table
   const hands = await storage.archived(tableId)
 
+  if (table.stage === 'cash') {
+    // Per hand, not per table: a player is shown their own cards only in the
+    // hands dealt to their own sitting, never those of whoever held the chair
+    // before them.
+    const chair = chairOf(table, playerId)
+    const session = chair === -1 ? null : table.seats[chair]!.sessionId
+    return hands.map((hand) => {
+      const mine = session !== null && hand.sessions?.[engineId(chair)] === session
+      return { ...redactFor(hand.state, mine ? engineId(chair) : null), endedAt: hand.endedAt, names: hand.names }
+    })
+  }
+
+  const seat = table.stage === 'playing' ? seatOf(table, playerId) : null
   return hands.map((hand) => ({
     ...redactFor(hand.state, seat),
     endedAt: hand.endedAt,
@@ -1017,4 +1116,98 @@ export async function startNextHand(
       result: updateFrom(steps, state, seat, table.names),
     }
   })
+}
+
+// ---------------------------------------------------------------------------
+// Cash tables
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply one cash-table rule inside a versioned write, and answer with the table
+ * as this player now sees it.
+ *
+ * The rules live in `cash-table.ts` and know nothing of storage; this is where
+ * they meet it. Who may do any of this — membership of the club, the admin's
+ * say — is decided by the caller before it gets here (phase 5).
+ */
+async function changeCash(
+  tableId: string,
+  playerId: string | null,
+  rule: (table: CashTable, now: number) => CashTable,
+): Promise<CashTableView> {
+  return mutate(tableId, (stored) => {
+    if (stored.stage !== 'cash') throw new TableError('This is not a club table', 409)
+    let table: CashTable
+    try {
+      table = rule(stored, Date.now())
+    } catch (error) {
+      if (error instanceof CashTableError) throw new TableError(error.message, error.status)
+      throw error
+    }
+    return { table: table === stored ? null : table, result: cashViewOf(table, playerId) }
+  })
+}
+
+/** Open a cash table. Its settings are checked here; who may open one, by the caller. */
+export async function openCashGame(input: {
+  name: string
+  clubId: string | null
+  settings: unknown
+  closesAt: number
+}): Promise<{ tableId: string }> {
+  let settings: CashSettings
+  try {
+    settings = resolveCashSettings((input.settings ?? {}) as Record<string, unknown>)
+  } catch (error) {
+    if (error instanceof CashTableError) throw new TableError(error.message, error.status)
+    throw error
+  }
+
+  const tableId = crypto.randomUUID()
+  const table = openCashTable({ tableId, name: input.name, clubId: input.clubId, settings, closesAt: input.closesAt, now: Date.now() })
+  await storage.write(tableId, table, lifetimeOf(table), null)
+  return { tableId }
+}
+
+/** A cash table as stored, for callers that decide who may touch it (phase 5). */
+export async function readCashTable(tableId: string): Promise<CashTable | null> {
+  const record = await storage.read(tableId)
+  return record?.table.stage === 'cash' ? record.table : null
+}
+
+export function sitAtCashTable(
+  tableId: string,
+  playerId: string,
+  seat: { name: string; lacquer: number | null; buyIn: number; sessionId: string; chair?: number },
+): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => sitDown(table, { playerId, ...seat }, now))
+}
+
+export function standAtCashTable(tableId: string, playerId: string): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => standUp(table, playerId, now))
+}
+
+export function sitOutAtCashTable(tableId: string, playerId: string): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => sitOut(table, playerId, now))
+}
+
+export function sitInAtCashTable(tableId: string, playerId: string): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => sitIn(table, playerId, now))
+}
+
+export function actAtCashTable(tableId: string, playerId: string, action: ActionIntent): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => cashAct(table, playerId, action, now))
+}
+
+export function disbandCashTable(tableId: string, playerId: string | null): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => disband(table, now))
+}
+
+export function extendCashTable(tableId: string, playerId: string | null, byMs: number): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => extend(table, byMs, now))
+}
+
+/** Mark cash-outs as paid, once the ledger has them (phase 5). */
+export function clearPaidCashOuts(tableId: string, sessionIds: string[]): Promise<CashTableView> {
+  return changeCash(tableId, null, (table) => (sessionIds.length === 0 ? table : clearCashOuts(table, sessionIds)))
 }
