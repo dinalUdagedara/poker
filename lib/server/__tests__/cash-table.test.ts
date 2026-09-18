@@ -21,6 +21,7 @@ import {
   standUp,
   tick,
   TIMEOUT_GRACE_MS,
+  topUp,
   type CashTable,
 } from '../cash-table'
 
@@ -371,5 +372,30 @@ describe('chips are never made or lost', () => {
     expect(table.cashOuts.reduce((total, c) => total + c.amount, 0)).toBe(boughtIn)
     // Every sitting is paid out exactly once.
     expect(new Set(table.cashOuts.map((c) => c.sessionId)).size).toBe(table.cashOuts.length)
+  })
+})
+
+describe('topping up', () => {
+  it('adds chips between hands, up to the table’s most', () => {
+    let table = sit(open(), 'ana', 3_000)
+    table = topUp(table, 'ana', 2_000, T0)
+    expect(table.seats[chairOf(table, 'ana')]!.stack).toBe(5_000)
+    expect(refusal(() => topUp(table, 'ana', 5_001, T0)).status).toBe(400)
+  })
+
+  it('waits until the hand the player is in has ended', () => {
+    let table = sit(sit(open(), 'ana'), 'bo')
+    expect(refusal(() => topUp(table, 'ana', 1_000, T0)).status).toBe(409)
+    table = playOut(table, T0)
+    table = topUp(table, 'ana', 1_000, T0)
+    expect(table.seats[chairOf(table, 'ana')]!.stack).toBeGreaterThan(1_000)
+  })
+
+  it('puts a player who had run out of chips back in the game', () => {
+    let table = sit(open(), 'ana')
+    const chair = chairOf(table, 'ana')
+    table = { ...table, seats: table.seats.map((s, i) => (i === chair ? { ...s!, stack: 0, status: 'sitting-out', satOutAt: T0, satOutReason: 'broke' } : s)) }
+    table = topUp(table, 'ana', 1_000, T0)
+    expect(table.seats[chair]).toMatchObject({ stack: 1_000, status: 'playing', satOutReason: null })
   })
 })

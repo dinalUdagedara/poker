@@ -57,6 +57,8 @@ export function ClubTableScreen({
   const [error, setError] = useState<string | null>(null)
   const [gone, setGone] = useState(false)
   const [buying, setBuying] = useState(false)
+  const [toppingUp, setToppingUp] = useState(false)
+  const [asked, setAsked] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
 
   const table = feltOf(view)
@@ -73,8 +75,9 @@ export function ClubTableScreen({
     () => setGone(true),
   )
 
-  /** One buy-in, one operation id, kept until the server has answered it. */
+  /** One buy-in or top-up, one operation id, kept until the server has answered it. */
   const buyInOperation = useRef<string | null>(null)
+  const topUpOperation = useRef<string | null>(null)
 
   async function send(body: Record<string, unknown>): Promise<boolean> {
     setBusy(true)
@@ -124,6 +127,42 @@ export function ClubTableScreen({
       setBuying(false)
       getAudio().play('confirm')
       router.refresh()
+    }
+  }
+
+  // Room left under the table's most, and what the balance can pay for.
+  const topUpRoom = you ? Math.max(0, Math.min(view.settings.maxBuyIn - you.stack, club.balance)) : 0
+  const [topUpAmount, setTopUpAmount] = useState(view.settings.bigBlind * 10)
+  const canTopUp = Boolean(you && !you.leaving && !you.inHand && topUpRoom > 0 && !view.closing)
+
+  async function topUp() {
+    topUpOperation.current ??= newOperationId()
+    const ok = await send({ action: 'top-up', amount: Math.min(topUpAmount, topUpRoom), operationId: topUpOperation.current })
+    if (ok) {
+      topUpOperation.current = null
+      setToppingUp(false)
+      getAudio().play('confirm')
+      router.refresh()
+    }
+  }
+
+  /** Ask the admin for what it takes to sit down, from here rather than the club page. */
+  async function askForChips() {
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/clubs/${club.code}/chips`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'request', amount: view.settings.minBuyIn - club.balance }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
+      setAsked(true)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -250,6 +289,19 @@ export function ClubTableScreen({
                           ? `Buy in with ${formatChips(view.settings.minBuyIn)} to ${formatChips(view.settings.maxBuyIn)} chips.`
                           : `You need ${formatChips(view.settings.minBuyIn)} chips to sit here, and have ${formatChips(club.balance)}. Ask ${club.ownerNickname} for chips.`}
                   </p>
+                  {free && !view.closing && !canAfford && (
+                    <button
+                      type="button"
+                      className={QUIET_BUTTON}
+                      disabled={busy || asked}
+                      onClick={() => void askForChips()}
+                      data-testid="ask-for-chips"
+                    >
+                      {asked
+                        ? 'Asked — you can sit once the admin approves'
+                        : `Ask for ${formatChips(view.settings.minBuyIn - club.balance)} chips`}
+                    </button>
+                  )}
                   {free && !view.closing && canAfford && (
                     <button
                       type="button"
@@ -262,6 +314,39 @@ export function ClubTableScreen({
                   )}
                 </div>
               )
+            ) : toppingUp && canTopUp ? (
+              <div className="flex flex-col gap-3" data-testid="top-up">
+                  <div className="flex items-baseline justify-between text-[13px]">
+                    <span className="text-muted-foreground">
+                      In front of you {formatChips(you?.stack ?? 0)} · balance {formatChips(club.balance)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={Math.min(view.settings.bigBlind, topUpRoom)}
+                    max={topUpRoom}
+                    step={Math.min(view.settings.bigBlind, topUpRoom)}
+                    value={Math.min(topUpAmount, topUpRoom)}
+                    onChange={(e) => setTopUpAmount(Number(e.target.value))}
+                    className="accent-brass w-full"
+                    aria-label="Top up"
+                    data-testid="top-up-slider"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" className={QUIET_BUTTON} disabled={busy} onClick={() => setToppingUp(false)}>
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="brass-button h-10 rounded-[2px] text-[13px] font-semibold"
+                      disabled={busy}
+                      onClick={() => void topUp()}
+                      data-testid="confirm-top-up"
+                    >
+                      {busy ? 'Adding…' : `Add ${formatChips(Math.min(topUpAmount, topUpRoom))}`}
+                    </button>
+                  </div>
+                </div>
             ) : you.status === 'sitting-out' && !you.inHand ? (
               <div className="flex flex-col items-center gap-3 py-1" data-testid="sitting-out">
                 <p className="text-center text-base font-medium">{status}</p>
@@ -274,6 +359,11 @@ export function ClubTableScreen({
                   <button type="button" className={QUIET_BUTTON} disabled={busy} onClick={() => void standUp()} data-testid="stand-up">
                     Stand up
                   </button>
+                  {canTopUp && (
+                    <button type="button" className={QUIET_BUTTON} disabled={busy} onClick={() => setToppingUp(true)} data-testid="top-up-button">
+                      Top up
+                    </button>
+                  )}
                   {you.satOutReason !== 'broke' && (
                     <button
                       type="button"
@@ -315,15 +405,28 @@ export function ClubTableScreen({
                     />
                     Sit out next hand
                   </label>
-                  <button
-                    type="button"
-                    className={QUIET_BUTTON}
-                    disabled={busy || you.leaving}
-                    onClick={() => void standUp()}
-                    data-testid="stand-up"
-                  >
-                    {you.leaving ? 'Leaving after this hand' : 'Stand up'}
-                  </button>
+                  <span className="flex gap-2">
+                    {canTopUp && (
+                      <button
+                        type="button"
+                        className={QUIET_BUTTON}
+                        disabled={busy}
+                        onClick={() => setToppingUp(true)}
+                        data-testid="top-up-button"
+                      >
+                        Top up
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={QUIET_BUTTON}
+                      disabled={busy || you.leaving}
+                      onClick={() => void standUp()}
+                      data-testid="stand-up"
+                    >
+                      {you.leaving ? 'Leaving after this hand' : 'Stand up'}
+                    </button>
+                  </span>
                 </div>
               </div>
             )}

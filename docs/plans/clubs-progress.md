@@ -17,7 +17,7 @@ decisions it links to first, then this.**
 | 3 | Ledger and counter | **Done** — on `feat/clubs`; walked through in a browser |
 | 4 | Cash-game lifecycle | **Done** — on `feat/clubs` |
 | 5 | Club tables | **Done** — on `feat/clubs`; an evening played in a browser |
-| 6 | Finishing | Not started |
+| 6 | Finishing | **Done** — on `feat/clubs` |
 
 ## Setup, outside the code
 
@@ -368,3 +368,36 @@ back as 10,050 and 9,950. No errors in either browser.
   says to ask the admin).
 - Profit and loss per member on the member page.
 - An end-to-end test of a club evening in the Playwright suite.
+
+## Phase 6 — finishing
+
+**Done**
+
+- *Top-up between hands.* `topUp` in `cash-table.ts` adds chips to a seat when
+  its player is not in the hand being played, up to the table's most, and puts a
+  player who had run out back in the game. At a club table it is charged first,
+  onto the same sitting (`bought_in` grows with it), and refunded at most once
+  if the table turns it down. Keyed on the browser's operation id, so a doubled
+  tap charges once.
+- *Asking for chips from the table.* A member who cannot afford the least
+  buy-in is offered a request for exactly the difference, on the spot.
+- *Profit and loss* on a member's page, from finished sittings only — cashed out
+  less bought in — with chips still on a table shown apart as "At tables", so a
+  player mid-session does not look as though they have lost their stack.
+- *A club evening in the end-to-end suite* (`e2e/clubs.spec.ts`): two people
+  sign up, one founds a club, the other joins from the invite link and is
+  approved, chips are sent, a table is opened, both buy in, a hand is played,
+  both stand up and every chip is back; the record shows it and the table
+  closes. A second test checks a stranger sees nothing. It needs a real
+  database, so it runs only with `E2E_DATABASE_URL` set — a Neon branch, never
+  production — and deletes every account it made when it finishes.
+
+**Still open** — none of it blocks using clubs:
+
+- **Email** (Resend): address verification and password resets.
+- **The privacy page's contact address**, and then publishing the Google app.
+- **`BETTER_AUTH_SECRET` and `CRON_SECRET` in Vercel**, before this reaches
+  production.
+- **Leaving a club** from the player's side; handing a club over; deleting one.
+- **Recurring tables** — Hemal's "a table every day" — the first thing after v1.
+- **Paging** on the counter's record beyond the latest hundred moves.

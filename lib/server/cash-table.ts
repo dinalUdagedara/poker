@@ -338,6 +338,37 @@ export function standUp(table: CashTable, playerId: string, now: number): CashTa
   return tick(remove(table, chair, now), now)
 }
 
+/**
+ * Add chips from the balance to the stack in front of you.
+ *
+ * Only between hands for you — the chips in play are counted from what you
+ * were dealt with, and changing them mid-hand would change a bet already made.
+ * Never past the table's most, and a player who had run out of chips is back in
+ * the game with them.
+ */
+export function topUp(table: CashTable, playerId: string, amount: number, now: number): CashTable {
+  if (table.closed || table.closing) throw new CashTableError('This table has closed', 409)
+  const chair = chairOf(table, playerId)
+  if (chair === -1) throw new CashTableError('You are not sitting here', 409)
+  if (dealtPlayer(table, chair)) throw new CashTableError('Top up between hands', 409)
+
+  const seat = table.seats[chair]!
+  if (!Number.isSafeInteger(amount) || amount < 1) throw new CashTableError('Top up with a whole number of chips', 400)
+  if (seat.stack + amount > table.settings.maxBuyIn) {
+    throw new CashTableError(`You can have at most ${table.settings.maxBuyIn} in front of you`, 400)
+  }
+
+  const back = seat.satOutReason === 'broke'
+  return tick(
+    withSeat(table, chair, {
+      ...seat,
+      stack: seat.stack + amount,
+      ...(back ? { status: 'playing' as const, satOutAt: null, satOutReason: null } : {}),
+    }),
+    now,
+  )
+}
+
 /** Sit out: from now if no hand is running, otherwise from the next one. */
 export function sitOut(table: CashTable, playerId: string, now: number): CashTable {
   const chair = chairOf(table, playerId)

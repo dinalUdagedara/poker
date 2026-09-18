@@ -127,6 +127,9 @@ in `.env.local` — the variables are listed in the same doc.
 npm test             # unit suite (Vitest)
 npm run test:slow    # plus the exhaustive evaluator and equity tests
 npm run e2e          # end-to-end (Playwright: builds, serves on :3210)
+
+# the club suite too, against a Neon branch (never production)
+E2E_DATABASE_URL="$(grep ^DATABASE_URL= .env.local | cut -d= -f2-)" npm run e2e -- clubs
 npm run lint
 npx tsc --noEmit
 ```

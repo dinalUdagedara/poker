@@ -36,8 +36,10 @@ export default defineConfig({
       REDIS_URL: '',
       // Likewise Postgres: with no connection string the build skips its
       // migrations and the app runs without accounts, which is all a quick
-      // game needs. Nothing here writes to the database a developer uses.
-      DATABASE_URL: '',
+      // game needs. Nothing here writes to the database a developer uses —
+      // unless E2E_DATABASE_URL names one, which switches the club suite on
+      // (e2e/clubs.spec.ts). Point it at a Neon branch, never production.
+      DATABASE_URL: process.env.E2E_DATABASE_URL ?? '',
       // Built into its own directory. A production build over `.next` swaps the
       // chunks a running dev server is serving, and its open tabs quietly keep
       // showing the code from before.

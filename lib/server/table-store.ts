@@ -46,6 +46,7 @@ import {
   sitOut,
   standUp,
   tick,
+  topUp,
   type ActionIntent,
   type CashSettings,
   type CashTable,
@@ -1186,6 +1187,10 @@ export function sitAtCashTable(
 
 export function standAtCashTable(tableId: string, playerId: string): Promise<CashTableView> {
   return changeCash(tableId, playerId, (table, now) => standUp(table, playerId, now))
+}
+
+export function topUpAtCashTable(tableId: string, playerId: string, amount: number): Promise<CashTableView> {
+  return changeCash(tableId, playerId, (table, now) => topUp(table, playerId, amount, now))
 }
 
 export function sitOutAtCashTable(tableId: string, playerId: string): Promise<CashTableView> {

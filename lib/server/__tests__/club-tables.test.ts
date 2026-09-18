@@ -17,9 +17,10 @@ import {
   sitOutAtClubTable,
   standAtClubTable,
   sweepTables,
+  topUpAtClubTable,
 } from '../club-tables'
 import { ClubError, createClub, decideApplicants, removeMember, requestToJoin } from '../clubs'
-import { sendChips } from '../counter'
+import { memberChips, sendChips } from '../counter'
 import { useDatabaseForTests } from '../db'
 import * as schema from '../db/schema'
 import { readCashTable, sitAtCashTable } from '../table-store'
@@ -288,5 +289,55 @@ describe('who may do what', () => {
     expect(await mayWatch(tableId, BO.id)).toBe(true)
     expect(await mayWatch(tableId, 'stranger')).toBe(false)
     expect(await mayWatch(tableId, null)).toBe(false)
+  })
+})
+
+describe('topping up', () => {
+  it('moves more chips from the balance to the seat, once, and brings them back on standing up', async () => {
+    const tableId = await open()
+    await buyIn(BO, code, tableId, { amount: 2_000, operationId: nextOp() })
+    const operationId = nextOp()
+    await topUpAtClubTable(BO, code, tableId, { amount: 1_500, operationId })
+    await topUpAtClubTable(BO, code, tableId, { amount: 1_500, operationId })
+    expect(await balanceOf(BO.id)).toBe(6_500)
+    expect((await clubTableView(BO, code, tableId)).seats.find((s) => s?.you)!.stack).toBe(3_500)
+    await expectEveryChipAccountedFor()
+
+    await standAtClubTable(BO, code, tableId)
+    expect(await balanceOf(BO.id)).toBe(10_000)
+    const [session] = await database.select().from(schema.seatSessions)
+    expect(session).toMatchObject({ boughtIn: 3_500, cashedOut: 3_500 })
+  })
+
+  it('refuses a top-up mid-hand without charging', async () => {
+    const tableId = await open()
+    await buyIn(BO, code, tableId, { amount: 2_000, operationId: nextOp() })
+    await buyIn(CY, code, tableId, { amount: 2_000, operationId: nextOp() })
+    await expect(topUpAtClubTable(BO, code, tableId, { amount: 500, operationId: nextOp() })).rejects.toMatchObject({
+      status: 409,
+    })
+    expect(await balanceOf(BO.id)).toBe(8_000)
+    await expectEveryChipAccountedFor()
+  })
+})
+
+describe('what a member won or lost', () => {
+  it('counts finished sittings only, and shows chips still at a table apart', async () => {
+    const tableId = await open()
+    await buyIn(BO, code, tableId, { amount: 3_000, operationId: nextOp() })
+    await buyIn(CY, code, tableId, { amount: 3_000, operationId: nextOp() })
+    await playOut(tableId)
+
+    const during = await memberChips(OWNER, code, BO.publicId)
+    expect(during.profitLoss).toBe(0)
+    expect(during.atTables).toBeGreaterThanOrEqual(0)
+
+    await standAtClubTable(BO, code, tableId)
+    await standAtClubTable(CY, code, tableId)
+    const bo = await memberChips(OWNER, code, BO.publicId)
+    const cy = await memberChips(OWNER, code, CY.publicId)
+    expect(bo.atTables).toBe(0)
+    expect(bo.profitLoss + cy.profitLoss).toBe(0)
+    expect(bo.balance).toBe(10_000 + bo.profitLoss)
   })
 })

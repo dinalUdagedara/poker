@@ -249,6 +249,8 @@ describe('removing a member', () => {
       balance: 180,
       sentOut: 300,
       claimedBack: 120,
+      profitLoss: 0,
+      atTables: 0,
     })
   })
 })

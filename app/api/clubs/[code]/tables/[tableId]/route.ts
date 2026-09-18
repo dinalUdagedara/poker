@@ -8,6 +8,7 @@ import {
   sitInAtClubTable,
   sitOutAtClubTable,
   standAtClubTable,
+  topUpAtClubTable,
 } from '@/lib/server/club-tables'
 import { ClubError } from '@/lib/server/clubs'
 import type { ActionIntent } from '@/lib/server/cash-table'
@@ -25,6 +26,7 @@ export async function GET(_request: Request, ctx: Ctx) {
  * `action`:
  *
  * - `buy-in`   — `{ amount, operationId, chair? }`
+ * - `top-up`   — `{ amount, operationId }`, between hands
  * - `act`      — `{ move: { type, amount? } }`, a fold, check, call, bet or raise
  * - `stand`, `sit-out`, `sit-in`
  * - `extend`   — admin: `{ hours }`
@@ -40,6 +42,8 @@ export async function POST(request: Request, ctx: Ctx) {
     switch (body.action) {
       case 'buy-in':
         return buyIn(viewer, code, tableId, body)
+      case 'top-up':
+        return topUpAtClubTable(viewer, code, tableId, body)
       case 'act':
         return actAtClubTable(viewer, code, tableId, moveOf(body.move))
       case 'stand':

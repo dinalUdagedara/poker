@@ -49,6 +49,7 @@ import {
   sitOutAtCashTable,
   standAtCashTable,
   TableError,
+  topUpAtCashTable,
 } from './table-store'
 import type { ActionIntent } from './cash-table'
 
@@ -448,6 +449,88 @@ export async function buyIn(
     })
   } catch (error) {
     await refund(club.id, row.id, viewer.id, sessionId, amount)
+    if (error instanceof TableError) throw new ClubError(error.message, error.status)
+    throw error
+  }
+
+  await settle(row.id)
+  return clubTableView(viewer, club.code, row.id)
+}
+
+/**
+ * Add chips from the balance to a seat, between hands.
+ *
+ * The same order as a buy-in: charged first, onto the same sitting, then the
+ * chips put in front of the player — and refunded, at most once, if the table
+ * turns them down.
+ */
+export async function topUpAtClubTable(
+  viewer: Viewer,
+  rawCode: unknown,
+  rawTableId: unknown,
+  body: unknown,
+): Promise<CashTableView> {
+  const { club, table: row } = await asTableMember(viewer, rawCode, rawTableId)
+  const input = (body ?? {}) as Record<string, unknown>
+  const amount = Number(input.amount)
+  const operation =
+    typeof input.operationId === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(input.operationId)
+      ? input.operationId
+      : randomUUID()
+
+  const live = await readCashTable(row.id)
+  const seat = live?.seats.find((s) => s?.playerId === viewer.id)
+  if (!live || !seat) throw new ClubError('You are not sitting here', 409)
+  if (!Number.isSafeInteger(amount) || amount < 1) throw new ClubError('Top up with a whole number of chips', 400)
+  if (seat.stack + amount > row.maxBuyIn) {
+    throw new ClubError(`You can have at most ${row.maxBuyIn.toLocaleString('en')} in front of you`, 400)
+  }
+
+  const charged = await asClubError(() =>
+    db().transaction(async (tx) => {
+      const result = await move(tx, {
+        clubId: club.id,
+        userId: viewer.id,
+        amount: -amount,
+        kind: 'buy_in',
+        actorId: viewer.id,
+        tableId: row.id,
+        sessionId: seat.sessionId,
+        key: `top_up:${operation}`,
+      })
+      if (result.applied) {
+        await tx
+          .update(seatSessions)
+          .set({ boughtIn: sql`${seatSessions.boughtIn} + ${amount}` })
+          .where(eq(seatSessions.id, seat.sessionId))
+      }
+      return result.applied
+    }),
+  )
+  // The same top-up arriving again: charged the first time, nothing more now.
+  if (!charged) return clubTableView(viewer, club.code, row.id)
+
+  try {
+    await topUpAtCashTable(row.id, viewer.id, amount)
+  } catch (error) {
+    await db().transaction(async (tx) => {
+      const result = await move(tx, {
+        clubId: club.id,
+        userId: viewer.id,
+        amount,
+        kind: 'refund',
+        actorId: viewer.id,
+        tableId: row.id,
+        sessionId: seat.sessionId,
+        key: `refund:top_up:${operation}`,
+      })
+      if (result.applied) {
+        await tx
+          .update(seatSessions)
+          .set({ boughtIn: sql`${seatSessions.boughtIn} - ${amount}` })
+          .where(eq(seatSessions.id, seat.sessionId))
+      }
+    })
     if (error instanceof TableError) throw new ClubError(error.message, error.status)
     throw error
   }

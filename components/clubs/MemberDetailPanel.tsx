@@ -87,17 +87,19 @@ export function MemberDetailPanel({
             </div>
           </div>
 
-          <dl className="border-foreground/10 grid grid-cols-3 gap-3 border-y py-4" data-testid="member-chips">
+          <dl className="border-foreground/10 grid grid-cols-3 gap-x-3 gap-y-4 border-y py-4" data-testid="member-chips">
             {(
               [
-                ['Balance', chips.balance],
-                ['Sent out', chips.sentOut],
-                ['Claimed back', chips.claimedBack],
+                ['Balance', formatChips(chips.balance)],
+                ['Sent out', formatChips(chips.sentOut)],
+                ['Claimed back', formatChips(chips.claimedBack)],
+                ['Profit & loss', `${chips.profitLoss > 0 ? '+' : chips.profitLoss < 0 ? '−' : ''}${formatChips(Math.abs(chips.profitLoss))}`],
+                ['At tables', formatChips(chips.atTables)],
               ] as const
             ).map(([label, value]) => (
               <div key={label} className="flex flex-col gap-1">
                 <dt className="text-muted-foreground text-[11px] font-semibold tracking-[0.18em] uppercase">{label}</dt>
-                <dd className="text-foreground text-lg font-semibold tabular-nums">{formatChips(value)}</dd>
+                <dd className="text-foreground text-lg font-semibold tabular-nums">{value}</dd>
               </div>
             ))}
           </dl>

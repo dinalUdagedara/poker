@@ -21,7 +21,7 @@ import { lacquerOf } from '../profile'
 import type { ClubRole } from '../clubs/permissions'
 import { asMember, ClubError, memberRow, type Viewer } from './clubs'
 import { db } from './db'
-import { chipRequests, clubMembers, ledger, users } from './db/schema'
+import { chipRequests, clubMembers, ledger, seatSessions, users } from './db/schema'
 import { LedgerError, MAX_MOVE, move } from './ledger'
 
 /** How many requests one member may have waiting at once. */
@@ -65,7 +65,15 @@ export type RecordEntry = {
   createdAt: string
 }
 
-export type MemberChips = { balance: number; sentOut: number; claimedBack: number }
+export type MemberChips = {
+  balance: number
+  sentOut: number
+  claimedBack: number
+  /** Won or lost at tables, over sittings that have ended. */
+  profitLoss: number
+  /** Chips in front of them at tables right now, as last recorded. */
+  atTables: number
+}
 
 export type MyChips = { balance: number; pending: { id: string; amount: number; createdAt: string }[] }
 
@@ -250,11 +258,24 @@ export async function memberChips(viewer: Viewer, rawCode: unknown, rawPublicId:
     .from(clubMembers)
     .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, member.userId)))
 
+  // From sittings, not from the ledger's buy-ins and cash-outs: a sitting still
+  // open has been charged but not yet paid, and counting it would show a
+  // player losing everything they have in front of them.
+  const [tables] = await db()
+    .select({
+      profitLoss: sql<number>`coalesce(sum(${seatSessions.cashedOut} - ${seatSessions.boughtIn}) filter (where ${seatSessions.cashedOut} is not null), 0)::bigint`.mapWith(Number),
+      atTables: sql<number>`coalesce(sum(${seatSessions.lastStack}) filter (where ${seatSessions.cashedOut} is null), 0)::bigint`.mapWith(Number),
+    })
+    .from(seatSessions)
+    .where(and(eq(seatSessions.clubId, club.id), eq(seatSessions.userId, member.userId)))
+
   return {
     balance: balance?.balance ?? 0,
     sentOut: totalOf('send'),
     // Claims are stored negative; `|| 0` keeps "none" from reading as −0.
     claimedBack: -totalOf('claim', 'removal') || 0,
+    profitLoss: tables?.profitLoss ?? 0,
+    atTables: tables?.atTables ?? 0,
   }
 }
 
