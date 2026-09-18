@@ -81,6 +81,23 @@ export function HomePanel() {
             />
           </Link>
 
+          <Link
+            href="/clubs"
+            data-testid="tab-clubs"
+            onClick={() => getAudio().play('click')}
+            className="group border-foreground/10 -mt-6 flex w-full items-center gap-3 border-b px-0.5 py-3.5 text-left transition-colors hover:border-brass/35 focus-visible:ring-brass/50 focus-visible:ring-2 focus-visible:outline-none"
+          >
+            <span className="flex flex-col gap-0.5">
+              <span className="text-foreground text-[15px] font-medium">Clubs</span>
+              <span className="text-muted-foreground text-[13px]">Private tables for your own group</span>
+            </span>
+            <ArrowRight
+              className="text-brass ml-auto size-[18px] shrink-0 transition-transform group-hover:translate-x-0.5"
+              strokeWidth={1.25}
+              aria-hidden
+            />
+          </Link>
+
           {error && (
             <p className="text-destructive text-center text-sm" role="alert" data-testid="error">
               {error}

@@ -11,7 +11,8 @@
  * renamed here without telling Better Auth breaks sign-in rather than a query.
  */
 
-import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, check, index, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 
 const createdAt = () => timestamp('created_at').notNull().defaultNow()
 const updatedAt = () =>
@@ -101,4 +102,69 @@ export const verifications = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [index('verifications_identifier_idx').on(table.identifier)],
+)
+
+/**
+ * A club: a private group with its own members and, later, its own tables.
+ *
+ * `code` is the six digits a player types to find it and the tail of its invite
+ * link, `/c/<code>`. The crest is the club's initials on one of the six seat
+ * lacquers, stored like a player's avatar, so a club and a player are drawn by
+ * the same hand.
+ */
+export const clubs = pgTable(
+  'clubs',
+  {
+    id: text('id').primaryKey(),
+    code: text('code').notNull().unique(),
+    name: text('name').notNull(),
+    lacquer: integer('lacquer').notNull().default(0),
+    notice: text('notice').notNull().default(''),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    autoApprove: boolean('auto_approve').notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index('clubs_owner_id_idx').on(table.ownerId)],
+)
+
+/**
+ * A person's place in a club.
+ *
+ * The role lives here rather than on the user, so one person can own one club
+ * and play in another (docs/decisions/0007). Status runs `pending` → `active`,
+ * and `active` → `removed`; a removed member keeps the row, because the ledger
+ * will point at it, and asking to join again sends it back to `pending`. A
+ * rejected request is simply deleted.
+ *
+ * `alias` and `note` are the admin's private labels for a member and are never
+ * shown to the member. `referredBy` is reserved for agents and unused in v1.
+ */
+export const clubMembers = pgTable(
+  'club_members',
+  {
+    clubId: text('club_id')
+      .notNull()
+      .references(() => clubs.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['owner', 'player'] }).notNull().default('player'),
+    status: text('status', { enum: ['pending', 'active', 'removed'] }).notNull().default('pending'),
+    message: text('message').notNull().default(''),
+    alias: text('alias').notNull().default(''),
+    note: text('note').notNull().default(''),
+    referredBy: text('referred_by').references(() => users.id, { onDelete: 'set null' }),
+    requestedAt: timestamp('requested_at').notNull().defaultNow(),
+    joinedAt: timestamp('joined_at'),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.clubId, table.userId] }),
+    index('club_members_user_id_idx').on(table.userId),
+    check('club_members_role_check', sql`${table.role} in ('owner', 'player')`),
+    check('club_members_status_check', sql`${table.status} in ('pending', 'active', 'removed')`),
+  ],
 )

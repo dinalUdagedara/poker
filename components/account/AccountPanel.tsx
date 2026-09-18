@@ -52,6 +52,9 @@ export function AccountPanel({
             <span className="text-muted-foreground text-[13px]">{email}</span>
           </div>
 
+          <Link href="/clubs" className={SECONDARY_BUTTON} data-testid="your-clubs">
+            Your clubs
+          </Link>
           <Link href="/welcome?edit=1" className={SECONDARY_BUTTON} data-testid="edit-profile">
             Edit profile
           </Link>

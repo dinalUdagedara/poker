@@ -12,8 +12,8 @@ decisions it links to first, then this.**
 | Phase | What | State |
 | --- | --- | --- |
 | 0 | Infrastructure: Neon, Drizzle, migrations | **Done** — on `feat/clubs` |
-| 1 | Accounts | **Done, bar email** — on `feat/clubs` |
-| 2 | Clubs and membership | Not started |
+| 1 | Accounts | **Done, bar email** — on `feat/clubs`; Google sign-in tried by hand |
+| 2 | Clubs and membership | **Done** — on `feat/clubs` |
 | 3 | Ledger and counter | Not started |
 | 4 | Cash-game lifecycle | Not started |
 | 5 | Club tables | Not started |
@@ -112,3 +112,60 @@ under their nickname. The test account was deleted afterwards.
 - **A guest's seat does not follow them into an account.** Signing in mid-game
   changes the player id, so the table no longer recognises them. Rare, and
   harmless for quick games; worth revisiting only if it bites.
+
+## Phase 2 — clubs and membership
+
+**Decisions taken**
+
+- *The crest is the club's initials on a lacquer*, drawn by the same component
+  as a player's face, rather than an uploaded image. ClubGG's preset logos
+  serve the same purpose; this needs no storage and matches the room.
+- *Codes and ids are what travel.* A club is addressed by its six-digit code in
+  every URL and request, a member by their eight-digit public id. Internal ids
+  never leave the server. Both are accepted as typed — `778 589`, `778-589`,
+  `4821-0937`.
+- *A rejected request is deleted; a removed member is kept, marked `removed`.*
+  The ledger will point at membership rows, so a member who played must not
+  vanish. Either may ask to join again.
+- *Removing a member clears the admin's alias and note for them*, so a
+  returning player starts with a clean slate.
+- *Settings and the approval switch are separate permissions*, checked field by
+  field, so a future manager can be given one without the other.
+- *Limits*: three clubs owned per person and 200 active members per club
+  (`MAX_OWNED_CLUBS`, `MAX_MEMBERS` in `lib/server/clubs.ts`). Approve-all stops
+  at the limit rather than going over it.
+- *Club routes answer with the admin's view or nothing.* A player asking for an
+  admin screen gets a 404, and anyone not in the club is sent to its invite
+  page to ask.
+- *Sign-in now lands on `/clubs`* by default, since clubs are what an account is
+  for.
+
+**Done**
+
+- Schema: `clubs` and `club_members` (`drizzle/0001_clubs.sql`), with the role
+  and status held to their allowed values by check constraints.
+- `lib/clubs/permissions.ts` — `can()` and the role table.
+- `lib/clubs/text.ts` — cleaning names, notices, aliases, notes and messages;
+  reading codes and ids as typed.
+- `lib/server/clubs.ts` — the club service and trust boundary.
+- `/api/clubs` routes: create; look up and update; join; decide applicants;
+  annotate and remove a member.
+- Screens: `/clubs`, `/clubs/new`, the invite page `/c/<code>`, the club lobby
+  (with the notice and an invite button that uses the phone's share sheet),
+  members and applicants, member detail, club settings. A Clubs entry on the
+  home screen and the account page.
+- Unit tests for the permission table and the text rules.
+
+**Checked by hand** against the `dev` branch, with two throwaway accounts: a
+dirty club name saved clean; lookup by a code typed with a dash; a
+non-member refused an admin change; joining twice leaving one request;
+approval; alias and a note with runs of blank lines; the owner refused
+removal; a removed player losing access; auto-approve letting them straight
+back in; a guest refused. Every page answered correctly for the owner, a
+player and a guest. The accounts and the club were deleted afterwards.
+
+**Not done yet**
+
+- **Leaving a club** from the player's side. Removal is admin-only for now.
+- **Handing a club to someone else**, and deleting a club.
+- The lobby's **tables** section is a placeholder until phase 5.

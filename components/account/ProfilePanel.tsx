@@ -8,9 +8,9 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
 import { MAX_NAME_LENGTH, sanitiseName } from '@/lib/names'
-import { AVATAR_COUNT, formatPublicId, LACQUER_NAMES } from '@/lib/profile'
-import { cn } from '@/lib/utils'
+import { formatPublicId } from '@/lib/profile'
 import { Field, PanelTitle, PRIMARY_BUTTON } from './Field'
+import { LacquerPicker } from './LacquerPicker'
 
 /**
  * Choose what the table calls you, and the lacquer your monogram is set on.
@@ -89,39 +89,7 @@ export function ProfilePanel({
             data-testid="nickname"
           />
 
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-baseline justify-between">
-              <span className="text-muted-foreground text-[11px] font-semibold tracking-[0.24em] uppercase">
-                Lacquer
-              </span>
-              <span className="text-brass font-(family-name:--font-display) text-base italic">
-                {LACQUER_NAMES[lacquer]}
-              </span>
-            </div>
-            <div role="radiogroup" aria-label="Lacquer" className="grid grid-cols-6 gap-2">
-              {Array.from({ length: AVATAR_COUNT }, (_, index) => {
-                const selected = index === lacquer
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={LACQUER_NAMES[index]}
-                    disabled={busy}
-                    onClick={() => setLacquer(index)}
-                    data-testid={`lacquer-${index}`}
-                    className={cn(
-                      'flex aspect-square items-center justify-center rounded-full border transition-colors',
-                      selected ? 'border-brass' : 'hover:border-brass/50 border-transparent',
-                    )}
-                  >
-                    <PlayerAvatar seed={userId} name={shown} lacquer={index} className="size-10" />
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+          <LacquerPicker seed={userId} name={shown} value={lacquer} onChange={setLacquer} disabled={busy} />
 
           <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="save-profile">
             {busy ? 'Saving…' : firstTime ? 'Continue' : 'Save'}

@@ -8,6 +8,13 @@
       "when": 1789755925352,
       "tag": "0000_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789757603580,
+      "tag": "0001_clubs",
+      "breakpoints": true
     }
   ]
 }
