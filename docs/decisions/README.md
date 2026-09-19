@@ -23,6 +23,8 @@ recorded where they were taken, in
 | [0008](0008-whole-chips.md) | Whole chips only | Agreed |
 | [0009](0009-play-money-only.md) | Play money only | Agreed |
 | [0010](0010-club-invite-links.md) | Clubs can be joined from an invite link | Agreed |
+| [0011](0011-repeating-tables.md) | A repeating table reopens itself when its time runs out | Agreed |
+| [0012](0012-notifications-in-postgres.md) | Notifications are rows in Postgres, written with the change they tell of | Agreed |
 
 ## Writing one
 

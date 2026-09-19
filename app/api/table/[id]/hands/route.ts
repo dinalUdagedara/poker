@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { currentPlayerId } from '@/lib/server/player'
+import { mayWatch } from '@/lib/server/club-tables'
 import { listHands, TableError } from '@/lib/server/table-store'
 
 /**
@@ -15,7 +16,9 @@ import { listHands, TableError } from '@/lib/server/table-store'
 export async function GET(_request: NextRequest, ctx: RouteContext<'/api/table/[id]/hands'>) {
   const { id } = await ctx.params
   try {
-    return Response.json(await listHands(id, await currentPlayerId()))
+    const playerId = await currentPlayerId()
+    if (!(await mayWatch(id, playerId))) return Response.json({ error: 'No such table' }, { status: 404 })
+    return Response.json(await listHands(id, playerId))
   } catch (error) {
     if (error instanceof TableError) {
       return Response.json({ error: error.message }, { status: error.status })

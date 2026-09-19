@@ -24,5 +24,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     // The lobby's contents turn over constantly; the page itself does not.
     { url: `${siteUrl}/rooms`, changeFrequency: 'hourly', priority: 0.5 },
+    { url: `${siteUrl}/privacy`, changeFrequency: 'yearly', priority: 0.2 },
   ]
 }

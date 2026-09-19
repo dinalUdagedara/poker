@@ -110,7 +110,7 @@ instance hears a change as it happens.
 
 ## Running it
 
-Node 20.9 or newer.
+Node 22 or newer.
 
 ```bash
 npm install
@@ -120,11 +120,16 @@ npm run dev          # http://localhost:3000
 No environment variables are needed to play locally — with no `REDIS_URL` set,
 tables are kept in a process-local map. That is deliberate for development and
 a trap in production; see [docs/ops/deployment.md](docs/ops/deployment.md).
+Accounts are the exception: signing in needs Postgres and a Google client, set
+in `.env.local` — the variables are listed in the same doc.
 
 ```bash
 npm test             # unit suite (Vitest)
 npm run test:slow    # plus the exhaustive evaluator and equity tests
 npm run e2e          # end-to-end (Playwright: builds, serves on :3210)
+
+# the club suite too, against a Neon branch (never production)
+E2E_DATABASE_URL="$(grep ^DATABASE_URL= .env.local | cut -d= -f2-)" npm run e2e -- clubs
 npm run lint
 npx tsc --noEmit
 ```

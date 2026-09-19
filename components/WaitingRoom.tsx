@@ -67,7 +67,7 @@ export function WaitingRoom({ initial }: { initial: RoomView }) {
 
   useTableStream(
     room.tableId,
-    (view) => (view.stage === 'playing' ? router.refresh() : setRoom(view)),
+    (view) => (view.stage === 'waiting' ? setRoom(view) : router.refresh()),
     () => router.refresh(),
   )
 

@@ -77,6 +77,11 @@ export type TableView = RedactedTableState & {
    * Bots are absent from it and are named from their id.
    */
   names: Record<string, string>
+  /**
+   * The face each seat's player chose, by engine seat id, where they chose one.
+   * Only club tables carry it; a quick game's seats wear the monogram.
+   */
+  faces?: Record<string, { lacquer: number | null; picture: number | null }>
 }
 
 /**
@@ -106,8 +111,66 @@ export type RoomSummary = {
   botCount: number
 }
 
+/** One chair at a cash table, as anyone at it may see it. */
+export type CashSeatView = {
+  chair: number
+  name: string
+  lacquer: number | null
+  picture: number | null
+  /** What is in front of them this moment, after anything they have put in the pot. */
+  stack: number
+  status: 'playing' | 'sitting-out'
+  satOutReason: 'choice' | 'timeout' | 'broke' | null
+  /** They asked to leave and go when this hand ends. */
+  leaving: boolean
+  /** They asked to sit out from the next hand. */
+  sitOutNext: boolean
+  /** Dealt into the hand being played. */
+  inHand: boolean
+  /**
+   * Dealt into the hand on the felt — the one being played, or the one whose
+   * result is still showing — even if they have since folded.
+   */
+  dealt: boolean
+  you: boolean
+}
+
+/**
+ * A club's cash table, as one person looking at it sees it.
+ *
+ * The hand is the engine's state redacted for this viewer exactly as a quick
+ * game's is, and is null before the first deal. Seats are listed by chair, with
+ * the engine calling chair `n` by the id `s<n>` inside `hand`.
+ */
+export type CashTableView = {
+  stage: 'cash'
+  tableId: string
+  name: string
+  settings: {
+    seatCount: number
+    smallBlind: number
+    bigBlind: number
+    minBuyIn: number
+    maxBuyIn: number
+    actionMs: number
+  }
+  seats: (CashSeatView | null)[]
+  /** The viewer's chair, or null if they are not sitting. */
+  you: number | null
+  hand: (RedactedTableState & { names: Record<string, string> }) | null
+  /** When the player to act must act by, while a hand is live. */
+  deadline: number
+  /** The earliest the next hand is dealt. */
+  nextHandAt: number
+  /** For a viewer sitting out: when their seat is given up if they do not come back. */
+  holdUntil: number | null
+  closesAt: number
+  closing: boolean
+  closed: boolean
+}
+
 /** What any request about a table can come back as. */
-export type AnyTableView = RoomView | TableView
+export type AnyTableView = RoomView | TableView | CashTableView
 
 /**
  * A table after something happened, plus how it got there.

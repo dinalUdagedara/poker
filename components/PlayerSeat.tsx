@@ -62,6 +62,7 @@ export function PlayerSeat({
   calloutSide = 'below',
   chipSide = 'left',
   bigBlind,
+  face,
   hero = false,
 }: {
   player: RedactedPlayer
@@ -79,6 +80,8 @@ export function PlayerSeat({
   calloutSide?: 'right' | 'left' | 'below' | 'above'
   chipSide?: 'left' | 'right'
   hero?: boolean
+  /** The face the player chose for themselves, where they have an account. */
+  face?: { lacquer: number | null; picture: number | null }
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
   const tone = stackTone(player.stack, bigBlind)
@@ -179,6 +182,8 @@ export function PlayerSeat({
         <PlayerAvatar
           seed={player.id}
           name={displayName(player, null, names)}
+          lacquer={face?.lacquer}
+          picture={face?.picture}
           className="seat-medallion absolute top-1/2 left-0 size-(--medal) -translate-x-1/2 -translate-y-1/2"
         />
 

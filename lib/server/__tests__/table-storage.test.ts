@@ -69,6 +69,20 @@ describe('keeping tables in redis', () => {
     expect(ttl).toBe(String(TABLE_TTL_MS / 1000))
   })
 
+  it('rounds a lifetime up to whole seconds, which is all Redis accepts', async () => {
+    // A club table lives until a moment on the clock, which rarely divides
+    // into whole seconds. Redis refuses a fractional expiry outright.
+    const { calls, redis } = fakeRedis()
+    const storage = redisStorage(redis)
+
+    await storage.write('abc', table, 7_200_000.4, null)
+    expect(calls.eval.mock.calls[0][4]).toBe('7201')
+
+    calls.get.mockResolvedValue(JSON.stringify({ table, ttlMs: 1_500.5, version: 1 }))
+    await storage.read('abc')
+    expect(calls.expire).toHaveBeenCalledWith('table:preview:abc', 2)
+  })
+
   it('sends the version it expects, so a stale write is refused', async () => {
     const { calls, redis } = fakeRedis()
 

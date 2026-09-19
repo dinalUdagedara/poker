@@ -1,14 +1,5 @@
+import { LACQUER_HUES, pictureUrl } from '@/lib/profile'
 import { cn } from '@/lib/utils'
-
-/**
- * The lacquer a monogram is set on, as hues.
- *
- * Jewel tones held dark and quiet — emerald, oxblood, sapphire, aubergine,
- * tobacco, teal — so a seat looks engraved rather than printed. Every one sits
- * at the same lightness and chroma, so no player's face is louder than another
- * and the gold lettering has the same contrast on all of them.
- */
-const LACQUER_HUES = [158, 25, 262, 322, 55, 205]
 
 /** A small, stable hash, so the same id always lands on the same lacquer. */
 function hash(value: string): number {
@@ -39,18 +30,49 @@ export function initials(name: string): string {
  * leaves its colour where it was.
  *
  * Inline SVG, so the lettering scales with whatever size the seat asks for and
- * there is nothing to load before a face appears.
+ * there is nothing to load before a face appears. An account that chose a
+ * gallery picture wears that instead, set in the same brass-rimmed disc.
  */
 export function PlayerAvatar({
   seed,
   name,
+  lacquer,
+  picture,
   className,
 }: {
   seed: string
   name: string
+  /** The lacquer an account chose, as an index into LACQUER_HUES. Guests have none. */
+  lacquer?: number | null
+  /**
+   * A gallery picture the account chose (`lib/profile.ts`), drawn in place of
+   * the initials — on its lacquer if it has one, on card-face ivory if not.
+   */
+  picture?: number | null
   className?: string
 }) {
-  const hue = LACQUER_HUES[hash(seed) % LACQUER_HUES.length]
+  if (picture != null) {
+    const ground =
+      lacquer != null
+        ? `radial-gradient(circle at 50% 28%, oklch(0.4 0.06 ${LACQUER_HUES[lacquer]}) 0%, oklch(0.22 0.04 ${LACQUER_HUES[lacquer]}) 100%)`
+        : 'radial-gradient(circle at 50% 30%, oklch(0.97 0.012 85) 0%, oklch(0.88 0.02 80) 100%)'
+    return (
+      <span
+        className={cn('relative block shrink-0 overflow-hidden rounded-full leading-none', className)}
+        style={{ background: ground }}
+        aria-hidden
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- a small static SVG; next/image adds nothing */}
+        <img src={pictureUrl(picture)} alt="" className="block size-full" draggable={false} />
+        {/* The same inlaid brass rule the monogram wears, so both read as one object. */}
+        <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 size-full">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="var(--brass)" strokeOpacity="0.55" strokeWidth="2" />
+        </svg>
+      </span>
+    )
+  }
+
+  const hue = LACQUER_HUES[lacquer ?? hash(seed) % LACQUER_HUES.length]
   const letters = initials(name)
 
   return (
