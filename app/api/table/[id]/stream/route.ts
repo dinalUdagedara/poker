@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { currentPlayerId } from '@/lib/server/player'
+import { mayWatch, settleIfOwed } from '@/lib/server/club-tables'
 import { findTable, keepSeat, SEAT_HEARTBEAT_MS, watchTable } from '@/lib/server/table-store'
 
 /**
@@ -31,6 +32,8 @@ const SAFETY_MS = 5000
 export async function GET(request: NextRequest, ctx: RouteContext<'/api/table/[id]/stream'>) {
   const { id } = await ctx.params
   const playerId = await currentPlayerId()
+  // A club's table is streamed to its members only.
+  if (!(await mayWatch(id, playerId))) return Response.json({ error: 'No such table' }, { status: 404 })
 
   const encoder = new TextEncoder()
 
@@ -90,6 +93,12 @@ export async function GET(request: NextRequest, ctx: RouteContext<'/api/table/[i
             send('gone', {})
             return close()
           }
+
+          // Looking can stand a player up at a cash table — their time ran
+          // out, their seat was held long enough — and their chips should be
+          // back in their balance by the time anyone checks, not whenever
+          // somebody next acts.
+          if (view.stage === 'cash') await settleIfOwed(id)
 
           const next = JSON.stringify(view)
           if (next !== last) {

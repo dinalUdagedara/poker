@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HandHistory } from "@/components/HandHistory";
 import { currentPlayerId } from "@/lib/server/player";
+import { mayWatch } from "@/lib/server/club-tables";
 import { listHands, TableError } from "@/lib/server/table-store";
 
 /**
@@ -35,7 +36,10 @@ export default async function HandHistoryPage({
 
   let hands;
   try {
-    hands = await listHands(id, await currentPlayerId());
+    const playerId = await currentPlayerId();
+    // A club's table and its history are for its members only.
+    if (!(await mayWatch(id, playerId))) notFound();
+    hands = await listHands(id, playerId);
   } catch (error) {
     // A table that has expired or never existed has no history to show, and
     // the table page it belongs to would answer the same way.

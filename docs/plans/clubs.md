@@ -188,7 +188,7 @@ device: a new phone is one sign-in away from everything.
 **Invite links.** A club is reachable at `/c/<club id>`. An admin pastes that in
 a WhatsApp group, a player taps it, signs in if they need to, and lands on the
 join request. It is the six-digit id in a form that can be tapped, which is how
-Hemal's players already talk to each other.
+club players already talk to each other.
 
 ## Data model
 
@@ -197,8 +197,9 @@ Money is whole chips. The engine already refuses anything else
 game. ClubGG's `0.01/0.02` becomes blinds of `1/2`, `5/10`, `50/100` and so on.
 
 ```
-users            ← Better Auth's own tables (user, session, account)
-profiles         user_id PK, nickname, avatar, public_id UNIQUE
+users            ← Better Auth's user, with nickname, avatar, public_id UNIQUE
+                   on the same row (see clubs-progress.md for why)
+sessions, accounts, verifications   ← Better Auth's own
 
 clubs            id, code UNIQUE (six digits), name, logo, notice,
                  owner_id, auto_approve, created_at
@@ -212,9 +213,9 @@ club_members     club_id, user_id, PK(club_id, user_id)
                  referred_by NULL                   -- reserved for agents
                  requested_at, joined_at
 
-ledger           id, club_id, user_id, amount (signed integer),
-                 kind  'send' | 'claim' | 'buy_in' | 'cash_out' | 'removal'
-                 actor_id, table_id NULL, session_id NULL,
+ledger           id, club_id, user_id, amount (signed bigint), balance_after,
+                 kind  'send' | 'claim' | 'removal' | 'buy_in' | 'cash_out' | 'refund'
+                 actor_id, request_id NULL, table_id NULL, session_id NULL,
                  idempotency_key UNIQUE, created_at
 
 chip_requests    id, club_id, user_id, amount,
@@ -439,7 +440,7 @@ built so they can be tested in isolation before a real club touches them.
 - **How long a sat-out seat is held** before it is stood up and cashed out.
   ClubGG gives about thirty seconds after a timeout; for a sit-out by choice,
   ten minutes is common.
-- **Recurring tables.** Hemal's "a table every day" is exactly ClubGG's
+- **Recurring tables.** "A table every day" is exactly ClubGG's
   recurring-table switch. It is the first thing to add after v1, and cheap once
   tables exist: a template and a cron job that opens it.
 - **Club limits.** How many clubs one person may create, and how many members a

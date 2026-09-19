@@ -5,8 +5,8 @@
 ## Context
 
 A club's chips could be a fixed buy-in per table, reset every time, or a
-balance per member that carries across tables and days. Hemal's clubs play a
-fresh table every day, and ClubGG — which his players already use — keeps a
+balance per member that carries across tables and days. The clubs this is for
+play a fresh table every day, and ClubGG — which their players already use — keeps a
 balance per member that the admin tops up and claims back.
 
 ## Decision

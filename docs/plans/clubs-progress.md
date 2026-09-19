@@ -1,0 +1,499 @@
+# Clubs: state of the work
+
+Living status for the clubs work. [`clubs.md`](clubs.md) is the plan and does
+not change often; this file is where things stand, and records what was decided
+along the way where the plan did not already say.
+
+**If you are picking this up cold: read [`clubs.md`](clubs.md) and the
+decisions it links to first, then this.**
+
+## Status
+
+| Phase | What | State |
+| --- | --- | --- |
+| 0 | Infrastructure: Neon, Drizzle, migrations | **Done** — on `feat/clubs` |
+| 1 | Accounts | **Done, bar email** — on `feat/clubs`; Google sign-in tried by hand |
+| 2 | Clubs and membership | **Done** — on `feat/clubs`; tried by hand |
+| 3 | Ledger and counter | **Done** — on `feat/clubs`; walked through in a browser |
+| 4 | Cash-game lifecycle | **Done** — on `feat/clubs` |
+| 5 | Club tables | **Done** — on `feat/clubs`; an evening played in a browser |
+| 6 | Finishing | **Done** — on `feat/clubs` |
+
+## Setup, outside the code
+
+Done by hand, once, and recorded here because none of it is visible in the
+repository.
+
+- **Neon**, through the Vercel marketplace: project `poker-db`, region
+  `iad1` (Washington, D.C. — the same region the functions run in), Neon Auth
+  off. Connected to Production and Preview, with a database branch per preview
+  deployment and none per production deployment. Not connected to Development.
+- **A `dev` branch** in Neon, from `main`, set to never expire. `.env.local`
+  points at it.
+- **Google Cloud project `poker`**, Google Auth Platform: an OAuth client
+  "poker web" with redirect URIs for localhost, the vercel.app address and
+  `poker.dinaludagedara.com`. The app is in **Testing**: only listed test users
+  can sign in with Google until it is published, which needs the homepage and
+  privacy policy on the Branding page.
+- **Vercel**: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set for Production
+  and Preview; Node.js set to 24.x.
+
+Still to do by hand: `BETTER_AUTH_SECRET` in Vercel (Production and Preview,
+different values), `CRON_SECRET` in Vercel (Production), and — when email is
+wired — a Resend account.
+
+## Phase 0 — infrastructure
+
+**Done**
+
+- `lib/server/db/index.ts` — the connection, made on first use. Neon's Pool
+  over WebSockets, because the ledger will need interactive transactions.
+  `hasDatabase()` lets everything that is not an account run without one.
+- `lib/server/db/schema.ts` — the schema. `drizzle.config.ts` points
+  drizzle-kit at it; migrations live in `drizzle/`.
+- `scripts/migrate.mjs` — applies migrations, over HTTP, and skips itself with
+  no `DATABASE_URL`. Runs at the start of `npm run build`, so every deployment
+  migrates its own database: production its `main` branch, a preview its own.
+- `engines` is `>=22`: the driver relies on Node's global `WebSocket`.
+- `playwright.config.ts` blanks `DATABASE_URL` alongside `REDIS_URL`, so the
+  end-to-end suite still needs no database.
+- `docs/ops/deployment.md` — the Postgres and accounts sections.
+
+## Phase 1 — accounts
+
+**Decisions taken**
+
+- *The profile lives on the user row, not a separate `profiles` table.* The plan
+  sketched a table of its own. Better Auth caches the user in the signed session
+  cookie, so nickname, avatar and public id on the user come back with no query
+  at all — and `currentPlayerName` runs on every table request. A second table
+  would have been a join on each of them.
+- *The avatar is a lacquer, not a picture.* Seats already wear a monogram on one
+  of six lacquers chosen from the player id. An account chooses its lacquer
+  instead, from the same six, so an account's face and a guest's are the same
+  object. Uploads can come later.
+- *The base URL is worked out per request*, from a list of allowed hosts, rather
+  than fixed. The same deployment answers as `poker.dinaludagedara.com`, as
+  `poker-pearl-gamma.vercel.app` and as preview addresses; a fixed base URL
+  would finish a Google sign-in on the wrong host, where the cookie is not.
+  Previews are matched by the project's own prefix and team suffix, never a
+  bare `*.vercel.app`.
+- *Profile rules are enforced in a database hook*, so no route — browser or
+  server — can store a nickname that skipped `sanitiseName` or an avatar out of
+  range. A nickname that cleans to nothing is dropped from the update rather
+  than stored empty.
+- *The public id cannot be set by a user.* Better Auth refuses it
+  (`FIELD_NOT_ALLOWED`); it is drawn once, at sign-up.
+- *Google and a password on the same address are linked*, not refused.
+
+**Done**
+
+- `lib/server/auth.ts` — Better Auth: Google, email and password, 30-day
+  sessions renewed daily, a five-minute cookie cache, the profile fields.
+  Null without a database.
+- `app/api/auth/[...all]/route.ts` — its endpoints; 404 without a database.
+- `lib/server/player.ts` — `currentUser()`, and `currentPlayerId` /
+  `currentPlayerName` preferring the account over the guest cookie.
+- `/sign-in`, `/welcome` (first-time nickname and lacquer; passes straight
+  through once set), `/account`, and `/privacy` for Google's consent screen.
+- A "Sign in" link, or your monogram, in the corner of every landing screen.
+
+**Checked by hand** against the `dev` branch: sign-up; the session; a nickname
+with a zero-width character and runs of spaces saved clean; an out-of-range
+avatar dropped; the public id refused; a signed-in player seated at a quick game
+under their nickname. The test account was deleted afterwards.
+
+**Not done yet**
+
+- **Email.** No verification email and no password reset: both need Resend. A
+  player who forgets a password has no way back except Google.
+- **The privacy page's contact address** is not set (`CONTACT_EMAIL` in
+  `lib/site.ts`); the page words itself around it until it is.
+- **Publishing the Google app**, which needs the above page live on production.
+- **A guest's seat does not follow them into an account.** Signing in mid-game
+  changes the player id, so the table no longer recognises them. Rare, and
+  harmless for quick games; worth revisiting only if it bites.
+
+## Phase 2 — clubs and membership
+
+**Decisions taken**
+
+- *The crest is the club's initials on a lacquer*, drawn by the same component
+  as a player's face, rather than an uploaded image. ClubGG's preset logos
+  serve the same purpose; this needs no storage and matches the room.
+- *Codes and ids are what travel.* A club is addressed by its six-digit code in
+  every URL and request, a member by their eight-digit public id. Internal ids
+  never leave the server. Both are accepted as typed — `778 589`, `778-589`,
+  `4821-0937`.
+- *A rejected request is deleted; a removed member is kept, marked `removed`.*
+  The ledger will point at membership rows, so a member who played must not
+  vanish. Either may ask to join again.
+- *Removing a member clears the admin's alias and note for them*, so a
+  returning player starts with a clean slate.
+- *Settings and the approval switch are separate permissions*, checked field by
+  field, so a future manager can be given one without the other.
+- *Limits*: three clubs owned per person and 200 active members per club
+  (`MAX_OWNED_CLUBS`, `MAX_MEMBERS` in `lib/server/clubs.ts`). Approve-all stops
+  at the limit rather than going over it.
+- *Club routes answer with the admin's view or nothing.* A player asking for an
+  admin screen gets a 404, and anyone not in the club is sent to its invite
+  page to ask.
+- *Sign-in now lands on `/clubs`* by default, since clubs are what an account is
+  for.
+
+**Done**
+
+- Schema: `clubs` and `club_members` (`drizzle/0001_clubs.sql`), with the role
+  and status held to their allowed values by check constraints.
+- `lib/clubs/permissions.ts` — `can()` and the role table.
+- `lib/clubs/text.ts` — cleaning names, notices, aliases, notes and messages;
+  reading codes and ids as typed.
+- `lib/server/clubs.ts` — the club service and trust boundary.
+- `/api/clubs` routes: create; look up and update; join; decide applicants;
+  annotate and remove a member.
+- Screens: `/clubs`, `/clubs/new`, the invite page `/c/<code>`, the club lobby
+  (with the notice and an invite button that uses the phone's share sheet),
+  members and applicants, member detail, club settings. A Clubs entry on the
+  home screen and the account page.
+- Unit tests for the permission table and the text rules.
+
+**Checked by hand** against the `dev` branch, with two throwaway accounts: a
+dirty club name saved clean; lookup by a code typed with a dash; a
+non-member refused an admin change; joining twice leaving one request;
+approval; alias and a note with runs of blank lines; the owner refused
+removal; a removed player losing access; auto-approve letting them straight
+back in; a guest refused. Every page answered correctly for the owner, a
+player and a guest. The accounts and the club were deleted afterwards.
+
+**Not done yet**
+
+- **Leaving a club** from the player's side. Removal is admin-only for now.
+- **Handing a club to someone else**, and deleting a club.
+- The lobby's **tables** section is a placeholder until phase 5.
+
+## Phase 3 — the ledger and the counter
+
+**Decisions taken**
+
+- *One function changes balances.* `move()` in `lib/server/ledger.ts` is the
+  only code that writes `club_members.balance`, and it writes the ledger row in
+  the same transaction — a savepoint when the caller already has one open.
+- *Idempotency is held by the database.* The browser makes an operation id per
+  tap of Send or Claim, and each member's move is keyed on it. A retry with the
+  same id finds the row and moves nothing; two copies racing past that check
+  are settled by the unique index, and the loser returns as "already done".
+  Tried against Neon with three identical sends fired at once: one moved.
+- *A chip request is paid by a send keyed on the request*, after the request
+  has been moved out of `pending` in the same transaction — so two admins, or
+  one tapping twice, cannot pay it twice.
+- *Batches are all or none.* Sending to several members, or claiming from
+  several, happens in one transaction; a claim one member cannot cover refuses
+  the whole claim rather than half of it.
+- *Removal claims the balance back* in the transaction that removes the member,
+  keyed on that membership, so chips never leave with a player.
+- *Chips are `bigint`* in the database and whole numbers everywhere, with a
+  ceiling of a billion per move (`MAX_MOVE`).
+- *A member may leave five requests waiting* (`MAX_PENDING_REQUESTS`); a request
+  from someone who has since left is rejected, not paid.
+- *The record shows the latest 100 moves*, searchable on the page. Paging and
+  date filters, as ClubGG has, can follow when a club has that much history.
+- *Tests run against real Postgres.* PGlite runs the app's own migrations in the
+  test process, so the unique index, the no-negative-balance check and the
+  transactions are all tested as Neon will enforce them.
+
+**Done**
+
+- Schema (`drizzle/0002_ledger.sql`): `club_members.balance`, `ledger` and
+  `chip_requests`, with checks that a balance and every recorded balance stay
+  at or above zero, and that no move is for nothing.
+- `lib/server/ledger.ts` — `move()` and `claimEverything()`.
+- `lib/server/counter.ts` — send, claim, requests, the record, member chip
+  figures and a member's own chips.
+- `POST /api/clubs/:code/chips` — send, claim, request and decide.
+- The club page shows your chips and lets you ask for more; admins get the
+  Counter, with a badge for waiting requests. The counter has Trade (pick
+  members, send out, claim back, claim all), Requests and Record. A member's
+  page shows balance, sent out and claimed back.
+- `lib/server/__tests__/counter.test.ts` — sixteen tests, every one ending on
+  the invariant that each balance equals the sum of its ledger.
+
+**Not done yet**
+
+- **Profit and loss** per member, which needs buy-ins and cash-outs (phase 5).
+- **Paging and filters** on the record beyond the latest hundred.
+
+## Phase 4 — the cash-game lifecycle
+
+**Decisions taken**
+
+- *The rules are a pure module.* `lib/server/cash-table.ts` takes a table and
+  the time and returns the next table: sitting down, standing up, sitting out
+  and back in, acting, timing out, settling a hand, releasing seats, closing,
+  and dealing. No storage, no clock of its own — the tests step time by hand.
+  `table-store.ts` stores the result as a third stage beside `waiting` and
+  `playing`; quick games and rooms are untouched and refuse club tables.
+- *`tick` applies everything that has come due*, in order, and returns the same
+  object when nothing has. It runs before every change and on every look, and a
+  look that finds something due writes it — so the table deals its next hand,
+  folds for the absent and closes on time through whichever open stream checks
+  next (every five seconds at most). No timer, no job.
+- *Chips leave through an outbox.* Standing up, being stood up, and closing add
+  the player's stack to `cashOuts`, keyed on their seat session. The table pays
+  nobody itself; phase 5 drains the outbox into the ledger, idempotently on the
+  session, and clears what it paid.
+- *A player is paid what is in front of them now.* Someone who folds and stands
+  up mid-hand leaves what they put in the pot behind. The first version paid
+  their pre-hand stack — a big blind made from nothing — and the conservation
+  test caught it on its first run.
+- *Each hand remembers which sitting each engine seat was* (`handSessions`). The
+  engine calls a chair `s<n>` whoever sits in it, and a chair can change hands
+  mid-hand; stacks are only read back into the sitting that was dealt, and the
+  hand history shows a player their cards only in hands dealt to their own
+  sitting — never the previous occupant's.
+- *Leaving mid-hand folds for you when your turn comes*, and you are stood up
+  with what is left when the hand ends. Asking to sit out mid-hand takes effect
+  from the next hand.
+- *Timing out* checks or folds for you and sits you out on the spot; the rest of
+  the hand plays itself for you. You have a minute (`TIMEOUT_GRACE_MS`) to say
+  you are back before you are stood up. A chosen sit-out holds the seat ten
+  minutes; a player with no chips left keeps it ten minutes to top up.
+- *Fixed blinds, a button that moves to the next chair dealt in*, the first deal
+  waiting for the table's auto-start count and later ones for any two. No dead
+  blinds for latecomers — a refinement to add if clubs ask.
+- *The result stays on the felt for four seconds* (`NEXT_HAND_MS`) before the
+  next deal, as the quick game's does.
+- *A closing table finishes the hand in progress* — at closing time or on
+  disband — then stands everyone up and deals no more.
+- *Cash tables are kept in Redis until two hours after closing time*, however
+  quiet they go, so an expiry can never take chips with it.
+
+**Also fixed in passing:** a quick-game hand that ended because a player's clock
+ran out could be left out of the hand history. The write that folds for them is
+now compared with the table as stored, not as already folded.
+
+**Done**
+
+- `lib/server/cash-table.ts` — the lifecycle, and `cashViewOf`, the table as one
+  player sees it: their own cards only, everyone else's hidden until a showdown.
+- `CashTableView` in `lib/poker/lifecycle.ts`.
+- `table-store.ts` — the cash stage in versioned writes, the stream, the
+  archive and the history; `openCashGame`, `sitAtCashTable`, `standAtCashTable`,
+  `sitOutAtCashTable`, `sitInAtCashTable`, `actAtCashTable`, `disbandCashTable`,
+  `extendCashTable`, `readCashTable`, `clearPaidCashOuts`.
+- `lib/server/__tests__/cash-table.test.ts` — the rules, and five seeded random
+  evenings of 1,500 steps each — people joining, leaving, sitting out, timing
+  out, busting, betting at random — checking after every step that the chips in
+  front of players, in the pot and paid out add up to exactly what was bought
+  in, and that every sitting is paid out once.
+- `lib/server/__tests__/cash-store.test.ts` — through the store: each player
+  sees only their own cards, looking deals the next hand and writes it, a new
+  occupant of a chair sees none of the previous one's cards in the history, and
+  the quick-game routes refuse a club table.
+
+**Not done yet** — all phase 5:
+
+- Routes and a screen for cash tables. Nothing opens one yet except the tests.
+- Buy-in and cash-out through the ledger, the outbox drained, the cron job.
+- Top-up between hands.
+
+## Phase 5 — club tables
+
+**Decisions taken**
+
+- *Two records per table.* The game lives in Redis as a cash table
+  (phase 4); `club_tables` in Postgres is what lasts — the club it belongs to,
+  its settings, when it closes. `seat_sessions` is one row per sitting.
+- *Buy-in charges first, seats second, refunds on failure.* The balance, the
+  session and the `buy_in` ledger row go in one transaction; then the player is
+  seated; if seating fails the buy-in is refunded under a `refund:<session>`
+  key. Proved by accident on the dev database: a Redis error failed two buy-ins
+  after charging, and both were refunded exactly once.
+- *The browser's operation id is the session id*, so a retried buy-in finds its
+  own session and charges nothing more.
+- *Cash-outs are paid by `settle`*, which drains the table's outbox into the
+  ledger keyed `cash_out:<session>`, closing the session in the same
+  transaction, and only then clears the outbox. It runs after every action at a
+  club table, whenever the club's tables are listed, whenever an open stream
+  sees the table owes someone, and from the cron job.
+- *Each sitting keeps its last known stack* (`seat_sessions.last_stack`),
+  updated as players act. If the live table is ever lost from Redis, everyone
+  is paid what they last had rather than what they sat down with.
+- *The cron runs once a day* (`vercel.json`), the most often Vercel's Hobby plan
+  allows. It is the backstop for a table everyone has walked away from; tables
+  otherwise settle whenever anyone plays at them, opens the club, or has the
+  table open. On a paid plan, every few minutes would be better.
+- *A club table is for its members.* The table API, the stream and the hand
+  history answer 404 to anyone else (`mayWatch`).
+- *A member sitting at a table cannot be removed*; they stand up first, so no
+  seat is ever left with nobody to pay.
+- *The felt is shared.* `TableFelt` was lifted out of the quick game's screen
+  unchanged; `feltOf` draws a cash table in its shape, with players who were
+  not dealt in shown as sitting out. The club table screen adds its own dock:
+  buy-in, the betting controls, sit out, "I'm back", stand up, and the host's
+  "+1 hour" and "close table".
+- *Limits*: ten open tables per club, up to 24 hours each.
+
+**Found and fixed on the way**
+
+- *Redis refuses a fractional expiry.* A club table's lifetime runs to a moment
+  on the clock, which is rarely a whole number of seconds, and every buy-in
+  failed with "value is not an integer". The in-memory store the tests use
+  accepts fractions, so only running against real Redis found it. Lifetimes are
+  now rounded up to whole seconds in the storage layer, with a contract test.
+
+**Done**
+
+- Schema (`drizzle/0003_club_tables.sql`): `club_tables` and `seat_sessions`.
+- `lib/server/club-tables.ts` — open, list, view, buy in, act, stand, sit out
+  and in, extend, disband; `settle`, `settleIfOwed`, `sweepTables`, `mayWatch`.
+- Routes: `/api/clubs/:code/tables`, `/api/clubs/:code/tables/:tableId`,
+  `/api/cron/tables`; members-only checks on `/api/table/:id`, its stream and its
+  hands, and on the hand history page.
+- Screens: "Open a table" (seats, blinds, buy-in range in big blinds, time to
+  act, auto-start, game length); the tables list on the club page; the table.
+- Tests: `club-tables.test.ts` — twelve cases against PGlite and the in-memory
+  table store, every one checking that member balances plus chips on tables
+  equal what the admin sent out. `felt.test.ts` for the adapter.
+
+**Walked through in a browser** as two players on the `dev` database: open a
+table, both buy in, a hand dealt with blinds and the button, betting, a player
+standing up mid-hand and being paid when it ended, a timeout sitting the owner
+out with the "I'm back" prompt, closing the table. Both buy-ins of 10,000 came
+back as 10,050 and 9,950. No errors in either browser.
+
+**Not done yet** — phase 6:
+
+- Top-up between hands.
+- Asking for chips from the buy-in screen when the balance is short (today it
+  says to ask the admin).
+- Profit and loss per member on the member page.
+- An end-to-end test of a club evening in the Playwright suite.
+
+## Phase 6 — finishing
+
+**Done**
+
+- *Top-up between hands.* `topUp` in `cash-table.ts` adds chips to a seat when
+  its player is not in the hand being played, up to the table's most, and puts a
+  player who had run out back in the game. At a club table it is charged first,
+  onto the same sitting (`bought_in` grows with it), and refunded at most once
+  if the table turns it down. Keyed on the browser's operation id, so a doubled
+  tap charges once.
+- *Asking for chips from the table.* A member who cannot afford the least
+  buy-in is offered a request for exactly the difference, on the spot.
+- *Profit and loss* on a member's page, from finished sittings only — cashed out
+  less bought in — with chips still on a table shown apart as "At tables", so a
+  player mid-session does not look as though they have lost their stack.
+- *A club evening in the end-to-end suite* (`e2e/clubs.spec.ts`): two people
+  sign up, one founds a club, the other joins from the invite link and is
+  approved, chips are sent, a table is opened, both buy in, a hand is played,
+  both stand up and every chip is back; the record shows it and the table
+  closes. A second test checks a stranger sees nothing. It needs a real
+  database, so it runs only with `E2E_DATABASE_URL` set — a Neon branch, never
+  production — and deletes every account it made when it finishes.
+
+## After v1 — before the first push
+
+**Done**
+
+- *Secrets in Vercel*: `BETTER_AUTH_SECRET` (Production, and a different one
+  for Preview) and `CRON_SECRET` (Production), generated and added with the
+  Vercel CLI; the values were never printed. This folder is linked to the
+  `poker` project (`.vercel/`, not committed).
+- *The privacy page's contact address*: dinal.bandara@gmail.com.
+- *Password resets by email* (`lib/server/email.ts`, `/forgot-password`,
+  `/reset-password`), through Resend, switched on by `RESEND_API_KEY` and off
+  without it — the sign-in page offers no reset until then. Sign-up also sends a
+  confirmation email once it is on, never required.
+- *Account linking checked*: Better Auth only joins a Google sign-in to an
+  email-and-password account whose address is verified
+  (`requireLocalEmailVerified`, on by default), so signing up with someone
+  else's address cannot capture their Google sign-in.
+- *Leaving a club*, *handing it over* and *deleting it* (`clubs.ts`,
+  `ownClub` permission). Leaving returns the balance to the club, as removal
+  does, and is refused while seated; the owner cannot leave, only hand over —
+  roles swapped in one transaction — or delete, by typing the name back, with
+  every table closed first.
+- *Repeating tables* — see [decision 0011](../decisions/0011-repeating-tables.md).
+  `club_tables` gains `recurring`, `hours`, `auto_start` and `series_id`
+  (`drizzle/0004_recurring_tables.sql`).
+- The club end-to-end suite now also opens a repeating table, stops it, closes
+  it, hands the club over, leaves it and deletes it.
+- *The auto-approve switch* moves the moment it is tapped, and moves back if the
+  server refuses — the end-to-end test caught it waiting for a round trip.
+
+**Still open**
+
+- **A Resend account and key** — and a verified domain for `RESEND_FROM` before
+  real players rely on it.
+- **Publishing the Google app** once the privacy page is live on production.
+- **Paging** on the counter's record beyond the latest hundred moves.
+
+## Profile pictures
+
+**Decisions taken**
+
+- *A gallery, not uploads.* Thirty Notionists faces (by Zoish, public-domain
+  CC0 artwork, via DiceBear), chosen over seven other CC0 styles on a lab page.
+  Uploads would need storage, resizing and moderation; a gallery needs none.
+- *Drawn once, shipped as files.* `scripts/build-avatars.mjs` writes
+  `public/avatars/notionists/01…30.svg`; DiceBear is a dev dependency only, and
+  the browser loads a small SVG per face. Faces are stored by number, so the
+  script's seed list may only ever be added to.
+- *One string, as before.* The `avatar` field holds `3` (initials on lacquer 3,
+  as every account has had), `p12` (picture 12 on ivory) or `p12.3` (picture 12
+  on lacquer 3). Existing accounts need nothing done; anything else is refused
+  exactly (`cleanAvatar` in `lib/profile.ts`).
+- *Shown wherever a member is drawn*: the corner of the screen, the account
+  and profile screens, the member list, applicants, the member page, the
+  counter, chip requests, and the seats at a club table. Quick games keep the
+  monogram — a seat there is a guest cookie as often as an account.
+
+**Known flaky test, not caused by this:** `e2e/table.spec.ts` › "replays a full
+table with nothing running into anything on a phone" fails about one run in
+twelve. It measures the hand-replay drawer after a fixed 400 ms wait on a random
+deal, in a quick game, where no chosen face is ever drawn.
+
+## Club crests
+
+- *Thirty-six emblems* (`lib/clubs/emblems.ts`) — suits, crown, gem, dice,
+  coins, trophy and the like — from Lucide, the icon set the app already draws
+  its buttons with (ISC licence), struck in brass on the club's lacquer. Nothing
+  new ships: the icons were already a dependency. The club's initials stay a
+  choice.
+- *Stored by key* in `clubs.emblem` (`drizzle/0005_club_emblems.sql`), null for
+  initials. Keys are permanent — the list may only be added to. Anything not in
+  it is stored as null rather than refused, so a stale form cannot break saving.
+- *Picked* when founding a club (spade by default) and in club settings, and
+  shown on the clubs list, the invite page and the club's own page.
+
+## Notifications
+
+- *A bell with a count* beside the sound toggle on every club and landing
+  screen, for signed-in players: up to nine, then `9+`. Opening it lists the
+  latest fifty, newest first, each with the club's crest, a sentence and how
+  long ago; tapping one goes where it can be acted on (the applicants tab, the
+  counter's requests, the table). See docs/decisions/0012.
+- *Twelve kinds*: for admins, join requests (or "joined", with auto-approve)
+  and chip requests; for players, approved or declined, removed, handed the
+  club, chips sent or claimed, a chip request answered, and a new table.
+- *Stored* in `notifications` (`drizzle/0006_notifications.sql`), written by
+  `notify` in the same transaction as the change. Nobody is told about their own
+  doing; retries tell nobody twice; a repeating table's later sittings are quiet.
+- *Polled*, not streamed: the count on load, every 30 s while visible, and on
+  returning to the tab. The cron job deletes rows after thirty days.
+- *Tests*: `lib/server/__tests__/notifications.test.ts` (PGlite: who hears what,
+  retries, failures, read marking, pruning, club deletion),
+  `lib/__tests__/notifications.test.ts` (wording, links, badge), and the club
+  e2e now reaches Bo's request and the new table through the bell.
+
+## The admin's own chips
+
+- *An admin adds chips to their own balance* straight from the club bank —
+  "Add chips from the club bank" on the club page, and "Add N chips" at a table
+  they cannot yet afford — instead of asking themselves and approving it.
+- *In the ledger* it is an ordinary `send` with the admin as actor and
+  recipient (`addOwnChips`, keyed on the tap's operation id), so the counter's
+  record shows what they gave themselves.
+- *The owner no longer has `requestChips`*: the server refuses a request from
+  anyone who can add their own.
