@@ -255,7 +255,7 @@ export function CounterPanel({
             })}
           </ul>
 
-          <div className="border-foreground/10 bg-background/80 sticky bottom-0 flex flex-col gap-3 border-t py-4 backdrop-blur">
+          <div className="border-foreground/10 bg-background/80 sticky bottom-0 -mx-4 flex flex-col gap-3 border-t px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
             <div className="flex items-center justify-between text-[13px]">
               <span className="text-muted-foreground">
                 {picked.size === 0 ? 'Pick members above' : `${picked.size} picked`}
