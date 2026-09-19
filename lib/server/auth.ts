@@ -22,6 +22,7 @@ import { nextCookies } from 'better-auth/next-js'
 import { sanitiseName } from '../names'
 import { AVATAR_COUNT } from '../profile'
 import { db, hasDatabase } from './db'
+import { hasEmail, linkEmail, sendEmail } from './email'
 import { accounts, sessions, users, verifications } from './db/schema'
 
 const DAY_S = 60 * 60 * 24
@@ -123,15 +124,54 @@ function build() {
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
     /*
-     * No email is sent yet, so an address is not verified and a forgotten
-     * password cannot be reset. Both arrive with the email service; until then
-     * Google is the sign-in that recovers itself.
+     * A forgotten password is reset by a link sent by email — once email is set
+     * up (`email.ts`). Until then there is no reset, and Google is the sign-in
+     * that recovers itself. Verifying an address is sent on sign-up, but never
+     * required: an unverified address still plays, it just cannot yet be told
+     * apart from a mistyped one.
      */
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
       requireEmailVerification: false,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: hasEmail()
+        ? async ({ user, url }) => {
+            await sendEmail({
+              to: user.email,
+              subject: 'Reset your Showdown password',
+              ...linkEmail({
+                greeting: 'Hello,',
+                lines: [
+                  'Someone asked to reset the password for your Showdown account.',
+                  'If it was you, choose a new one below. The link works for an hour.',
+                ],
+                action: 'Choose a new password',
+                url,
+                footer: 'If it was not you, ignore this email and nothing will change.',
+              }),
+            })
+          }
+        : undefined,
     },
+    emailVerification: hasEmail()
+      ? {
+          sendOnSignUp: true,
+          sendVerificationEmail: async ({ user, url }) => {
+            await sendEmail({
+              to: user.email,
+              subject: 'Confirm your email for Showdown',
+              ...linkEmail({
+                greeting: 'Welcome to Showdown.',
+                lines: ['Confirm this is your address, so a forgotten password can always be reset.'],
+                action: 'Confirm my email',
+                url,
+                footer: 'If you did not sign up, ignore this email.',
+              }),
+            })
+          },
+        }
+      : undefined,
     socialProviders: google,
     account: {
       // Signing in with Google as an address that already has a password joins
@@ -161,6 +201,9 @@ export function auth(): Auth | null {
   global.__pokerAuth ??= build()
   return global.__pokerAuth
 }
+
+/** Whether a forgotten password can be reset here — that is, whether email is set up. */
+export { hasEmail as canResetPasswords }
 
 /** Whether signing in with Google is configured here. */
 export function hasGoogle(): boolean {

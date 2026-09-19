@@ -92,6 +92,23 @@ GOOGLE_CLIENT_ID=…            Google Cloud → Google Auth Platform → Client
 GOOGLE_CLIENT_SECRET=…
 ```
 
+### Email (optional)
+
+```
+RESEND_API_KEY=re_…           switches on password resets and address verification
+RESEND_FROM=Showdown <hello@your-domain>
+```
+
+Without `RESEND_API_KEY` there is no "forgot your password" and no
+verification email; everything else works. Until a domain is verified in
+Resend, `RESEND_FROM` must be left unset (it falls back to Resend's test
+sender), which can only deliver to the address the Resend account belongs to.
+
+Accounts are linked safely without it: a Google sign-in is only joined to an
+existing email-and-password account whose address has been verified, so
+someone who signs up with another person's address cannot take over their
+Google sign-in (Better Auth's `requireLocalEmailVerified`, on by default).
+
 ### Club tables' cron job
 
 ```

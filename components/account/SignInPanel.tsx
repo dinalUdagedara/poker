@@ -32,7 +32,16 @@ function GoogleMark() {
  * anyone who would rather not. Both land on the welcome screen, which asks for a
  * nickname the first time and passes straight through after that.
  */
-export function SignInPanel({ next, googleEnabled }: { next: string; googleEnabled: boolean }) {
+export function SignInPanel({
+  next,
+  googleEnabled,
+  canReset,
+}: {
+  next: string
+  googleEnabled: boolean
+  /** Whether a forgotten password can be reset here — only where email is set up. */
+  canReset: boolean
+}) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('sign-in')
   const [busy, setBusy] = useState(false)
@@ -125,6 +134,15 @@ export function SignInPanel({ next, googleEnabled }: { next: string; googleEnabl
               disabled={busy}
               data-testid="password"
             />
+            {mode === 'sign-in' && canReset && (
+              <Link
+                href="/forgot-password"
+                className="text-muted-foreground hover:text-foreground -mt-2 self-end text-[12px] underline underline-offset-4"
+                data-testid="forgot-password"
+              >
+                Forgot your password?
+              </Link>
+            )}
             <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="submit">
               {busy ? 'One moment…' : mode === 'sign-in' ? 'Sign in' : 'Create account'}
             </Button>
