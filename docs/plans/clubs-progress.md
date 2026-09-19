@@ -392,12 +392,39 @@ back as 10,050 and 9,950. No errors in either browser.
   database, so it runs only with `E2E_DATABASE_URL` set — a Neon branch, never
   production — and deletes every account it made when it finishes.
 
-**Still open** — none of it blocks using clubs:
+## After v1 — before the first push
 
-- **Email** (Resend): address verification and password resets.
-- **The privacy page's contact address**, and then publishing the Google app.
-- **`BETTER_AUTH_SECRET` and `CRON_SECRET` in Vercel**, before this reaches
-  production.
-- **Leaving a club** from the player's side; handing a club over; deleting one.
-- **Recurring tables** — Hemal's "a table every day" — the first thing after v1.
+**Done**
+
+- *Secrets in Vercel*: `BETTER_AUTH_SECRET` (Production, and a different one
+  for Preview) and `CRON_SECRET` (Production), generated and added with the
+  Vercel CLI; the values were never printed. This folder is linked to the
+  `poker` project (`.vercel/`, not committed).
+- *The privacy page's contact address*: dinal.bandara@gmail.com.
+- *Password resets by email* (`lib/server/email.ts`, `/forgot-password`,
+  `/reset-password`), through Resend, switched on by `RESEND_API_KEY` and off
+  without it — the sign-in page offers no reset until then. Sign-up also sends a
+  confirmation email once it is on, never required.
+- *Account linking checked*: Better Auth only joins a Google sign-in to an
+  email-and-password account whose address is verified
+  (`requireLocalEmailVerified`, on by default), so signing up with someone
+  else's address cannot capture their Google sign-in.
+- *Leaving a club*, *handing it over* and *deleting it* (`clubs.ts`,
+  `ownClub` permission). Leaving returns the balance to the club, as removal
+  does, and is refused while seated; the owner cannot leave, only hand over —
+  roles swapped in one transaction — or delete, by typing the name back, with
+  every table closed first.
+- *Repeating tables* — see [decision 0011](../decisions/0011-repeating-tables.md).
+  `club_tables` gains `recurring`, `hours`, `auto_start` and `series_id`
+  (`drizzle/0004_recurring_tables.sql`).
+- The club end-to-end suite now also opens a repeating table, stops it, closes
+  it, hands the club over, leaves it and deletes it.
+- *The auto-approve switch* moves the moment it is tapped, and moves back if the
+  server refuses — the end-to-end test caught it waiting for a round trip.
+
+**Still open**
+
+- **A Resend account and key** — and a verified domain for `RESEND_FROM` before
+  real players rely on it.
+- **Publishing the Google app** once the privacy page is live on production.
 - **Paging** on the counter's record beyond the latest hundred moves.

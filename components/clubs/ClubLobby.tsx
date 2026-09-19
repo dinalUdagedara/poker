@@ -172,6 +172,7 @@ export function ClubLobby({
                     <span className="text-muted-foreground flex items-center gap-1 text-[12px]" suppressHydrationWarning>
                       <Clock className="size-3" aria-hidden /> {timeLeft(table.closesAt)}
                       {table.running ? ' · playing' : ''}
+                      {table.recurring ? ' · repeats' : ''}
                     </span>
                   </span>
                   <ArrowRight className="text-brass ml-auto size-[18px] shrink-0" strokeWidth={1.25} aria-hidden />

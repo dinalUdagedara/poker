@@ -141,8 +141,66 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await ana.goto(table)
   await ana.getByTestId('close-table').click()
   await ana.getByTestId('confirm-close').click()
+  await expect(ana.getByTestId('table-closed')).toBeVisible()
   await ana.goto(`/clubs/${code}`)
   await expect(ana.locator('[data-testid^="table-"]')).toHaveCount(0)
+})
+
+test('a repeating table, leaving, handing over and deleting', async ({ browser }) => {
+  test.setTimeout(240_000)
+  const ed = await person(browser, 'Ed', 3)
+  const fi = await person(browser, 'Fi', 5)
+
+  await ed.getByTestId('create-club').click()
+  await ed.getByTestId('club-name').fill('Saturday Club')
+  await ed.getByTestId('create').click()
+  await expect(ed.getByTestId('club-id')).toBeVisible()
+  const code = ed.url().split('/').pop()!
+
+  // Auto-approve, so Fi is in the moment she asks.
+  await ed.goto(`/clubs/${code}/members?tab=applicants`)
+  await ed.getByTestId('auto-approve').check()
+  await fi.goto(`/c/${code}`)
+  await fi.getByTestId('ask-to-join').click()
+  await fi.waitForURL(`**/clubs/${code}`)
+
+  // A table set to repeat says so, in the lobby and at the table.
+  await ed.goto(`/clubs/${code}/tables/new`)
+  await ed.getByTestId('table-name').fill('Daily')
+  await ed.getByTestId('hours-24').click()
+  await ed.getByTestId('repeat').check()
+  await ed.getByTestId('open-table').click()
+  await ed.waitForURL((url) => /\/tables\/[0-9a-f-]{36}$/.test(url.pathname))
+  await expect(ed.getByTestId('repeats')).toBeVisible()
+  await ed.goto(`/clubs/${code}`)
+  await expect(ed.getByText(/· repeats/)).toBeVisible()
+
+  // Ed hands the club to Fi, closing the table first so Fi could delete it.
+  await ed.locator('[data-testid^="table-"]').first().click()
+  await ed.getByTestId('stop-repeating').click()
+  await expect(ed.getByTestId('repeats')).toHaveCount(0)
+  await ed.getByTestId('close-table').click()
+  await ed.getByTestId('confirm-close').click()
+  await expect(ed.getByTestId('table-closed')).toBeVisible()
+  await ed.goto(`/clubs/${code}/settings`)
+  await ed.getByTestId('handover').click()
+  await ed.getByTestId('confirm-handover').click()
+  await ed.waitForURL(`**/clubs/${code}`)
+  await expect(ed.getByTestId('admin-members')).toHaveCount(0)
+
+  // Ed, a member now, leaves.
+  await ed.getByTestId('leave-club').click()
+  await ed.getByTestId('confirm-leave').click()
+  await ed.waitForURL('**/clubs')
+  await expect(ed.getByTestId(`club-${code}`)).toHaveCount(0)
+
+  // Fi, the owner now, deletes the club.
+  await fi.goto(`/clubs/${code}/settings`)
+  await fi.getByTestId('delete-confirm-name').fill('saturday club')
+  await fi.getByTestId('delete-club').click()
+  await fi.waitForURL('**/clubs')
+  await fi.goto(`/c/${code}`)
+  await expect(fi.getByText(/not found|could not be found/i)).toBeVisible()
 })
 
 test('a stranger cannot see a club or its tables', async ({ browser }) => {

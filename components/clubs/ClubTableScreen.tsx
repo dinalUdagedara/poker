@@ -14,6 +14,7 @@ import { formatChips, newOperationId } from '@/lib/clubs/api'
 import { feltOf } from '@/lib/clubs/felt'
 import type { CashTableView } from '@/lib/poker/lifecycle'
 import type { ClubView } from '@/lib/server/clubs'
+import type { ClubTableView } from '@/lib/server/club-tables'
 import { useTableSounds } from '@/lib/use-table-sounds'
 import { useTableStream } from '@/lib/use-table-stream'
 import { cn } from '@/lib/utils'
@@ -48,11 +49,12 @@ export function ClubTableScreen({
   runsTables,
 }: {
   club: ClubView
-  initial: CashTableView
+  initial: ClubTableView
   runsTables: boolean
 }) {
   const router = useRouter()
-  const [view, setView] = useState(initial)
+  const [view, setView] = useState<CashTableView>(initial)
+  const [recurring, setRecurring] = useState(initial.recurring)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [gone, setGone] = useState(false)
@@ -92,6 +94,7 @@ export function ClubTableScreen({
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
       setView(payload as CashTableView)
+      if ('recurring' in payload) setRecurring(Boolean(payload.recurring))
       return true
     } catch (e) {
       getAudio().play('error')
@@ -202,6 +205,11 @@ export function ClubTableScreen({
           <Badge className="border-border bg-black/35 font-mono text-[11px] text-white">
             {formatChips(view.settings.smallBlind)}/{formatChips(view.settings.bigBlind)}
           </Badge>
+          {recurring && (
+            <Badge className="border-border bg-black/35 text-[11px] text-white" data-testid="repeats">
+              repeats
+            </Badge>
+          )}
           <Badge className="border-border bg-black/35 text-[11px] text-white" data-testid="closes-in">
             <Clock className="size-3" aria-hidden />
             {view.closed
@@ -444,9 +452,20 @@ export function ClubTableScreen({
               >
                 +1 hour
               </button>
+              {recurring && !view.closing && (
+                <button
+                  type="button"
+                  className={QUIET_BUTTON}
+                  disabled={busy}
+                  onClick={() => void send({ action: 'stop-repeating' })}
+                  data-testid="stop-repeating"
+                >
+                  Stop repeating
+                </button>
+              )}
               {confirmClose ? (
                 <>
-                  <span>Close the table and pay everyone out?</span>
+                  <span>Close the table and pay everyone out?{recurring ? ' It will not reopen.' : ''}</span>
                   <button type="button" className={QUIET_BUTTON} onClick={() => setConfirmClose(false)}>
                     Keep it open
                   </button>

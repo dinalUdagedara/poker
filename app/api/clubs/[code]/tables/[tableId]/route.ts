@@ -8,6 +8,7 @@ import {
   sitInAtClubTable,
   sitOutAtClubTable,
   standAtClubTable,
+  stopRepeating,
   topUpAtClubTable,
 } from '@/lib/server/club-tables'
 import { ClubError } from '@/lib/server/clubs'
@@ -30,7 +31,8 @@ export async function GET(_request: Request, ctx: Ctx) {
  * - `act`      — `{ move: { type, amount? } }`, a fold, check, call, bet or raise
  * - `stand`, `sit-out`, `sit-in`
  * - `extend`   — admin: `{ hours }`
- * - `disband`  — admin
+ * - `disband`  — admin; also ends a repeating table's series
+ * - `stop-repeating` — admin: this sitting is the last
  *
  * Who is acting comes from the session, never the body, and the answer is
  * always the whole table as they may see it.
@@ -56,6 +58,8 @@ export async function POST(request: Request, ctx: Ctx) {
         return extendClubTable(viewer, code, tableId, body)
       case 'disband':
         return disbandClubTable(viewer, code, tableId)
+      case 'stop-repeating':
+        return stopRepeating(viewer, code, tableId)
       default:
         throw new ClubError('Unknown table action', 400)
     }

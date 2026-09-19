@@ -16,6 +16,7 @@ import {
   settle,
   sitOutAtClubTable,
   standAtClubTable,
+  stopRepeating,
   sweepTables,
   topUpAtClubTable,
 } from '../club-tables'
@@ -393,5 +394,45 @@ describe('leaving, handing over and deleting', () => {
     await deleteClub(OWNER, code, { name: 'friday night' })
     expect(await database.select().from(schema.clubs)).toEqual([])
     expect(await database.select().from(schema.ledger)).toEqual([])
+  })
+})
+
+describe('repeating tables', () => {
+  const openTables = () =>
+    database.select().from(schema.clubTables).where(eq(schema.clubTables.status, 'open'))
+
+  it('opens a fresh copy when its time runs out, paying everyone at the old one', async () => {
+    const { tableId } = await openClubTable(OWNER, code, { ...TABLE, hours: 24, recurring: true })
+    await buyIn(BO, code, tableId, { amount: 2_000, operationId: nextOp() })
+
+    vi.setSystemTime(Date.now() + 24 * 60 * 60_000 + 1_000)
+    await sweepTables()
+
+    const [next] = await openTables()
+    expect(next.id).not.toBe(tableId)
+    expect(next).toMatchObject({ name: 'Friday', bigBlind: 100, hours: 24, recurring: true, seriesId: tableId })
+    expect(next.closesAt.getTime()).toBeGreaterThan(Date.now() + 23 * 60 * 60_000)
+    expect(await balanceOf(BO.id)).toBe(10_000)
+    const listed = await clubTablesFor(BO, code)
+    expect(listed).toEqual([expect.objectContaining({ tableId: next.id, recurring: true })])
+  })
+
+  it('comes back once, however many look at the closing table at the same moment', async () => {
+    await openClubTable(OWNER, code, { ...TABLE, hours: 1, recurring: true })
+    vi.setSystemTime(Date.now() + 60 * 60_000 + 1_000)
+    await Promise.all([sweepTables(), sweepTables(), clubTablesFor(OWNER, code)])
+    expect(await openTables()).toHaveLength(1)
+  })
+
+  it('does not come back after being closed by hand, or told to stop', async () => {
+    const first = await openClubTable(OWNER, code, { ...TABLE, hours: 1, recurring: true })
+    await disbandClubTable(OWNER, code, first.tableId)
+    expect(await openTables()).toHaveLength(0)
+
+    const second = await openClubTable(OWNER, code, { ...TABLE, hours: 1, recurring: true })
+    await stopRepeating(OWNER, code, second.tableId)
+    vi.setSystemTime(Date.now() + 60 * 60_000 + 1_000)
+    await sweepTables()
+    expect(await openTables()).toHaveLength(0)
   })
 })

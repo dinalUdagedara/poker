@@ -36,6 +36,21 @@ export function MembersPanel({
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Shown as tapped straight away, and put back if the server says no — a
+  // switch that waits for a round trip before moving reads as one that is broken.
+  const [autoApprove, setAutoApprove] = useState(club.autoApprove)
+
+  async function toggleAutoApprove(on: boolean) {
+    setAutoApprove(on)
+    setError(null)
+    try {
+      await clubRequest(`/${club.code}`, 'PATCH', { autoApprove: on })
+      router.refresh()
+    } catch (e) {
+      setAutoApprove(!on)
+      setError((e as Error).message)
+    }
+  }
 
   async function act(run: () => Promise<unknown>) {
     setBusy(true)
@@ -136,9 +151,9 @@ export function MembersPanel({
             <input
               type="checkbox"
               className="accent-brass size-5"
-              checked={club.autoApprove}
+              checked={autoApprove}
               disabled={busy}
-              onChange={(e) => void act(() => clubRequest(`/${club.code}`, 'PATCH', { autoApprove: e.target.checked }))}
+              onChange={(e) => void toggleAutoApprove(e.target.checked)}
               data-testid="auto-approve"
             />
           </label>

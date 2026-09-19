@@ -94,6 +94,7 @@ export function NewTablePanel({ club }: { club: ClubView }) {
   const [seconds, setSeconds] = useState<(typeof ACTION_SECONDS)[number]>(15)
   const [autoStart, setAutoStart] = useState(2)
   const [hours, setHours] = useState<(typeof HOURS)[number]>(12)
+  const [repeat, setRepeat] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -118,6 +119,7 @@ export function NewTablePanel({ club }: { club: ClubView }) {
         actionSeconds: seconds,
         autoStart: Math.min(autoStart, seats),
         hours,
+        recurring: repeat,
       })
       router.push(`/clubs/${club.code}/tables/${tableId}`)
     } catch (e) {
@@ -199,6 +201,23 @@ export function NewTablePanel({ club }: { club: ClubView }) {
             format={(h) => `${h}h`}
             testId="hours"
           />
+          <label className="flex items-center justify-between gap-3 text-[14px]">
+            <span className="flex flex-col gap-0.5">
+              <span className="text-foreground">Repeat</span>
+              <span className="text-muted-foreground text-[13px]">
+                {hours === 24
+                  ? 'A fresh table every day, until you stop it'
+                  : `A fresh table every ${hours} hours, until you stop it`}
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              className="accent-brass size-5"
+              checked={repeat}
+              onChange={(e) => setRepeat(e.target.checked)}
+              data-testid="repeat"
+            />
+          </label>
           <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="open-table">
             {busy ? 'Opening…' : 'Open table'}
           </Button>

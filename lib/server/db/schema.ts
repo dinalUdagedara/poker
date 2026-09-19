@@ -289,6 +289,16 @@ export const clubTables = pgTable(
     maxBuyIn: bigint('max_buy_in', { mode: 'number' }).notNull(),
     seatCount: integer('seat_count').notNull(),
     actionSeconds: integer('action_seconds').notNull(),
+    autoStart: integer('auto_start').notNull().default(2),
+    /** How long each sitting of it runs, so a repeat can be opened the same. */
+    hours: integer('hours').notNull().default(12),
+    /**
+     * Opens a fresh copy of itself when its time runs out — Hemal's "a table
+     * every day". Closing it by hand, or "stop repeating", ends the series.
+     */
+    recurring: boolean('recurring').notNull().default(false),
+    /** The first table of a repeating series, shared by every copy of it. */
+    seriesId: text('series_id'),
     createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     closesAt: timestamp('closes_at').notNull(),

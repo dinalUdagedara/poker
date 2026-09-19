@@ -71,7 +71,12 @@ export type ClubTableSummary = {
   /** Whether a hand is being played right now. */
   running: boolean
   closesAt: string
+  /** Opens a fresh copy of itself when its time runs out. */
+  recurring: boolean
 }
+
+/** A club table as a member sees it, and whether it repeats. */
+export type ClubTableView = CashTableView & { recurring: boolean }
 
 // ---------------------------------------------------------------------------
 // Translating refusals
@@ -161,11 +166,65 @@ export async function settle(tableId: string): Promise<void> {
   }
 
   if (table.closed && table.cashOuts.length === paid.length && row.status === 'open') {
-    await db()
-      .update(clubTables)
-      .set({ status: 'closed', closedAt: new Date() })
-      .where(eq(clubTables.id, tableId))
+    await closeAndRepeat(row.id)
   }
+}
+
+/**
+ * Mark a table closed, and open its next sitting if it repeats.
+ *
+ * Only the request that actually moves the row from open to closed goes on to
+ * open the next one — several can arrive at a closing table at once, and a
+ * repeating table must come back once, not once per visitor.
+ */
+async function closeAndRepeat(tableId: string): Promise<void> {
+  const [closed] = await db()
+    .update(clubTables)
+    .set({ status: 'closed', closedAt: new Date() })
+    .where(and(eq(clubTables.id, tableId), eq(clubTables.status, 'open')))
+    .returning()
+  if (closed?.recurring) await openNextInSeries(closed)
+}
+
+/**
+ * The next sitting of a repeating table: the same name and settings, running
+ * the same length of time, from when the last one closed — or from now, if
+ * nobody looked in for a while and that moment has already passed.
+ */
+async function openNextInSeries(previous: typeof clubTables.$inferSelect): Promise<void> {
+  const start = Math.max(Date.now(), previous.closesAt.getTime())
+  const closesAt = start + previous.hours * HOUR_MS
+  const { tableId } = await openCashGame({
+    name: previous.name,
+    clubId: previous.clubId,
+    settings: {
+      seatCount: previous.seatCount,
+      smallBlind: previous.smallBlind,
+      bigBlind: previous.bigBlind,
+      minBuyIn: previous.minBuyIn,
+      maxBuyIn: previous.maxBuyIn,
+      actionSeconds: previous.actionSeconds,
+      autoStart: previous.autoStart,
+    },
+    closesAt,
+  })
+  await db().insert(clubTables).values({
+    id: tableId,
+    clubId: previous.clubId,
+    name: previous.name,
+    smallBlind: previous.smallBlind,
+    bigBlind: previous.bigBlind,
+    minBuyIn: previous.minBuyIn,
+    maxBuyIn: previous.maxBuyIn,
+    seatCount: previous.seatCount,
+    actionSeconds: previous.actionSeconds,
+    autoStart: previous.autoStart,
+    hours: previous.hours,
+    recurring: true,
+    seriesId: previous.seriesId ?? previous.id,
+    createdBy: previous.createdBy,
+    closesAt: new Date(closesAt),
+  })
 }
 
 /** Pay one sitting's cash-out and close the session, together, at most once. */
@@ -207,10 +266,7 @@ async function recoverLostTable(tableId: string, clubId: string) {
     console.error(`[club-tables] table ${tableId} is gone; paying session ${session.id} its last stack`)
     await payCashOut(tableId, clubId, session.id, session.lastStack)
   }
-  await db()
-    .update(clubTables)
-    .set({ status: 'closed', closedAt: new Date() })
-    .where(and(eq(clubTables.id, tableId), eq(clubTables.status, 'open')))
+  await closeAndRepeat(tableId)
 }
 
 /**
@@ -282,6 +338,10 @@ export async function openClubTable(viewer: Viewer, rawCode: unknown, body: unkn
     maxBuyIn: table.settings.maxBuyIn,
     seatCount: table.settings.seatCount,
     actionSeconds: table.settings.actionMs / 1000,
+    autoStart: table.settings.autoStart,
+    hours,
+    recurring: input.recurring === true,
+    seriesId: input.recurring === true ? tableId : null,
     createdBy: viewer.id,
     closesAt: new Date(closesAt),
   })
@@ -294,7 +354,7 @@ export async function extendClubTable(
   rawCode: unknown,
   rawTableId: unknown,
   body: unknown,
-): Promise<CashTableView> {
+): Promise<ClubTableView> {
   const { table } = await asTableMember(viewer, rawCode, rawTableId, 'runTables')
   const hours = Number((body as Record<string, unknown> | null)?.hours)
   if (!Number.isInteger(hours) || hours < 1 || hours > MAX_TABLE_HOURS) {
@@ -302,15 +362,29 @@ export async function extendClubTable(
   }
   const view = await asClubError(() => extendCashTable(table.id, viewer.id, hours * HOUR_MS))
   await db().update(clubTables).set({ closesAt: new Date(view.closesAt) }).where(eq(clubTables.id, table.id))
-  return view
+  return { ...view, recurring: (await isRecurring(table.id)) }
 }
 
 /** Close a table: the hand in progress finishes, then everyone is stood up and paid. */
-export async function disbandClubTable(viewer: Viewer, rawCode: unknown, rawTableId: unknown): Promise<CashTableView> {
-  const { table } = await asTableMember(viewer, rawCode, rawTableId, 'runTables')
-  const view = await asClubError(() => disbandCashTable(table.id, viewer.id))
+export async function disbandClubTable(viewer: Viewer, rawCode: unknown, rawTableId: unknown): Promise<ClubTableView> {
+  const { club, table } = await asTableMember(viewer, rawCode, rawTableId, 'runTables')
+  // Closing a table by hand ends its series: it does not come back.
+  await db().update(clubTables).set({ recurring: false }).where(eq(clubTables.id, table.id))
+  await asClubError(() => disbandCashTable(table.id, viewer.id))
   await settle(table.id)
-  return view
+  return clubTableView(viewer, club.code, table.id)
+}
+
+async function isRecurring(tableId: string): Promise<boolean> {
+  const [row] = await db().select({ recurring: clubTables.recurring }).from(clubTables).where(eq(clubTables.id, tableId))
+  return row?.recurring ?? false
+}
+
+/** Let a repeating table finish its current sitting and not come back. */
+export async function stopRepeating(viewer: Viewer, rawCode: unknown, rawTableId: unknown): Promise<ClubTableView> {
+  const { club, table } = await asTableMember(viewer, rawCode, rawTableId, 'runTables')
+  await db().update(clubTables).set({ recurring: false }).where(eq(clubTables.id, table.id))
+  return clubTableView(viewer, club.code, table.id)
 }
 
 // ---------------------------------------------------------------------------
@@ -342,18 +416,20 @@ export async function clubTablesFor(viewer: Viewer, rawCode: unknown): Promise<C
       seated: table.seats.filter(Boolean).length,
       running: table.hand !== null && table.hand.result === null,
       closesAt: new Date(table.closesAt).toISOString(),
+      recurring: row.recurring,
     })
   }
   return summaries
 }
 
 /** One table, for a member: settled, then as they see it. */
-export async function clubTableView(viewer: Viewer, rawCode: unknown, rawTableId: unknown): Promise<CashTableView> {
+export async function clubTableView(viewer: Viewer, rawCode: unknown, rawTableId: unknown): Promise<ClubTableView> {
   const { table } = await asTableMember(viewer, rawCode, rawTableId)
   await settle(table.id)
   const view = await findTable(table.id, viewer.id)
   if (view?.stage !== 'cash') throw new ClubError('This table has closed', 404)
-  return view
+  const [row] = await db().select({ recurring: clubTables.recurring }).from(clubTables).where(eq(clubTables.id, table.id))
+  return { ...view, recurring: row?.recurring ?? false }
 }
 
 /**
@@ -385,7 +461,7 @@ export async function buyIn(
   rawCode: unknown,
   rawTableId: unknown,
   body: unknown,
-): Promise<CashTableView> {
+): Promise<ClubTableView> {
   const { club, table: row } = await asTableMember(viewer, rawCode, rawTableId)
   const input = (body ?? {}) as Record<string, unknown>
   const amount = Number(input.amount)
@@ -469,7 +545,7 @@ export async function topUpAtClubTable(
   rawCode: unknown,
   rawTableId: unknown,
   body: unknown,
-): Promise<CashTableView> {
+): Promise<ClubTableView> {
   const { club, table: row } = await asTableMember(viewer, rawCode, rawTableId)
   const input = (body ?? {}) as Record<string, unknown>
   const amount = Number(input.amount)
@@ -565,7 +641,7 @@ async function asSeated(
   rawCode: unknown,
   rawTableId: unknown,
   change: (tableId: string) => Promise<CashTableView>,
-): Promise<CashTableView> {
+): Promise<ClubTableView> {
   const { club, table } = await asTableMember(viewer, rawCode, rawTableId)
   await asClubError(() => change(table.id))
   await settle(table.id)
