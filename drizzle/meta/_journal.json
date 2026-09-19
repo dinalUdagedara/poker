@@ -36,6 +36,13 @@
       "when": 1789837383191,
       "tag": "0004_recurring_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789839431862,
+      "tag": "0005_club_emblems",
+      "breakpoints": true
     }
   ]
 }

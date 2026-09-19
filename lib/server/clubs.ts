@@ -17,6 +17,7 @@ import { randomInt, randomUUID } from 'node:crypto'
 import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm'
 
 import { can, type ClubAction, type ClubRole } from '../clubs/permissions'
+import { cleanEmblem } from '../clubs/emblems'
 import { cleanLine, cleanText, LIMITS, normaliseCode, normalisePublicId } from '../clubs/text'
 import { AVATAR_COUNT, lacquerOf, pictureOf } from '../profile'
 import { db } from './db'
@@ -48,6 +49,8 @@ export type ClubPreview = {
   code: string
   name: string
   lacquer: number
+  /** An emblem key (`lib/clubs/emblems.ts`), or null for the club's initials. */
+  emblem: string | null
   ownerNickname: string
   memberCount: number
 }
@@ -123,7 +126,7 @@ async function nicknameOf(userId: string): Promise<string> {
 }
 
 function previewOf(club: ClubRow, ownerNickname: string, memberCount: number): ClubPreview {
-  return { code: club.code, name: club.name, lacquer: club.lacquer, ownerNickname, memberCount }
+  return { code: club.code, name: club.name, lacquer: club.lacquer, emblem: club.emblem, ownerNickname, memberCount }
 }
 
 /**
@@ -322,6 +325,7 @@ export async function createClub(viewer: Viewer, body: unknown): Promise<{ code:
   const name = cleanLine(input.name, LIMITS.clubName)
   if (!name) throw new ClubError('Give the club a name', 400)
   const lacquer = cleanLacquer(input.lacquer)
+  const emblem = cleanEmblem(input.emblem)
 
   const [owned] = await db().select({ n: count() }).from(clubs).where(eq(clubs.ownerId, viewer.id))
   if ((owned?.n ?? 0) >= MAX_OWNED_CLUBS) {
@@ -333,7 +337,7 @@ export async function createClub(viewer: Viewer, body: unknown): Promise<{ code:
     try {
       await db().transaction(async (tx) => {
         const id = randomUUID()
-        await tx.insert(clubs).values({ id, code, name, lacquer, ownerId: viewer.id })
+        await tx.insert(clubs).values({ id, code, name, lacquer, emblem, ownerId: viewer.id })
         await tx.insert(clubMembers).values({
           clubId: id,
           userId: viewer.id,
@@ -527,7 +531,7 @@ export async function updateClub(viewer: Viewer, rawCode: unknown, body: unknown
     if (!can(membership.role, action)) throw new ClubError('Only the club’s admin can do that', 403)
   }
 
-  const changes: Partial<Pick<ClubRow, 'name' | 'lacquer' | 'notice' | 'autoApprove'>> = {}
+  const changes: Partial<Pick<ClubRow, 'name' | 'lacquer' | 'emblem' | 'notice' | 'autoApprove'>> = {}
   if ('name' in input) {
     allowed('editClub')
     const name = cleanLine(input.name, LIMITS.clubName)
@@ -537,6 +541,10 @@ export async function updateClub(viewer: Viewer, rawCode: unknown, body: unknown
   if ('lacquer' in input) {
     allowed('editClub')
     changes.lacquer = cleanLacquer(input.lacquer)
+  }
+  if ('emblem' in input) {
+    allowed('editClub')
+    changes.emblem = cleanEmblem(input.emblem)
   }
   if ('notice' in input) {
     allowed('editClub')

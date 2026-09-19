@@ -4,19 +4,20 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { Field, PanelTitle, PRIMARY_BUTTON } from '@/components/account/Field'
-import { LacquerPicker } from '@/components/account/LacquerPicker'
 import { Ornament, SalonFrame } from '@/components/LandingShell'
 import { Button } from '@/components/ui/button'
 import { clubRequest } from '@/lib/clubs/api'
 import { LIMITS } from '@/lib/clubs/text'
 import { ClubCrest } from './ClubCrest'
 import { ClubPage } from './ClubPage'
+import { CrestPicker } from './CrestPicker'
 
 /** Found a club: a name and a crest. Its ID is drawn when it is created. */
 export function NewClubPanel() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [lacquer, setLacquer] = useState(0)
+  const [emblem, setEmblem] = useState<string | null>('spade')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,7 +28,7 @@ export function NewClubPanel() {
     setBusy(true)
     setError(null)
     try {
-      const { code } = await clubRequest<{ code: string }>('', 'POST', { name, lacquer })
+      const { code } = await clubRequest<{ code: string }>('', 'POST', { name, lacquer, emblem })
       router.push(`/clubs/${code}`)
       router.refresh()
     } catch (e) {
@@ -43,7 +44,7 @@ export function NewClubPanel() {
           <PanelTitle eyebrow="Found a club" title="Create a club" />
           <Ornament className="self-center" />
           <div className="flex justify-center">
-            <ClubCrest code="new" name={shown} lacquer={lacquer} className="size-20" />
+            <ClubCrest code="new" name={shown} lacquer={lacquer} emblem={emblem} className="size-20" />
           </div>
           <Field
             label="Club name"
@@ -56,7 +57,17 @@ export function NewClubPanel() {
             disabled={busy}
             data-testid="club-name"
           />
-          <LacquerPicker seed="new" name={shown} value={lacquer} onChange={setLacquer} disabled={busy} />
+          <CrestPicker
+            code="new"
+            name={shown}
+            emblem={emblem}
+            lacquer={lacquer}
+            onChange={(crest) => {
+              setEmblem(crest.emblem)
+              setLacquer(crest.lacquer)
+            }}
+            disabled={busy}
+          />
           <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="create">
             {busy ? 'Creating…' : 'Create club'}
           </Button>

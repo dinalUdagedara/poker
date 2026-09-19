@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { Field, PRIMARY_BUTTON } from '@/components/account/Field'
-import { LacquerPicker } from '@/components/account/LacquerPicker'
 import { SalonFrame } from '@/components/LandingShell'
 import { Button } from '@/components/ui/button'
 import { clubRequest } from '@/lib/clubs/api'
@@ -12,6 +11,7 @@ import { LIMITS } from '@/lib/clubs/text'
 import type { ClubView } from '@/lib/server/clubs'
 import { ClubCrest } from './ClubCrest'
 import { ClubPage } from './ClubPage'
+import { CrestPicker } from './CrestPicker'
 
 /** The club's name, crest and notice. */
 export function ClubSettingsPanel({
@@ -27,6 +27,7 @@ export function ClubSettingsPanel({
   const router = useRouter()
   const [name, setName] = useState(club.name)
   const [lacquer, setLacquer] = useState(club.lacquer)
+  const [emblem, setEmblem] = useState<string | null>(club.emblem)
   const [notice, setNotice] = useState(club.notice)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +39,7 @@ export function ClubSettingsPanel({
     setBusy(true)
     setError(null)
     try {
-      await clubRequest(`/${club.code}`, 'PATCH', { name, lacquer, notice })
+      await clubRequest(`/${club.code}`, 'PATCH', { name, lacquer, emblem, notice })
       router.push(`/clubs/${club.code}`)
       router.refresh()
     } catch (e) {
@@ -53,7 +54,7 @@ export function ClubSettingsPanel({
       <SalonFrame>
         <form className="flex flex-col gap-6 px-6 py-7 sm:px-8" onSubmit={(e) => void save(e)}>
           <div className="flex justify-center">
-            <ClubCrest code={club.code} name={shown} lacquer={lacquer} className="size-20" />
+            <ClubCrest code={club.code} name={shown} lacquer={lacquer} emblem={emblem} className="size-20" />
           </div>
           <Field
             label="Club name"
@@ -65,7 +66,17 @@ export function ClubSettingsPanel({
             disabled={busy}
             data-testid="club-name"
           />
-          <LacquerPicker seed={club.code} name={shown} value={lacquer} onChange={setLacquer} disabled={busy} />
+          <CrestPicker
+            code={club.code}
+            name={shown}
+            emblem={emblem}
+            lacquer={lacquer}
+            onChange={(crest) => {
+              setEmblem(crest.emblem)
+              setLacquer(crest.lacquer)
+            }}
+            disabled={busy}
+          />
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notice" className="text-muted-foreground text-[11px] font-semibold tracking-[0.24em] uppercase">
               Notice

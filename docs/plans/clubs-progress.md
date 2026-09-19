@@ -453,3 +453,16 @@ back as 10,050 and 9,950. No errors in either browser.
 table with nothing running into anything on a phone" fails about one run in
 twelve. It measures the hand-replay drawer after a fixed 400 ms wait on a random
 deal, in a quick game, where no chosen face is ever drawn.
+
+## Club crests
+
+- *Thirty-six emblems* (`lib/clubs/emblems.ts`) — suits, crown, gem, dice,
+  coins, trophy and the like — from Lucide, the icon set the app already draws
+  its buttons with (ISC licence), struck in brass on the club's lacquer. Nothing
+  new ships: the icons were already a dependency. The club's initials stay a
+  choice.
+- *Stored by key* in `clubs.emblem` (`drizzle/0005_club_emblems.sql`), null for
+  initials. Keys are permanent — the list may only be added to. Anything not in
+  it is stored as null rather than refused, so a stale form cannot break saving.
+- *Picked* when founding a club (spade by default) and in club settings, and
+  shown on the clubs list, the invite page and the club's own page.

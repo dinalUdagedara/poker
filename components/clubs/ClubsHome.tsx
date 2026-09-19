@@ -51,7 +51,7 @@ export function ClubsHome({ clubs }: { clubs: ClubCard[] }) {
                   className={ROW}
                   data-testid={`club-${club.code}`}
                 >
-                  <ClubCrest code={club.code} name={club.name} lacquer={club.lacquer} className="size-11" />
+                  <ClubCrest code={club.code} name={club.name} lacquer={club.lacquer} emblem={club.emblem} className="size-11" />
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-foreground truncate text-[15px] font-medium">{club.name}</span>
                     <span className="text-muted-foreground text-[13px]">

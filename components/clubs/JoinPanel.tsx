@@ -52,7 +52,7 @@ export function JoinPanel({ club, pending: initiallyPending }: { club: ClubPrevi
           <Ornament className="self-center" />
 
           <div className="flex flex-col items-center gap-2 text-center">
-            <ClubCrest code={club.code} name={club.name} lacquer={club.lacquer} className="size-20" />
+            <ClubCrest code={club.code} name={club.name} lacquer={club.lacquer} emblem={club.emblem} className="size-20" />
             <span className="text-muted-foreground text-[13px]">
               Club ID {formatClubCode(club.code)} · {club.memberCount}{' '}
               {club.memberCount === 1 ? 'member' : 'members'}

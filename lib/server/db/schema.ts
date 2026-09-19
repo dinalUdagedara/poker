@@ -129,6 +129,8 @@ export const clubs = pgTable(
     code: text('code').notNull().unique(),
     name: text('name').notNull(),
     lacquer: integer('lacquer').notNull().default(0),
+    /** An emblem from `lib/clubs/emblems.ts`, or null for the club's initials. */
+    emblem: text('emblem'),
     notice: text('notice').notNull().default(''),
     ownerId: text('owner_id')
       .notNull()

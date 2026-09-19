@@ -63,7 +63,7 @@ export function ClubLobby({
       <SalonFrame>
         <div className="flex flex-col gap-5 px-6 py-7 sm:px-8">
           <div className="flex items-center gap-4">
-            <ClubCrest code={club.code} name={club.name} lacquer={club.lacquer} className="size-16" />
+            <ClubCrest code={club.code} name={club.name} lacquer={club.lacquer} emblem={club.emblem} className="size-16" />
             <div className="flex min-w-0 flex-col gap-1">
               <h1 className="wordmark truncate text-3xl leading-none font-medium">{club.name}</h1>
               <span className="text-muted-foreground text-[13px]" data-testid="club-id">

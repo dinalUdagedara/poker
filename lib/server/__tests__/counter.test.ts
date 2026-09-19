@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/pglite'
 import { migrate } from 'drizzle-orm/pglite/migrator'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { ClubError, createClub, decideApplicants, removeMember, requestToJoin } from '../clubs'
+import { ClubError, createClub, decideApplicants, lookupClub, removeMember, requestToJoin, updateClub } from '../clubs'
 import {
   claimChips,
   counterView,
@@ -274,5 +274,18 @@ describe('the ledger underneath', () => {
     await expect(
       database.execute(sql`update club_members set balance = -1 where user_id = ${PLAYER.id}`),
     ).rejects.toThrow()
+  })
+})
+
+describe('a club’s crest', () => {
+  it('keeps the emblem it was founded with, changes it, and refuses one that is not in the set', async () => {
+    const { code: crested } = await createClub(OTHER, { name: 'Crested', emblem: 'crown', lacquer: 2 })
+    expect(await lookupClub(crested)).toMatchObject({ emblem: 'crown', lacquer: 2 })
+
+    await updateClub(OTHER, crested, { emblem: 'dice' })
+    expect((await lookupClub(crested)).emblem).toBe('dice')
+
+    await updateClub(OTHER, crested, { emblem: 'not-an-emblem' })
+    expect((await lookupClub(crested)).emblem).toBeNull()
   })
 })
