@@ -96,7 +96,12 @@ export function ClubLobby({
         </div>
       </SalonFrame>
 
-      <MyChipsPanel code={club.code} chips={chips} canRequest={can(club.role, 'requestChips')} />
+      <MyChipsPanel
+        code={club.code}
+        chips={chips}
+        canRequest={can(club.role, 'requestChips')}
+        canAdd={can(club.role, 'moveChips')}
+      />
 
       {admin && (
         <section className="flex flex-col">

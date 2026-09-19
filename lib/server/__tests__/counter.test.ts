@@ -6,6 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ClubError, createClub, decideApplicants, lookupClub, removeMember, requestToJoin, updateClub } from '../clubs'
 import {
+  addOwnChips,
   claimChips,
   counterView,
   decideChipRequests,
@@ -218,6 +219,28 @@ describe('chip requests', () => {
     for (let i = 0; i < 5; i++) await requestChips(PLAYER, code, { amount: 10 })
     const error = await refusal(() => requestChips(PLAYER, code, { amount: 10 }))
     expect(error.status).toBe(409)
+  })
+})
+
+describe('the admin’s own chips', () => {
+  it('adds them straight from the bank, once however often the tap arrives', async () => {
+    const add = { amount: 2_000, operationId: 'op-add-00001' }
+    expect((await addOwnChips(OWNER, code, add)).balance).toBe(2_000)
+    await Promise.all([addOwnChips(OWNER, code, add), addOwnChips(OWNER, code, add)])
+    expect((await balances()).Ana).toBe(2_000)
+
+    // In the record like any send, with the admin on both ends of it.
+    const [entry] = await ledgerRecord(OWNER, code)
+    expect(entry).toMatchObject({ kind: 'send', amount: 2_000, nickname: 'Ana', actorNickname: 'Ana' })
+    await expectBalancesMatchLedger()
+  })
+
+  it('is the admin’s alone, and the admin does not ask', async () => {
+    expect((await refusal(() => addOwnChips(PLAYER, code, { amount: 1, operationId: 'op-add-00002' }))).status).toBe(
+      403,
+    )
+    expect((await refusal(() => requestChips(OWNER, code, { amount: 100 }))).status).toBe(403)
+    expect((await balances()).Bo).toBe(0)
   })
 })
 
