@@ -296,8 +296,8 @@ export const clubTables = pgTable(
     /** How long each sitting of it runs, so a repeat can be opened the same. */
     hours: integer('hours').notNull().default(12),
     /**
-     * Opens a fresh copy of itself when its time runs out — Hemal's "a table
-     * every day". Closing it by hand, or "stop repeating", ends the series.
+     * Opens a fresh copy of itself when its time runs out — "a table every
+     * day". Closing it by hand, or "stop repeating", ends the series.
      */
     recurring: boolean('recurring').notNull().default(false),
     /** The first table of a repeating series, shared by every copy of it. */

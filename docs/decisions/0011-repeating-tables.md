@@ -4,7 +4,7 @@
 
 ## Context
 
-Hemal's clubs open a table every day ("Texas September 18"), which is ClubGG's
+Clubs open a table every day ("Texas September 18"), which is ClubGG's
 "recurring table" switch. The app runs on Vercel's Hobby plan, where a cron job
 can run at most once a day, so nothing can be scheduled to fire at, say, 8 p.m.
 every evening.

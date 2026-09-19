@@ -5,7 +5,7 @@
 ## Context
 
 In ClubGG a player joins by typing the club's six-digit id into a search box.
-Hemal's players coordinate in WhatsApp groups.
+Club players coordinate in WhatsApp groups.
 
 ## Decision
 
