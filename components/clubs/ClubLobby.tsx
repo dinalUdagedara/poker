@@ -13,6 +13,7 @@ import type { ClubTableSummary } from '@/lib/server/club-tables'
 import { cn } from '@/lib/utils'
 import { ClubCrest } from './ClubCrest'
 import { ClubPage, ROW, SectionLabel } from './ClubPage'
+import { LeaveClub } from './LeaveClub'
 import { MyChipsPanel } from './MyChipsPanel'
 
 /**
@@ -189,6 +190,7 @@ export function ClubLobby({
           </Link>
         )}
       </section>
+      {!can(club.role, 'ownClub') && <LeaveClub code={club.code} name={club.name} balance={chips.balance} />}
     </ClubPage>
   )
 }

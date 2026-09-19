@@ -20,7 +20,7 @@ import { can, type ClubAction, type ClubRole } from '../clubs/permissions'
 import { cleanLine, cleanText, LIMITS, normaliseCode, normalisePublicId } from '../clubs/text'
 import { AVATAR_COUNT, lacquerOf } from '../profile'
 import { db } from './db'
-import { chipRequests, clubMembers, clubs, seatSessions, users } from './db/schema'
+import { chipRequests, clubMembers, clubs, clubTables, seatSessions, users } from './db/schema'
 import { claimEverything } from './ledger'
 
 export class ClubError extends Error {
@@ -548,4 +548,102 @@ export async function updateClub(viewer: Viewer, rawCode: unknown, body: unknown
     await db().update(clubs).set(changes).where(eq(clubs.id, club.id))
   }
   return clubForMember(viewer, club.code)
+}
+
+// ---------------------------------------------------------------------------
+// Leaving, handing over, closing down
+// ---------------------------------------------------------------------------
+
+/** Whether a member has chips on any of the club's tables. */
+async function seatedAt(clubId: string, userId: string): Promise<boolean> {
+  const [seated] = await db()
+    .select({ id: seatSessions.id })
+    .from(seatSessions)
+    .where(and(eq(seatSessions.clubId, clubId), eq(seatSessions.userId, userId), isNull(seatSessions.cashedOut)))
+    .limit(1)
+  return Boolean(seated)
+}
+
+/**
+ * Leave a club.
+ *
+ * The same as being removed, done by the member: their balance goes back to the
+ * club as they go, and they can ask to join again. The owner cannot simply
+ * leave — a club must always have someone who can run it — so they hand it over
+ * or close it down instead.
+ */
+export async function leaveClub(viewer: Viewer, rawCode: unknown): Promise<void> {
+  const { club, membership } = await asMember(viewer, rawCode)
+  if (can(membership.role, 'ownClub')) {
+    throw new ClubError('You own this club. Hand it to another member first, or delete it.', 409)
+  }
+  if (await seatedAt(club.id, viewer.id)) throw new ClubError('Stand up from your table first.', 409)
+
+  await db().transaction(async (tx) => {
+    await claimEverything(tx, {
+      clubId: club.id,
+      userId: viewer.id,
+      actorId: viewer.id,
+      occasion: `${club.id}:${membership.joinedAt?.getTime() ?? 0}`,
+    })
+    await tx
+      .update(clubMembers)
+      .set({ status: 'removed', alias: '', note: '' })
+      .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, viewer.id)))
+  })
+}
+
+/**
+ * Hand the club to another member.
+ *
+ * They become its owner and the old owner an ordinary member, in one
+ * transaction, so there is never a moment with two owners or none.
+ */
+export async function transferClub(viewer: Viewer, rawCode: unknown, body: unknown): Promise<ClubView> {
+  const { club } = await asMember(viewer, rawCode, 'ownClub')
+  const target = await memberRow(club.id, (body as Record<string, unknown> | null)?.publicId)
+  if (target.status !== 'active') throw new ClubError('That player is not in this club', 404)
+  if (target.userId === viewer.id) throw new ClubError('You already own this club', 409)
+
+  const [owned] = await db().select({ n: count() }).from(clubs).where(eq(clubs.ownerId, target.userId))
+  if ((owned?.n ?? 0) >= MAX_OWNED_CLUBS) {
+    throw new ClubError(`${target.nickname ?? 'They'} already own ${MAX_OWNED_CLUBS} clubs`, 409)
+  }
+
+  await db().transaction(async (tx) => {
+    await tx.update(clubs).set({ ownerId: target.userId }).where(eq(clubs.id, club.id))
+    await tx
+      .update(clubMembers)
+      .set({ role: 'owner' })
+      .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, target.userId)))
+    await tx
+      .update(clubMembers)
+      .set({ role: 'player' })
+      .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, viewer.id)))
+  })
+  return clubForMember(viewer, club.code)
+}
+
+/**
+ * Delete a club, and everything in it.
+ *
+ * Asks for the club's name to be typed back, because there is no undo: the
+ * members, their balances and the record all go with it. Refused while a table
+ * is open, because a table holds chips that belong to people.
+ */
+export async function deleteClub(viewer: Viewer, rawCode: unknown, body: unknown): Promise<void> {
+  const { club } = await asMember(viewer, rawCode, 'ownClub')
+  const typed = cleanLine((body as Record<string, unknown> | null)?.name, LIMITS.clubName)
+  if (typed.toLocaleLowerCase() !== club.name.toLocaleLowerCase()) {
+    throw new ClubError('Type the club’s name exactly to delete it', 400)
+  }
+
+  const [open] = await db()
+    .select({ id: clubTables.id })
+    .from(clubTables)
+    .where(and(eq(clubTables.clubId, club.id), eq(clubTables.status, 'open')))
+    .limit(1)
+  if (open) throw new ClubError('Close every table first', 409)
+
+  await db().delete(clubs).where(eq(clubs.id, club.id))
 }

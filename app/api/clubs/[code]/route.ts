@@ -1,5 +1,5 @@
 import { asViewer, bodyOf } from '@/lib/server/club-route'
-import { lookupClub, updateClub } from '@/lib/server/clubs'
+import { deleteClub, lookupClub, updateClub } from '@/lib/server/clubs'
 
 /**
  * GET /api/clubs/:code — what a club looks like from outside: its name, crest,
@@ -15,4 +15,11 @@ export async function PATCH(request: Request, ctx: RouteContext<'/api/clubs/[cod
   const { code } = await ctx.params
   const body = await bodyOf(request)
   return asViewer((viewer) => updateClub(viewer, code, body))
+}
+
+/** DELETE /api/clubs/:code — the owner deletes the club, typing its `{ name }` to confirm. */
+export async function DELETE(request: Request, ctx: RouteContext<'/api/clubs/[code]'>) {
+  const { code } = await ctx.params
+  const body = await bodyOf(request)
+  return asViewer((viewer) => deleteClub(viewer, code, body))
 }

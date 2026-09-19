@@ -19,7 +19,16 @@ import {
   sweepTables,
   topUpAtClubTable,
 } from '../club-tables'
-import { ClubError, createClub, decideApplicants, removeMember, requestToJoin } from '../clubs'
+import {
+  ClubError,
+  createClub,
+  decideApplicants,
+  deleteClub,
+  leaveClub,
+  removeMember,
+  requestToJoin,
+  transferClub,
+} from '../clubs'
 import { memberChips, sendChips } from '../counter'
 import { useDatabaseForTests } from '../db'
 import * as schema from '../db/schema'
@@ -339,5 +348,50 @@ describe('what a member won or lost', () => {
     expect(bo.atTables).toBe(0)
     expect(bo.profitLoss + cy.profitLoss).toBe(0)
     expect(bo.balance).toBe(10_000 + bo.profitLoss)
+  })
+})
+
+describe('leaving, handing over and deleting', () => {
+  it('lets a member leave, returning their chips, but not while seated', async () => {
+    const tableId = await open()
+    await buyIn(BO, code, tableId, { amount: 2_000, operationId: nextOp() })
+    await expect(leaveClub(BO, code)).rejects.toMatchObject({ status: 409 })
+    await standAtClubTable(BO, code, tableId)
+
+    await leaveClub(BO, code)
+    expect(await balanceOf(BO.id)).toBe(0)
+    await expect(clubTablesFor(BO, code)).rejects.toMatchObject({ status: 403 })
+    // Everything Bo had is the club's again: nothing sent is left with members
+    // except what Ana and Cy still hold.
+    expect((await balanceOf(OWNER.id)) + (await balanceOf(CY.id))).toBe(SENT - 10_000)
+  })
+
+  it('does not let the owner simply walk away', async () => {
+    await expect(leaveClub(OWNER, code)).rejects.toMatchObject({ status: 409 })
+  })
+
+  it('hands the club over, with exactly one owner throughout', async () => {
+    await transferClub(OWNER, code, { publicId: BO.publicId })
+    const owners = await database
+      .select()
+      .from(schema.clubMembers)
+      .where(eq(schema.clubMembers.role, 'owner'))
+    expect(owners.map((o) => o.userId)).toEqual([BO.id])
+    await expect(openClubTable(OWNER, code, TABLE)).rejects.toMatchObject({ status: 403 })
+    await expect(openClubTable(BO, code, TABLE)).resolves.toBeTruthy()
+    // Ana, now a member, can leave like anyone else.
+    await expect(leaveClub(OWNER, code)).resolves.toBeUndefined()
+  })
+
+  it('deletes a club only with its name typed back, and never with a table open', async () => {
+    const tableId = await open()
+    await expect(deleteClub(BO, code, { name: 'Friday Night' })).rejects.toMatchObject({ status: 403 })
+    await expect(deleteClub(OWNER, code, { name: 'Friday' })).rejects.toMatchObject({ status: 400 })
+    await expect(deleteClub(OWNER, code, { name: 'friday night' })).rejects.toMatchObject({ status: 409 })
+
+    await disbandClubTable(OWNER, code, tableId)
+    await deleteClub(OWNER, code, { name: 'friday night' })
+    expect(await database.select().from(schema.clubs)).toEqual([])
+    expect(await database.select().from(schema.ledger)).toEqual([])
   })
 })
