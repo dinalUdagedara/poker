@@ -91,8 +91,11 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await expect(ana.getByTestId('counter-notice')).toHaveText('Sent 20,000 to 2 members')
   await expect(ana.getByTestId('total-member-chips')).toHaveText('20,000')
 
-  // Ana opens a table and sits down with 5,000.
+  // Ana opens a table and sits down with 5,000. As the admin she adds chips
+  // from the bank rather than asking herself for them.
   await ana.goto(`/clubs/${code}`)
+  await expect(ana.getByTestId('add-chips')).toBeVisible()
+  await expect(ana.getByTestId('ask-for-chips')).toHaveCount(0)
   await ana.getByTestId('open-table').click()
   await ana.getByTestId('table-name').fill('Friday table')
   await ana.getByTestId('blinds-4').click()

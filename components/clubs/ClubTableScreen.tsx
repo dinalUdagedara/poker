@@ -11,6 +11,7 @@ import { TableFelt } from '@/components/TableFelt'
 import { Badge } from '@/components/ui/badge'
 import { getAudio } from '@/lib/audio'
 import { formatChips, newOperationId } from '@/lib/clubs/api'
+import { can } from '@/lib/clubs/permissions'
 import { feltOf } from '@/lib/clubs/felt'
 import type { CashTableView } from '@/lib/poker/lifecycle'
 import type { ClubView } from '@/lib/server/clubs'
@@ -61,6 +62,9 @@ export function ClubTableScreen({
   const [buying, setBuying] = useState(false)
   const [toppingUp, setToppingUp] = useState(false)
   const [asked, setAsked] = useState(false)
+  // An admin short of a buy-in adds the chips themselves rather than asking.
+  const addsOwn = can(club.role, 'moveChips')
+  const addOperation = useRef<string | null>(null)
   const [confirmClose, setConfirmClose] = useState(false)
 
   const table = feltOf(view)
@@ -149,19 +153,33 @@ export function ClubTableScreen({
     }
   }
 
-  /** Ask the admin for what it takes to sit down, from here rather than the club page. */
+  /**
+   * Get what it takes to sit down, from here rather than the club page: a
+   * member asks the admin; the admin adds it from the club's bank, and the
+   * refreshed balance puts "Sit down" in front of them.
+   */
   async function askForChips() {
     setBusy(true)
     setError(null)
+    const amount = view.settings.minBuyIn - club.balance
+    addOperation.current ??= newOperationId()
     try {
       const response = await fetch(`/api/clubs/${club.code}/chips`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'request', amount: view.settings.minBuyIn - club.balance }),
+        body: JSON.stringify(
+          addsOwn ? { action: 'add', amount, operationId: addOperation.current } : { action: 'request', amount },
+        ),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error ?? 'Something went wrong')
-      setAsked(true)
+      if (addsOwn) {
+        addOperation.current = null
+        getAudio().play('confirm')
+        router.refresh()
+      } else {
+        setAsked(true)
+      }
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -295,7 +313,7 @@ export function ClubTableScreen({
                         ? 'Every seat is taken. You can watch.'
                         : canAfford
                           ? `Buy in with ${formatChips(view.settings.minBuyIn)} to ${formatChips(view.settings.maxBuyIn)} chips.`
-                          : `You need ${formatChips(view.settings.minBuyIn)} chips to sit here, and have ${formatChips(club.balance)}. Ask ${club.ownerNickname} for chips.`}
+                          : `You need ${formatChips(view.settings.minBuyIn)} chips to sit here, and have ${formatChips(club.balance)}. ${addsOwn ? 'Add them from the club bank.' : `Ask ${club.ownerNickname} for chips.`}`}
                   </p>
                   {free && !view.closing && !canAfford && (
                     <button
@@ -303,11 +321,13 @@ export function ClubTableScreen({
                       className={QUIET_BUTTON}
                       disabled={busy || asked}
                       onClick={() => void askForChips()}
-                      data-testid="ask-for-chips"
+                      data-testid={addsOwn ? 'add-chips' : 'ask-for-chips'}
                     >
-                      {asked
-                        ? 'Asked — you can sit once the admin approves'
-                        : `Ask for ${formatChips(view.settings.minBuyIn - club.balance)} chips`}
+                      {addsOwn
+                        ? `Add ${formatChips(view.settings.minBuyIn - club.balance)} chips`
+                        : asked
+                          ? 'Asked — you can sit once the admin approves'
+                          : `Ask for ${formatChips(view.settings.minBuyIn - club.balance)} chips`}
                     </button>
                   )}
                   {free && !view.closing && canAfford && (

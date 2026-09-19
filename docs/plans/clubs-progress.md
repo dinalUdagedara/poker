@@ -486,3 +486,14 @@ deal, in a quick game, where no chosen face is ever drawn.
   retries, failures, read marking, pruning, club deletion),
   `lib/__tests__/notifications.test.ts` (wording, links, badge), and the club
   e2e now reaches Bo's request and the new table through the bell.
+
+## The admin's own chips
+
+- *An admin adds chips to their own balance* straight from the club bank —
+  "Add chips from the club bank" on the club page, and "Add N chips" at a table
+  they cannot yet afford — instead of asking themselves and approving it.
+- *In the ledger* it is an ordinary `send` with the admin as actor and
+  recipient (`addOwnChips`, keyed on the tap's operation id), so the counter's
+  record shows what they gave themselves.
+- *The owner no longer has `requestChips`*: the server refuses a request from
+  anyone who can add their own.

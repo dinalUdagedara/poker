@@ -410,6 +410,32 @@ export async function claimChips(
   )
 }
 
+/**
+ * An admin adds chips to their own balance, straight from the club's bank.
+ *
+ * What asking is for everyone else, without asking themselves and approving it.
+ * It is an ordinary `send` in the ledger with the admin as both actor and
+ * recipient, so the record shows exactly what they gave themselves.
+ */
+export async function addOwnChips(viewer: Viewer, rawCode: unknown, body: unknown): Promise<MyChips> {
+  const { club } = await asMember(viewer, rawCode, 'moveChips')
+  const input = (body ?? {}) as Record<string, unknown>
+  const amount = amountOf(input.amount)
+  const operation = operationOf(input.operationId)
+
+  await asClubError(() =>
+    move(db(), {
+      clubId: club.id,
+      userId: viewer.id,
+      amount,
+      kind: 'send',
+      actorId: viewer.id,
+      key: `add:${operation}:${viewer.id}`,
+    }),
+  )
+  return myChips(viewer, club.code)
+}
+
 /** A member asks the admin for chips. */
 export async function requestChips(viewer: Viewer, rawCode: unknown, body: unknown): Promise<MyChips> {
   const { club } = await asMember(viewer, rawCode, 'requestChips')

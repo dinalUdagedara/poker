@@ -24,9 +24,12 @@ export const ACTIONS = [
   'annotateMembers',
   /** Change the club's name, crest and notice. */
   'editClub',
-  /** Send chips out, claim them back, answer chip requests and read the record. */
+  /**
+   * Send chips out, claim them back, answer chip requests and read the record —
+   * and add chips to your own balance straight from the club's bank.
+   */
   'moveChips',
-  /** Ask the admin for chips. */
+  /** Ask the admin for chips. Only for those who cannot simply add their own. */
   'requestChips',
   /** Open tables, give them longer, and close them. */
   'runTables',
@@ -36,7 +39,9 @@ export const ACTIONS = [
 export type ClubAction = (typeof ACTIONS)[number]
 
 const PERMISSIONS: Record<ClubRole, ReadonlySet<ClubAction>> = {
-  owner: new Set(ACTIONS),
+  // Everything but asking for chips: an owner asking would be asking
+  // themselves, and would then have to approve their own request.
+  owner: new Set(ACTIONS.filter((action) => action !== 'requestChips')),
   player: new Set(['view', 'requestChips']),
 }
 

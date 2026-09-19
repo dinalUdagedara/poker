@@ -1,22 +1,45 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 
-import { clubRequest, formatChips } from '@/lib/clubs/api'
+import { clubRequest, formatChips, newOperationId } from '@/lib/clubs/api'
 import type { MyChips } from '@/lib/server/counter'
 
 /**
- * Your chips in this club, and asking the admin for more.
+ * Your chips in this club, and getting more.
  *
- * A request is only a request: nothing changes until the admin approves it,
- * and the page says so rather than showing a balance that might not happen.
+ * A member asks the admin. A request is only a request: nothing changes until
+ * the admin approves it, and the page says so rather than showing a balance
+ * that might not happen.
+ *
+ * The admin adds their own, straight from the club's bank — asking would be
+ * asking themselves. It lands at once, and shows in the counter's record.
  */
-export function MyChipsPanel({ code, chips, canRequest }: { code: string; chips: MyChips; canRequest: boolean }) {
+export function MyChipsPanel({
+  code,
+  chips,
+  canRequest,
+  canAdd,
+}: {
+  code: string
+  chips: MyChips
+  canRequest: boolean
+  /** Whether this member can add chips to their own balance (an admin). */
+  canAdd: boolean
+}) {
   const router = useRouter()
   const [asking, setAsking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // One id per opening of the form, so a retried Add adds once.
+  const operation = useRef<string | null>(null)
+
+  const open = () => {
+    operation.current = newOperationId()
+    setError(null)
+    setAsking(true)
+  }
 
   async function ask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -24,7 +47,11 @@ export function MyChipsPanel({ code, chips, canRequest }: { code: string; chips:
     setBusy(true)
     setError(null)
     try {
-      await clubRequest(`/${code}/chips`, 'POST', { action: 'request', amount })
+      await clubRequest(
+        `/${code}/chips`,
+        'POST',
+        canAdd ? { action: 'add', amount, operationId: operation.current } : { action: 'request', amount },
+      )
       setAsking(false)
       router.refresh()
     } catch (e) {
@@ -52,7 +79,7 @@ export function MyChipsPanel({ code, chips, canRequest }: { code: string; chips:
         </p>
       )}
 
-      {canRequest &&
+      {(canRequest || canAdd) &&
         (asking ? (
           <form className="flex items-end gap-3" onSubmit={(e) => void ask(e)}>
             <label className="flex flex-1 flex-col gap-1.5">
@@ -81,19 +108,19 @@ export function MyChipsPanel({ code, chips, canRequest }: { code: string; chips:
               type="submit"
               disabled={busy}
               className="brass-button h-11 rounded-[2px] px-5 text-[13px] font-semibold"
-              data-testid="send-request"
+              data-testid={canAdd ? 'confirm-add-chips' : 'send-request'}
             >
-              {busy ? 'Asking…' : 'Ask'}
+              {canAdd ? (busy ? 'Adding…' : 'Add') : busy ? 'Asking…' : 'Ask'}
             </button>
           </form>
         ) : (
           <button
             type="button"
-            onClick={() => setAsking(true)}
+            onClick={open}
             className="text-brass hover:text-brass-lit self-start text-[13px] font-medium"
-            data-testid="ask-for-chips"
+            data-testid={canAdd ? 'add-chips' : 'ask-for-chips'}
           >
-            Ask the admin for chips
+            {canAdd ? 'Add chips from the club bank' : 'Ask the admin for chips'}
           </button>
         ))}
 

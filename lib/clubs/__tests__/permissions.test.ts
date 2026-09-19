@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { ACTIONS, can, isAdmin, ROLES } from '../permissions'
 
 describe('club permissions', () => {
-  it('lets the owner do everything', () => {
-    for (const action of ACTIONS) expect(can('owner', action)).toBe(true)
+  it('lets the owner do everything but ask themselves for chips', () => {
+    expect(ACTIONS.filter((action) => !can('owner', action))).toEqual(['requestChips'])
   })
 
   it('lets a player only look, play and ask for chips', () => {
