@@ -23,6 +23,7 @@ import { asMember, ClubError, memberRow, type Viewer } from './clubs'
 import { db } from './db'
 import { chipRequests, clubMembers, ledger, seatSessions, users } from './db/schema'
 import { LedgerError, MAX_MOVE, move } from './ledger'
+import { membersWho, notify } from './notifications'
 
 /** How many requests one member may have waiting at once. */
 export const MAX_PENDING_REQUESTS = 5
@@ -339,7 +340,10 @@ export async function sendChips(
           actorId: viewer.id,
           key: `send:${operation}:${member.userId}`,
         })
-        if (result.applied) to += 1
+        if (result.applied) {
+          to += 1
+          await notify(tx, [{ userId: member.userId, clubId: club.id, kind: 'chips_sent', actorId: viewer.id, amount }])
+        }
       }
       return { sent: amount * to, members: to }
     }),
@@ -396,6 +400,9 @@ export async function claimChips(
         if (result.applied) {
           claimed += take
           from += 1
+          await notify(tx, [
+            { userId: member.userId, clubId: club.id, kind: 'chips_claimed', actorId: viewer.id, amount: take },
+          ])
         }
       }
       return { claimed, members: from }
@@ -422,7 +429,14 @@ export async function requestChips(viewer: Viewer, rawCode: unknown, body: unkno
     throw new ClubError(`You already have ${MAX_PENDING_REQUESTS} requests waiting`, 409)
   }
 
-  await db().insert(chipRequests).values({ id: randomUUID(), clubId: club.id, userId: viewer.id, amount })
+  await db().transaction(async (tx) => {
+    await tx.insert(chipRequests).values({ id: randomUUID(), clubId: club.id, userId: viewer.id, amount })
+    const admins = await membersWho(tx, club.id, 'moveChips')
+    await notify(
+      tx,
+      admins.map((userId) => ({ userId, clubId: club.id, kind: 'chip_request' as const, actorId: viewer.id, amount })),
+    )
+  })
   return myChips(viewer, club.code)
 }
 
@@ -468,7 +482,13 @@ export async function decideChipRequests(
       if (claimed.length === 0 && input.requestId !== 'all') {
         throw new ClubError('That request has already been answered', 409)
       }
-      if (decision === 'reject') return { approved: 0, rejected: claimed.length, chips: 0 }
+      const answered = (request: (typeof claimed)[number], kind: 'chip_request_approved' | 'chip_request_declined') =>
+        notify(tx, [{ userId: request.userId, clubId: club.id, kind, actorId: viewer.id, amount: request.amount }])
+
+      if (decision === 'reject') {
+        for (const request of claimed) await answered(request, 'chip_request_declined')
+        return { approved: 0, rejected: claimed.length, chips: 0 }
+      }
 
       const active = await tx
         .select({ userId: clubMembers.userId })
@@ -503,6 +523,7 @@ export async function decideChipRequests(
           requestId: request.id,
           key: `request:${request.id}`,
         })
+        await answered(request, 'chip_request_approved')
         approved += 1
         chips += request.amount
       }

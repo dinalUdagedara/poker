@@ -14,6 +14,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  bigserial,
   boolean,
   check,
   index,
@@ -350,5 +351,63 @@ export const seatSessions = pgTable(
     index('seat_sessions_club_user_idx').on(table.clubId, table.userId),
     check('seat_sessions_bought_in_check', sql`${table.boughtIn} > 0`),
     check('seat_sessions_cashed_out_check', sql`${table.cashedOut} is null or ${table.cashedOut} >= 0`),
+  ],
+)
+
+export const NOTIFICATION_KINDS = [
+  'join_request',
+  'member_joined',
+  'join_approved',
+  'join_declined',
+  'removed',
+  'club_handed',
+  'chips_sent',
+  'chips_claimed',
+  'chip_request',
+  'chip_request_approved',
+  'chip_request_declined',
+  'table_opened',
+] as const
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
+
+/**
+ * Something that happened which one person should hear about: the bell.
+ *
+ * Written in the same transaction as the thing it tells of, so there is never a
+ * notification for a change that failed, or a change nobody was told about.
+ * One row per person told — an admin's "Bo asked for chips" and Bo's "your
+ * request was approved" are two rows. A row holds only ids and numbers, and is
+ * put into words when it is read, so it follows the club's name and the
+ * actor's nickname as they are now. Deleted after thirty days by the cron job.
+ *
+ * `seq` orders them. Timestamps cannot: a send to ten members writes ten rows in
+ * the same instant, and "newest first" must still come out the same each time.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    seq: bigserial('seq', { mode: 'number' }).notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    clubId: text('club_id')
+      .notNull()
+      .references(() => clubs.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: NOTIFICATION_KINDS }).notNull(),
+    /** Who made it happen, when it was a person: the applicant, the admin. */
+    actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Chips, for the kinds that are about chips. */
+    amount: bigint('amount', { mode: 'number' }),
+    tableId: text('table_id').references(() => clubTables.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+    readAt: timestamp('read_at'),
+  },
+  (table) => [
+    index('notifications_user_seq_idx').on(table.userId, table.seq),
+    // The bell's count: only the unread rows, so it stays small however long
+    // someone has been playing.
+    index('notifications_user_unread_idx').on(table.userId).where(sql`${table.readAt} is null`),
+    index('notifications_created_idx').on(table.createdAt),
   ],
 )

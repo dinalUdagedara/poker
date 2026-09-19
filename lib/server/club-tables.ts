@@ -36,6 +36,7 @@ import { asMember, ClubError, type Viewer } from './clubs'
 import { db } from './db'
 import { clubMembers, clubTables, seatSessions, users } from './db/schema'
 import { LedgerError, move } from './ledger'
+import { membersWho, notify } from './notifications'
 import {
   actAtCashTable,
   clearPaidCashOuts,
@@ -328,22 +329,32 @@ export async function openClubTable(viewer: Viewer, rawCode: unknown, body: unkn
     openCashGame({ name, clubId: club.id, settings: input, closesAt }),
   )
   const table = (await readCashTable(tableId))!
-  await db().insert(clubTables).values({
-    id: tableId,
-    clubId: club.id,
-    name,
-    smallBlind: table.settings.smallBlind,
-    bigBlind: table.settings.bigBlind,
-    minBuyIn: table.settings.minBuyIn,
-    maxBuyIn: table.settings.maxBuyIn,
-    seatCount: table.settings.seatCount,
-    actionSeconds: table.settings.actionMs / 1000,
-    autoStart: table.settings.autoStart,
-    hours,
-    recurring: input.recurring === true,
-    seriesId: input.recurring === true ? tableId : null,
-    createdBy: viewer.id,
-    closesAt: new Date(closesAt),
+  await db().transaction(async (tx) => {
+    await tx.insert(clubTables).values({
+      id: tableId,
+      clubId: club.id,
+      name,
+      smallBlind: table.settings.smallBlind,
+      bigBlind: table.settings.bigBlind,
+      minBuyIn: table.settings.minBuyIn,
+      maxBuyIn: table.settings.maxBuyIn,
+      seatCount: table.settings.seatCount,
+      actionSeconds: table.settings.actionMs / 1000,
+      autoStart: table.settings.autoStart,
+      hours,
+      recurring: input.recurring === true,
+      seriesId: input.recurring === true ? tableId : null,
+      createdBy: viewer.id,
+      closesAt: new Date(closesAt),
+    })
+    // Every member hears of a new table once. A repeating table's later
+    // sittings open quietly (`openNextInSeries`): the members already know it
+    // runs every day, and a bell that rings daily for it would soon be ignored.
+    const members = await membersWho(tx, club.id, 'view')
+    await notify(
+      tx,
+      members.map((userId) => ({ userId, clubId: club.id, kind: 'table_opened' as const, actorId: viewer.id, tableId })),
+    )
   })
   return { tableId }
 }

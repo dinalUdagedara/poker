@@ -466,3 +466,23 @@ deal, in a quick game, where no chosen face is ever drawn.
   it is stored as null rather than refused, so a stale form cannot break saving.
 - *Picked* when founding a club (spade by default) and in club settings, and
   shown on the clubs list, the invite page and the club's own page.
+
+## Notifications
+
+- *A bell with a count* beside the sound toggle on every club and landing
+  screen, for signed-in players: up to nine, then `9+`. Opening it lists the
+  latest fifty, newest first, each with the club's crest, a sentence and how
+  long ago; tapping one goes where it can be acted on (the applicants tab, the
+  counter's requests, the table). See docs/decisions/0012.
+- *Twelve kinds*: for admins, join requests (or "joined", with auto-approve)
+  and chip requests; for players, approved or declined, removed, handed the
+  club, chips sent or claimed, a chip request answered, and a new table.
+- *Stored* in `notifications` (`drizzle/0006_notifications.sql`), written by
+  `notify` in the same transaction as the change. Nobody is told about their own
+  doing; retries tell nobody twice; a repeating table's later sittings are quiet.
+- *Polled*, not streamed: the count on load, every 30 s while visible, and on
+  returning to the tab. The cron job deletes rows after thirty days.
+- *Tests*: `lib/server/__tests__/notifications.test.ts` (PGlite: who hears what,
+  retries, failures, read marking, pruning, club deletion),
+  `lib/__tests__/notifications.test.ts` (wording, links, badge), and the club
+  e2e now reaches Bo's request and the new table through the bell.

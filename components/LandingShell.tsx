@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { AccountLink } from '@/components/account/AccountLink'
+import { NotificationBell } from '@/components/NotificationBell'
 import { Logo } from '@/components/Logo'
 import { PlayingCard } from '@/components/PlayingCard'
 import { SoundToggle } from '@/components/SoundToggle'
@@ -61,7 +62,8 @@ export function LandingShell({
       <div className="absolute top-4 left-4 flex min-h-9 items-center sm:top-5 sm:left-5">
         <AccountLink />
       </div>
-      <div className="absolute top-4 right-4 sm:top-5 sm:right-5">
+      <div className="absolute top-4 right-4 flex items-center gap-2.5 sm:top-5 sm:right-5">
+        <NotificationBell />
         <SoundToggle />
       </div>
       <div

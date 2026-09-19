@@ -72,7 +72,13 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await bo.getByTestId('join-message').fill('Hi, it is Bo')
   await bo.getByTestId('ask-to-join').click()
   await expect(bo.getByTestId('join-pending')).toBeVisible()
-  await ana.goto(`/clubs/${code}/members?tab=applicants`)
+  // Ana hears of it from the bell, which takes her to the request.
+  await ana.goto(`/clubs/${code}`)
+  await expect(ana.getByTestId('notification-count')).toHaveText('1')
+  await ana.getByTestId('notification-bell').click()
+  await ana.getByTestId('notification-join_request').click()
+  await ana.waitForURL(`**/clubs/${code}/members?tab=applicants`)
+  await expect(ana.getByTestId('notification-count')).toHaveCount(0)
   await expect(ana.getByText('Hi, it is Bo')).toBeVisible()
   await ana.locator('[data-testid^="approve-"]').first().click()
   await expect(ana.getByText('Nobody is waiting to join.')).toBeVisible()
@@ -98,9 +104,14 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await ana.getByTestId('confirm-buy-in').click()
   await expect(ana.getByTestId('table-status')).toContainText('Waiting for another player')
 
-  // Bo finds the table in the club and sits down too; a hand is dealt.
+  // Bo's bell has three things for him — he was let in, sent chips, and there
+  // is a table — and the newest takes him to it. He sits down; a hand is dealt.
   await bo.goto(`/clubs/${code}`)
-  await bo.locator('[data-testid^="table-"]').first().click()
+  await expect(bo.getByTestId('notification-count')).toHaveText('3')
+  await bo.getByTestId('notification-bell').click()
+  await expect(bo.getByTestId('notification-chips_sent')).toContainText('You received 10,000 chips')
+  await bo.getByTestId('notification-table_opened').click()
+  await bo.waitForURL(table)
   await bo.getByTestId('sit-down').click()
   await bo.getByTestId('buy-in-slider').fill('5000')
   await bo.getByTestId('confirm-buy-in').click()

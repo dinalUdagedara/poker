@@ -23,6 +23,7 @@ import { AVATAR_COUNT, lacquerOf, pictureOf } from '../profile'
 import { db } from './db'
 import { chipRequests, clubMembers, clubs, clubTables, seatSessions, users } from './db/schema'
 import { claimEverything } from './ledger'
+import { membersWho, notify } from './notifications'
 
 export class ClubError extends Error {
   constructor(
@@ -385,18 +386,30 @@ export async function requestToJoin(
     joinedAt: joinNow ? new Date() : null,
   }
 
-  if (existing) {
-    await db()
-      .update(clubMembers)
-      .set(values)
-      .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, viewer.id)))
-  } else {
-    await db()
-      .insert(clubMembers)
-      .values({ clubId: club.id, userId: viewer.id, ...values })
-      // Two taps at once: the second finds the first's row and leaves it alone.
-      .onConflictDoNothing()
-  }
+  await db().transaction(async (tx) => {
+    const written = existing
+      ? await tx
+          .update(clubMembers)
+          .set(values)
+          .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, viewer.id)))
+          .returning({ userId: clubMembers.userId })
+      : await tx
+          .insert(clubMembers)
+          .values({ clubId: club.id, userId: viewer.id, ...values })
+          // Two taps at once: the second finds the first's row and leaves it alone.
+          .onConflictDoNothing()
+          .returning({ userId: clubMembers.userId })
+    if (written.length === 0) return
+
+    // Whoever answers join requests hears of this one — or, when the club
+    // lets people straight in, that someone has joined.
+    const admins = await membersWho(tx, club.id, 'approveMembers')
+    const kind = joinNow ? 'member_joined' : 'join_request'
+    await notify(
+      tx,
+      admins.map((userId) => ({ userId, clubId: club.id, kind, actorId: viewer.id })),
+    )
+  })
   return { status: values.status }
 }
 
@@ -434,20 +447,29 @@ export async function decideApplicants(
   const pendingOf = (ids: string[]) =>
     and(eq(clubMembers.clubId, club.id), eq(clubMembers.status, 'pending'), inArray(clubMembers.userId, ids))
 
+  const tell = (rows: { userId: string }[], kind: 'join_approved' | 'join_declined') =>
+    rows.map((row) => ({ userId: row.userId, clubId: club.id, kind, actorId: viewer.id }))
+
   if (decision === 'reject') {
-    const deleted = await db().delete(clubMembers).where(pendingOf(userIds)).returning()
-    return { approved: 0, rejected: deleted.length }
+    return db().transaction(async (tx) => {
+      const deleted = await tx.delete(clubMembers).where(pendingOf(userIds)).returning()
+      await notify(tx, tell(deleted, 'join_declined'))
+      return { approved: 0, rejected: deleted.length }
+    })
   }
 
   const room = MAX_MEMBERS - (await activeCount(club.id))
   if (room <= 0) throw new ClubError(`The club is full at ${MAX_MEMBERS} members`, 409)
   const admitted = userIds.slice(0, room)
-  const updated = await db()
-    .update(clubMembers)
-    .set({ status: 'active', joinedAt: new Date() })
-    .where(pendingOf(admitted))
-    .returning()
-  return { approved: updated.length, rejected: 0 }
+  return db().transaction(async (tx) => {
+    const updated = await tx
+      .update(clubMembers)
+      .set({ status: 'active', joinedAt: new Date() })
+      .where(pendingOf(admitted))
+      .returning()
+    await notify(tx, tell(updated, 'join_approved'))
+    return { approved: updated.length, rejected: 0 }
+  })
 }
 
 /** The admin's private alias and note for a member. */
@@ -515,6 +537,7 @@ export async function removeMember(viewer: Viewer, rawCode: unknown, rawPublicId
       .update(clubMembers)
       .set({ status: 'removed', alias: '', note: '' })
       .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, row.userId)))
+    await notify(tx, [{ userId: row.userId, clubId: club.id, kind: 'removed', actorId: viewer.id }])
   })
 }
 
@@ -631,6 +654,7 @@ export async function transferClub(viewer: Viewer, rawCode: unknown, body: unkno
       .update(clubMembers)
       .set({ role: 'player' })
       .where(and(eq(clubMembers.clubId, club.id), eq(clubMembers.userId, viewer.id)))
+    await notify(tx, [{ userId: target.userId, clubId: club.id, kind: 'club_handed', actorId: viewer.id }])
   })
   return clubForMember(viewer, club.code)
 }
