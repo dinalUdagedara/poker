@@ -238,7 +238,7 @@ export function CounterPanel({
                     >
                       {selected && <Check className="size-3" strokeWidth={3} />}
                     </span>
-                    <PlayerAvatar seed={member.publicId} name={member.nickname} lacquer={member.lacquer} className="size-9" />
+                    <PlayerAvatar seed={member.publicId} name={member.nickname} lacquer={member.lacquer} picture={member.picture} className="size-9" />
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="text-foreground truncate text-[15px] font-medium">
                         {member.nickname}
@@ -319,7 +319,7 @@ export function CounterPanel({
             <ul>
               {requests.map((request) => (
                 <li key={request.id} className={cn(ROW, 'hover:border-foreground/10')} data-testid={`request-${request.id}`}>
-                  <PlayerAvatar seed={request.publicId} name={request.nickname} lacquer={request.lacquer} className="size-9" />
+                  <PlayerAvatar seed={request.publicId} name={request.nickname} lacquer={request.lacquer} picture={request.picture} className="size-9" />
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-foreground truncate text-[15px] font-medium">{request.nickname}</span>
                     <span className="text-muted-foreground text-[12px]">{TIME.format(new Date(request.createdAt))}</span>

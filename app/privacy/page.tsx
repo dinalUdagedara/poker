@@ -61,7 +61,7 @@ export default function PrivacyPage() {
                 if you sign in with a password, the password itself, stored only as a one-way hash that cannot
                 be turned back into it;
               </li>
-              <li>the nickname, lacquer and player ID other players see;</li>
+              <li>the nickname, picture or lacquer, and player ID other players see;</li>
               <li>
                 your sign-in sessions — when each started, and the browser and network address it came from —
                 so you can stay signed in and so a stolen session can be spotted.
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
               Nobody buys it: there are no adverts and no data is sold or shared for marketing. The site runs
               on services that store it on its behalf — Vercel, which hosts the site; Neon, which holds the
               database; and the Redis service that holds live tables. Signing in with Google involves Google,
-              under Google&rsquo;s own privacy policy. Other players see your nickname, lacquer and player ID,
+              under Google&rsquo;s own privacy policy. Other players see your nickname, the picture or lacquer you chose, and your player ID,
               and the hands you play at their table.
             </p>
           </Section>

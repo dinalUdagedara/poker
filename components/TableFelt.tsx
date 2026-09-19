@@ -294,6 +294,7 @@ export function TableFelt({ table }: { table: TableView }) {
                   calloutSide={calloutPlacement(point)}
                   chipSide={chipSide(point)}
                   bigBlind={table.bigBlind}
+                  face={table.faces?.[player.id]}
                 />
               </div>
             )

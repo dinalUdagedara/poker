@@ -18,7 +18,7 @@ import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm'
 
 import { can, type ClubAction, type ClubRole } from '../clubs/permissions'
 import { cleanLine, cleanText, LIMITS, normaliseCode, normalisePublicId } from '../clubs/text'
-import { AVATAR_COUNT, lacquerOf } from '../profile'
+import { AVATAR_COUNT, lacquerOf, pictureOf } from '../profile'
 import { db } from './db'
 import { chipRequests, clubMembers, clubs, clubTables, seatSessions, users } from './db/schema'
 import { claimEverything } from './ledger'
@@ -73,6 +73,8 @@ export type MemberView = {
   publicId: string
   nickname: string
   lacquer: number | null
+  /** A gallery picture the member chose, or null for their initials. */
+  picture: number | null
   role: ClubRole
   status: 'pending' | 'active' | 'removed'
   message: string
@@ -240,6 +242,7 @@ function memberViewOf(row: MemberRow): MemberView {
     publicId: row.publicId,
     nickname: row.nickname ?? 'Unknown',
     lacquer: lacquerOf(row.avatar),
+    picture: pictureOf(row.avatar),
     role: row.role,
     status: row.status,
     message: row.message,

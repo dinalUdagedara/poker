@@ -428,3 +428,28 @@ back as 10,050 and 9,950. No errors in either browser.
   real players rely on it.
 - **Publishing the Google app** once the privacy page is live on production.
 - **Paging** on the counter's record beyond the latest hundred moves.
+
+## Profile pictures
+
+**Decisions taken**
+
+- *A gallery, not uploads.* Thirty Notionists faces (by Zoish, public-domain
+  CC0 artwork, via DiceBear), chosen over seven other CC0 styles on a lab page.
+  Uploads would need storage, resizing and moderation; a gallery needs none.
+- *Drawn once, shipped as files.* `scripts/build-avatars.mjs` writes
+  `public/avatars/notionists/01…30.svg`; DiceBear is a dev dependency only, and
+  the browser loads a small SVG per face. Faces are stored by number, so the
+  script's seed list may only ever be added to.
+- *One string, as before.* The `avatar` field holds `3` (initials on lacquer 3,
+  as every account has had), `p12` (picture 12 on ivory) or `p12.3` (picture 12
+  on lacquer 3). Existing accounts need nothing done; anything else is refused
+  exactly (`cleanAvatar` in `lib/profile.ts`).
+- *Shown wherever a member is drawn*: the corner of the screen, the account
+  and profile screens, the member list, applicants, the member page, the
+  counter, chip requests, and the seats at a club table. Quick games keep the
+  monogram — a seat there is a guest cookie as often as an account.
+
+**Known flaky test, not caused by this:** `e2e/table.spec.ts` › "replays a full
+table with nothing running into anything on a phone" fails about one run in
+twelve. It measures the hand-replay drawer after a fixed 400 ms wait on a random
+deal, in a quick game, where no chosen face is ever drawn.

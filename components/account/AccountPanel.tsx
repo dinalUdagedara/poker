@@ -15,12 +15,14 @@ export function AccountPanel({
   userId,
   nickname,
   lacquer,
+  picture,
   publicId,
   email,
 }: {
   userId: string
   nickname: string
   lacquer: number | null
+  picture: number | null
   publicId: string
   email: string
 }) {
@@ -42,7 +44,7 @@ export function AccountPanel({
           <Ornament className="self-center" />
 
           <div className="flex flex-col items-center gap-2 text-center">
-            <PlayerAvatar seed={userId} name={nickname} lacquer={lacquer} className="size-20" />
+            <PlayerAvatar seed={userId} name={nickname} lacquer={lacquer} picture={picture} className="size-20" />
             <span className="text-foreground font-(family-name:--font-display) text-2xl italic" data-testid="nickname">
               {nickname}
             </span>

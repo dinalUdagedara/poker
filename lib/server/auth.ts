@@ -20,7 +20,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 
 import { sanitiseName } from '../names'
-import { AVATAR_COUNT } from '../profile'
+import { cleanAvatar } from '../profile'
 import { db, hasDatabase } from './db'
 import { hasEmail, linkEmail, sendEmail } from './email'
 import { accounts, sessions, users, verifications } from './db/schema'
@@ -77,8 +77,8 @@ function cleanProfile<T extends Record<string, unknown>>(data: T): T {
     else delete cleaned.nickname
   }
   if ('avatar' in cleaned) {
-    const avatar = Number(cleaned.avatar)
-    if (Number.isInteger(avatar) && avatar >= 0 && avatar < AVATAR_COUNT) cleaned.avatar = String(avatar)
+    const avatar = cleanAvatar(cleaned.avatar)
+    if (avatar) cleaned.avatar = avatar
     else delete cleaned.avatar
   }
   return cleaned as T

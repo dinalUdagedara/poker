@@ -76,7 +76,7 @@ export function MemberDetailPanel({
       <SalonFrame>
         <div className="flex flex-col gap-6 px-6 py-7 sm:px-8">
           <div className="flex items-center gap-4">
-            <PlayerAvatar seed={member.publicId} name={member.nickname} lacquer={member.lacquer} className="size-16" />
+            <PlayerAvatar seed={member.publicId} name={member.nickname} lacquer={member.lacquer} picture={member.picture} className="size-16" />
             <div className="flex min-w-0 flex-col gap-1">
               <h1 className="text-foreground truncate font-(family-name:--font-display) text-3xl italic">{member.nickname}</h1>
               <span className="text-muted-foreground text-[13px]">

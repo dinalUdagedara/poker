@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { authClient } from '@/lib/auth-client'
-import { lacquerOf } from '@/lib/profile'
+import { lacquerOf, pictureOf } from '@/lib/profile'
 
 /**
  * The corner of every landing screen: your monogram when signed in, a quiet
@@ -38,7 +38,7 @@ export function AccountLink() {
       className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-[13px] transition-colors"
       data-testid="account-link"
     >
-      <PlayerAvatar seed={id} name={nickname ?? '?'} lacquer={lacquerOf(avatar)} className="size-7" />
+      <PlayerAvatar seed={id} name={nickname ?? '?'} lacquer={lacquerOf(avatar)} picture={pictureOf(avatar)} className="size-7" />
       <span className="max-w-32 truncate">{nickname ?? 'Your account'}</span>
     </Link>
   )

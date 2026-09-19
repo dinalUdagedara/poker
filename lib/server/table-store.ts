@@ -1180,7 +1180,14 @@ export async function readCashTable(tableId: string): Promise<CashTable | null> 
 export function sitAtCashTable(
   tableId: string,
   playerId: string,
-  seat: { name: string; lacquer: number | null; buyIn: number; sessionId: string; chair?: number },
+  seat: {
+    name: string
+    lacquer: number | null
+    picture?: number | null
+    buyIn: number
+    sessionId: string
+    chair?: number
+  },
 ): Promise<CashTableView> {
   return changeCash(tableId, playerId, (table, now) => sitDown(table, { playerId, ...seat }, now))
 }

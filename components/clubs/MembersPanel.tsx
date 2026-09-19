@@ -123,7 +123,7 @@ export function MembersPanel({
                   className={ROW}
                   data-testid={`member-${member.publicId}`}
                 >
-                  <PlayerAvatar seed={member.publicId} name={member.nickname} lacquer={member.lacquer} className="size-10" />
+                  <PlayerAvatar seed={member.publicId} name={member.nickname} lacquer={member.lacquer} picture={member.picture} className="size-10" />
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-foreground truncate text-[15px] font-medium">
                       {member.nickname}
@@ -165,7 +165,7 @@ export function MembersPanel({
               <ul>
                 {applicants.map((applicant) => (
                   <li key={applicant.publicId} className={cn(ROW, 'hover:border-foreground/10')} data-testid={`applicant-${applicant.publicId}`}>
-                    <PlayerAvatar seed={applicant.publicId} name={applicant.nickname} lacquer={applicant.lacquer} className="size-10" />
+                    <PlayerAvatar seed={applicant.publicId} name={applicant.nickname} lacquer={applicant.lacquer} picture={applicant.picture} className="size-10" />
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="text-foreground truncate text-[15px] font-medium">{applicant.nickname}</span>
                       <span className="text-muted-foreground text-[13px]">ID {formatPublicId(applicant.publicId)}</span>

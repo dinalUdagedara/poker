@@ -8,9 +8,9 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
 import { MAX_NAME_LENGTH, sanitiseName } from '@/lib/names'
-import { formatPublicId } from '@/lib/profile'
+import { avatarOf, faceOf, formatPublicId } from '@/lib/profile'
 import { Field, PanelTitle, PRIMARY_BUTTON } from './Field'
-import { LacquerPicker } from './LacquerPicker'
+import { FacePicker } from './FacePicker'
 
 /**
  * Choose what the table calls you, and the lacquer your monogram is set on.
@@ -30,13 +30,17 @@ export function ProfilePanel({
   userId: string
   publicId: string
   nickname: string
-  avatar: number
+  /** The stored avatar string, or null for someone who has not chosen yet. */
+  avatar: string | null
   next: string
   firstTime: boolean
 }) {
   const router = useRouter()
   const [name, setName] = useState(nickname)
-  const [lacquer, setLacquer] = useState(avatar)
+  const [face, setFace] = useState(() => {
+    const current = faceOf(avatar)
+    return current.picture === null && current.lacquer === null ? { picture: null, lacquer: 0 } : current
+  })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,7 +56,7 @@ export function ProfilePanel({
 
     setBusy(true)
     setError(null)
-    const { error } = await authClient.updateUser({ nickname: cleaned, avatar: String(lacquer) })
+    const { error } = await authClient.updateUser({ nickname: cleaned, avatar: avatarOf(face) ?? '0' })
     if (error) {
       setError(error.message ?? 'That did not save. Try again.')
       setBusy(false)
@@ -70,7 +74,7 @@ export function ProfilePanel({
           <Ornament className="self-center" />
 
           <div className="flex flex-col items-center gap-2">
-            <PlayerAvatar seed={userId} name={shown} lacquer={lacquer} className="size-20" />
+            <PlayerAvatar seed={userId} name={shown} lacquer={face.lacquer} picture={face.picture} className="size-20" />
             <span className="text-muted-foreground text-[12px] tracking-[0.14em]" data-testid="public-id">
               Player ID {formatPublicId(publicId)}
             </span>
@@ -89,7 +93,7 @@ export function ProfilePanel({
             data-testid="nickname"
           />
 
-          <LacquerPicker seed={userId} name={shown} value={lacquer} onChange={setLacquer} disabled={busy} />
+          <FacePicker seed={userId} name={shown} value={face} onChange={setFace} disabled={busy} />
 
           <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="save-profile">
             {busy ? 'Saving…' : firstTime ? 'Continue' : 'Save'}

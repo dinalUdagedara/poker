@@ -17,7 +17,7 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, desc, eq, inArray, sql, sum } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
-import { lacquerOf } from '../profile'
+import { lacquerOf, pictureOf } from '../profile'
 import type { ClubRole } from '../clubs/permissions'
 import { asMember, ClubError, memberRow, type Viewer } from './clubs'
 import { db } from './db'
@@ -34,6 +34,7 @@ export type CounterMember = {
   publicId: string
   nickname: string
   lacquer: number | null
+  picture: number | null
   role: ClubRole
   alias: string
   balance: number
@@ -50,6 +51,7 @@ export type ChipRequestView = {
   publicId: string
   nickname: string
   lacquer: number | null
+  picture: number | null
   amount: number
   createdAt: string
 }
@@ -156,6 +158,7 @@ export async function counterView(viewer: Viewer, rawCode: unknown): Promise<Cou
     publicId: row.publicId,
     nickname: row.nickname ?? 'Unknown',
     lacquer: lacquerOf(row.avatar),
+    picture: pictureOf(row.avatar),
     role: row.role,
     alias: row.alias,
     balance: row.balance,
@@ -189,6 +192,7 @@ export async function listChipRequests(viewer: Viewer, rawCode: unknown): Promis
     publicId: row.publicId,
     nickname: row.nickname ?? 'Unknown',
     lacquer: lacquerOf(row.avatar),
+    picture: pictureOf(row.avatar),
     amount: row.amount,
     createdAt: row.createdAt.toISOString(),
   }))

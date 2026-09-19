@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 
 import { AccountPanel } from '@/components/account/AccountPanel'
 import { currentUser } from '@/lib/server/player'
-import { lacquerOf } from '@/lib/profile'
+import { lacquerOf, pictureOf } from '@/lib/profile'
 
 export const metadata: Metadata = { title: 'Your account', robots: { index: false } }
 
@@ -19,6 +19,7 @@ export default async function AccountPage() {
       userId={user.id}
       nickname={user.nickname}
       lacquer={lacquerOf(user.avatar)}
+      picture={pictureOf(user.avatar)}
       publicId={user.publicId}
       email={user.email}
     />

@@ -77,6 +77,11 @@ export type TableView = RedactedTableState & {
    * Bots are absent from it and are named from their id.
    */
   names: Record<string, string>
+  /**
+   * The face each seat's player chose, by engine seat id, where they chose one.
+   * Only club tables carry it; a quick game's seats wear the monogram.
+   */
+  faces?: Record<string, { lacquer: number | null; picture: number | null }>
 }
 
 /**
@@ -111,6 +116,7 @@ export type CashSeatView = {
   chair: number
   name: string
   lacquer: number | null
+  picture: number | null
   /** What is in front of them this moment, after anything they have put in the pot. */
   stack: number
   status: 'playing' | 'sitting-out'

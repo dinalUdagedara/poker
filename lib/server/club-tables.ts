@@ -31,7 +31,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { ClubAction } from '../clubs/permissions'
 import { cleanLine } from '../clubs/text'
 import type { CashTableView } from '../poker/lifecycle'
-import { lacquerOf } from '../profile'
+import { lacquerOf, pictureOf } from '../profile'
 import { asMember, ClubError, type Viewer } from './clubs'
 import { db } from './db'
 import { clubMembers, clubTables, seatSessions, users } from './db/schema'
@@ -519,6 +519,7 @@ export async function buyIn(
     await sitAtCashTable(row.id, viewer.id, {
       name: player?.nickname ?? 'Player',
       lacquer: lacquerOf(player?.avatar),
+      picture: pictureOf(player?.avatar),
       buyIn: amount,
       sessionId,
       chair: Number.isInteger(chair) ? chair : undefined,

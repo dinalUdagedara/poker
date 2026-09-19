@@ -74,6 +74,8 @@ export type CashSeat = {
   playerId: string
   name: string
   lacquer: number | null
+  /** A gallery picture the player chose, or null for their initials. */
+  picture?: number | null
   /** Chips in front of them between hands. During a hand the engine's count is live. */
   stack: number
   /** One sitting, from buy-in to cash-out: what the ledger keys both ends on. */
@@ -286,6 +288,7 @@ export function sitDown(
     playerId: string
     name: string
     lacquer: number | null
+    picture?: number | null
     buyIn: number
     sessionId: string
     chair?: number
@@ -310,6 +313,7 @@ export function sitDown(
     playerId: input.playerId,
     name: input.name,
     lacquer: input.lacquer,
+    picture: input.picture ?? null,
     stack: input.buyIn,
     sessionId: input.sessionId,
     status: 'playing',
@@ -654,6 +658,7 @@ export function cashViewOf(table: CashTable, viewerId: string | null): CashTable
             chair,
             name: seat.name,
             lacquer: seat.lacquer,
+            picture: seat.picture ?? null,
             stack: liveStack(table, chair),
             status: seat.status,
             satOutReason: seat.satOutReason,

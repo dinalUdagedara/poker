@@ -46,11 +46,16 @@ export function feltOf(view: CashTableView): TableView {
     ...Object.fromEntries(view.seats.flatMap((seat) => (seat ? [[`s${seat.chair}`, seat.name]] : []))),
   }
 
+  const faces = Object.fromEntries(
+    view.seats.flatMap((seat) => (seat ? [[`s${seat.chair}`, { lacquer: seat.lacquer, picture: seat.picture }]] : [])),
+  )
+
   if (!hand) {
     return {
       stage: 'playing',
       outcome: { kind: 'ready' },
       names,
+      faces,
       tableId: view.tableId,
       handNumber: 0,
       viewerId,
@@ -75,6 +80,7 @@ export function feltOf(view: CashTableView): TableView {
     stage: 'playing',
     outcome: hand.result ? { kind: 'ready' } : { kind: 'playing' },
     names,
+    faces,
     players,
     // The viewer sits at the bottom of the ring whether or not this hand was
     // dealt to them, so their own chair never moves round the table.

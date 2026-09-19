@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 
 import { ProfilePanel } from '@/components/account/ProfilePanel'
 import { currentUser } from '@/lib/server/player'
-import { lacquerOf } from '@/lib/profile'
 import { safeNext } from '@/lib/safe-next'
 
 export const metadata: Metadata = { title: 'Your seat', robots: { index: false } }
@@ -33,7 +32,7 @@ export default async function WelcomePage({ searchParams }: PageProps<'/welcome'
       userId={user.id}
       publicId={user.publicId}
       nickname={user.nickname ?? ''}
-      avatar={lacquerOf(user.avatar) ?? 0}
+      avatar={user.avatar}
       next={editing ? '/account' : next}
       firstTime={!user.nickname}
     />

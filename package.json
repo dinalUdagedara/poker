@@ -21,15 +21,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
-    "@dicebear/core": "^9.4.3",
-    "@dicebear/lorelei": "^9.4.2",
-    "@dicebear/lorelei-neutral": "^9.4.2",
-    "@dicebear/notionists": "^9.4.2",
-    "@dicebear/notionists-neutral": "^9.4.2",
-    "@dicebear/open-peeps": "^9.4.2",
-    "@dicebear/pixel-art": "^9.4.2",
-    "@dicebear/shapes": "^9.4.2",
-    "@dicebear/thumbs": "^9.4.2",
     "@neondatabase/serverless": "^1.1.0",
     "better-auth": "^1.7.5",
     "class-variance-authority": "^0.7.1",
@@ -47,6 +38,8 @@
     "unique-names-generator": "^4.7.1"
   },
   "devDependencies": {
+    "@dicebear/core": "^9.4.3",
+    "@dicebear/notionists": "^9.4.2",
     "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
