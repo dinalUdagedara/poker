@@ -28,10 +28,10 @@ export const siteUrl = resolveSiteUrl()
 /**
  * Where people write about their account — to have it deleted, above all.
  *
- * Shown on the privacy page. Null until the owner decides which address to
- * publish, and the page words itself around its absence.
+ * Shown on the privacy page. The page words itself around a null, should the
+ * address ever need taking down.
  */
-export const CONTACT_EMAIL: string | null = null
+export const CONTACT_EMAIL: string | null = 'dinal.bandara@gmail.com'
 
 /** The house name, and the one sentence that says what the thing is. */
 export const SITE_NAME = 'Showdown'
