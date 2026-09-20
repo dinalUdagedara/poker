@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { LandingShell, PlayerNameField, SalonFrame, SizePicker } from '@/components/LandingShell'
@@ -108,23 +109,20 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
             ariaLabel="Seats"
             disabled={locked}
           />
-          <label className="panel-well ring-border flex cursor-pointer items-start gap-3 rounded-lg p-3 ring-1 ring-inset hover:bg-white/8">
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              data-testid="list-publicly"
-              className="accent-brass mt-0.5 size-4"
-            />
-            <span className="flex flex-col gap-0.5">
-              <span className="text-sm text-white/85">List it publicly</span>
+          <Checkbox
+            className="panel-well ring-border items-start rounded-lg p-3 ring-1 ring-inset hover:bg-white/8"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+            data-testid="list-publicly"
+            label={<span className="text-sm text-white/85">List it publicly</span>}
+            hint={
               <span className="text-muted-foreground/70 text-xs">
                 {isPublic
                   ? 'Anyone can find this room and sit down.'
                   : 'Private — only people you send the link to can join.'}
               </span>
-            </span>
-          </label>
+            }
+          />
           <Button
             className="brass-button h-12 w-full rounded-[2px] text-xs font-semibold tracking-[0.3em] uppercase"
             disabled={locked}

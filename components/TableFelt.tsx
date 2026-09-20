@@ -371,7 +371,12 @@ function EmptyChair({
   disabled?: boolean
 }) {
   if (!onTake) {
-    return <span className="block size-13 rounded-full border border-white/12 bg-black/20 sm:size-16" aria-hidden />
+    return (
+      <span
+        className="block size-13 rounded-full border border-dashed border-white/10 bg-black/15 sm:size-16"
+        aria-hidden
+      />
+    )
   }
   return (
     <button

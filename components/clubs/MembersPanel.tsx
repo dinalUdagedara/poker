@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ArrowRight, Check, X } from 'lucide-react'
 
+import { Checkbox } from '@/components/ui/checkbox'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { clubRequest } from '@/lib/clubs/api'
 import { formatPublicId } from '@/lib/profile'
@@ -143,20 +144,15 @@ export function MembersPanel({
         </>
       ) : (
         <>
-          <label className="flex items-center justify-between gap-3 text-[14px]">
-            <span className="flex flex-col gap-0.5">
-              <span className="text-foreground">Approve automatically</span>
-              <span className="text-muted-foreground text-[13px]">Anyone with the ID or link joins at once</span>
-            </span>
-            <input
-              type="checkbox"
-              className="accent-brass size-5"
-              checked={autoApprove}
-              disabled={busy}
-              onChange={(e) => void toggleAutoApprove(e.target.checked)}
-              data-testid="auto-approve"
-            />
-          </label>
+          <Checkbox
+            label="Approve automatically"
+            hint="Anyone with the ID or link joins at once"
+            className="text-[14px]"
+            checked={autoApprove}
+            disabled={busy}
+            onChange={(e) => void toggleAutoApprove(e.target.checked)}
+            data-testid="auto-approve"
+          />
 
           {applicants.length === 0 ? (
             <p className="text-muted-foreground py-3 text-[14px]">Nobody is waiting to join.</p>

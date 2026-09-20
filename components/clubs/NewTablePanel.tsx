@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
+import { Checkbox } from '@/components/ui/checkbox'
 import { Field, PRIMARY_BUTTON } from '@/components/account/Field'
 import { SalonFrame } from '@/components/LandingShell'
 import { Button } from '@/components/ui/button'
@@ -201,23 +202,18 @@ export function NewTablePanel({ club }: { club: ClubView }) {
             format={(h) => `${h}h`}
             testId="hours"
           />
-          <label className="flex items-center justify-between gap-3 text-[14px]">
-            <span className="flex flex-col gap-0.5">
-              <span className="text-foreground">Repeat</span>
-              <span className="text-muted-foreground text-[13px]">
-                {hours === 24
-                  ? 'A fresh table every day, until you stop it'
-                  : `A fresh table every ${hours} hours, until you stop it`}
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              className="accent-brass size-5"
-              checked={repeat}
-              onChange={(e) => setRepeat(e.target.checked)}
-              data-testid="repeat"
-            />
-          </label>
+          <Checkbox
+            label="Repeat"
+            hint={
+              hours === 24
+                ? 'A fresh table every day, until you stop it'
+                : `A fresh table every ${hours} hours, until you stop it`
+            }
+            className="text-[14px]"
+            checked={repeat}
+            onChange={(e) => setRepeat(e.target.checked)}
+            data-testid="repeat"
+          />
           <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="open-table">
             {busy ? 'Opening…' : 'Open table'}
           </Button>
