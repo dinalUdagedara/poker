@@ -497,3 +497,17 @@ deal, in a quick game, where no chosen face is ever drawn.
   record shows what they gave themselves.
 - *The owner no longer has `requestChips`*: the server refuses a request from
   anyone who can add their own.
+
+## Taking a seat
+
+- *Every chair is drawn* at a club table, taken or not, as ClubGG does: the
+  ring is the table's own seats rather than whoever is sitting. The viewer's
+  chair stays at the bottom, so nobody's seat moves as others come and go.
+- *A free chair is a button* — "Take seat" — for anyone who could sit: not
+  seated already, table open, and chips enough for the smallest buy-in. Tapping
+  one opens the buy-in for that chair, which the panel names. "Sit anywhere"
+  stays in the dock and takes the first free chair, as before.
+- *The engine already allowed it*: `sitDown` has always taken an optional
+  `chair`, and `buyIn` passes it through. Nothing changed below the screen.
+- *Quick games are untouched*: `TableView.seatCount` is set by the club felt
+  alone, and without it the ring is the players, exactly as before.

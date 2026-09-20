@@ -46,6 +46,9 @@ export function feltOf(view: CashTableView): TableView {
     ...Object.fromEntries(view.seats.flatMap((seat) => (seat ? [[`s${seat.chair}`, seat.name]] : []))),
   }
 
+  const seatCount = view.settings.seatCount
+  const openSeats = view.seats.flatMap((seat, chair) => (seat ? [] : [chair]))
+
   const faces = Object.fromEntries(
     view.seats.flatMap((seat) => (seat ? [[`s${seat.chair}`, { lacquer: seat.lacquer, picture: seat.picture }]] : [])),
   )
@@ -57,6 +60,8 @@ export function feltOf(view: CashTableView): TableView {
       names,
       faces,
       tableId: view.tableId,
+      seatCount,
+      openSeats,
       handNumber: 0,
       viewerId,
       buttonSeat: -1,
@@ -77,6 +82,8 @@ export function feltOf(view: CashTableView): TableView {
 
   return {
     ...hand,
+    seatCount,
+    openSeats,
     stage: 'playing',
     outcome: hand.result ? { kind: 'ready' } : { kind: 'playing' },
     names,

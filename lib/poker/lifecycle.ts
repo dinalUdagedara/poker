@@ -82,6 +82,17 @@ export type TableView = RedactedTableState & {
    * Only club tables carry it; a quick game's seats wear the monogram.
    */
   faces?: Record<string, { lacquer: number | null; picture: number | null }>
+  /**
+   * Every chair the table has, drawn whether or not anyone is in it.
+   *
+   * A club's cash table has fixed chairs a player picks from, as ClubGG does,
+   * so the ring is the table rather than whoever happens to be sitting. A quick
+   * game leaves it out: everyone there is dealt into every hand, and its ring
+   * is exactly its players.
+   */
+  seatCount?: number
+  /** Which of those chairs are free, for a screen that lets one be taken. */
+  openSeats?: number[]
 }
 
 /**
