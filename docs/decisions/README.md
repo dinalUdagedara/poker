@@ -25,6 +25,7 @@ recorded where they were taken, in
 | [0010](0010-club-invite-links.md) | Clubs can be joined from an invite link | Agreed |
 | [0011](0011-repeating-tables.md) | A repeating table reopens itself when its time runs out | Agreed |
 | [0012](0012-notifications-in-postgres.md) | Notifications are rows in Postgres, written with the change they tell of | Agreed |
+| [0013](0013-public-and-private-clubs.md) | Clubs are public or private; new ones start public | Agreed |
 
 ## Writing one
 
