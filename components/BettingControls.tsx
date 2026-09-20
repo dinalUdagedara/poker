@@ -103,7 +103,7 @@ export function BettingControls({
 
   return (
     <div className="relative">
-      {idle && (
+      {idle && status && (
         <div className="pointer-events-none absolute inset-0 z-1 grid place-items-center">
           <span
             className="rounded-full bg-black/70 px-2.5 py-0.5 text-[11px] font-medium text-white/80"

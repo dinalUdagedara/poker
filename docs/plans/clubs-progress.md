@@ -511,3 +511,22 @@ deal, in a quick game, where no chosen face is ever drawn.
   `chair`, and `buyIn` passes it through. Nothing changed below the screen.
 - *Quick games are untouched*: `TableView.seatCount` is set by the club felt
   alone, and without it the ring is the players, exactly as before.
+
+## The table screen, tidied
+
+- *Actions gather bottom-right*, under the viewer's own seat, with whose turn
+  it is said once above the dock in a size that can be read. The quiet controls
+  — sit out, top up, stand up — sit to the left, out of the way.
+- *Host controls moved into the header*, behind a "Host" button: +1 hour, stop
+  repeating, close table. They were competing with the game's own buttons.
+- *Buying in, topping up, sitting out and watching* are small centred cards
+  rather than sliders stretched across the screen.
+- *An idle table shows nothing*: a finished hand is left on the felt only while
+  the next one is coming (`cashViewOf`). With too few players to deal to, the
+  board and pot go, instead of a dead hand sitting there looking live.
+- *Every empty chair is tappable* for a watcher, chips or no chips: without
+  enough, the seat opens a card saying what is needed and offering to ask for
+  it (or, for an admin, to add it).
+- *A checkbox of our own* (`components/ui/checkbox.tsx`): a brass-rimmed square
+  in place of the browser's blue tick, used by sit-out, auto-approve, repeat
+  and the lobby's "list it publicly".

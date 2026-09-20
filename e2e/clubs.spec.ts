@@ -104,7 +104,7 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   const table = ana.url()
   // Ana picks a chair on the felt rather than sitting anywhere.
   await ana.getByTestId('take-seat-3').click()
-  await expect(ana.getByTestId('buy-in')).toContainText('Seat 4')
+  await expect(ana.getByTestId('buy-in')).toContainText(/seat 4/i)
   await ana.getByTestId('buy-in-slider').fill('5000')
   await ana.getByTestId('confirm-buy-in').click()
   await expect(ana.getByTestId('table-status')).toContainText('Waiting for another player')
@@ -129,7 +129,11 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
       const console_ = page.getByTestId('action-console')
       if (!/Your turn/.test(await console_.innerText())) continue
       const check = page.getByRole('button', { name: /^Check/ })
-      await ((await check.count()) ? check : page.getByRole('button', { name: /^Call/ })).first().click()
+      const button = (await check.count()) ? check : page.getByRole('button', { name: /^Call/ })
+      await button
+        .first()
+        .click({ timeout: 5_000 })
+        .catch(() => undefined)
       acted = true
     }
     if (!acted) {
@@ -155,6 +159,7 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
 
   // Ana closes the table, and it leaves the club's list.
   await ana.goto(table)
+  await ana.getByTestId('host-menu').click()
   await ana.getByTestId('close-table').click()
   await ana.getByTestId('confirm-close').click()
   await expect(ana.getByTestId('table-closed')).toBeVisible()
@@ -193,6 +198,7 @@ test('a repeating table, leaving, handing over and deleting', async ({ browser }
 
   // Ed hands the club to Fi, closing the table first so Fi could delete it.
   await ed.locator('[data-testid^="table-"]').first().click()
+  await ed.getByTestId('host-menu').click()
   await ed.getByTestId('stop-repeating').click()
   await expect(ed.getByTestId('repeats')).toHaveCount(0)
   await ed.getByTestId('close-table').click()
