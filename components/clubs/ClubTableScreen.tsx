@@ -105,10 +105,30 @@ export function ClubTableScreen({
     } catch (e) {
       getAudio().play('error')
       setError((e as Error).message)
+      // The refusal means this screen is behind the table — the hand it is
+      // showing has finished, the seat has gone, or the clock ran out while
+      // nobody was looking. Read the table again rather than leaving buttons
+      // on a felt that cannot answer them.
+      void refresh()
       return false
     } finally {
       busyRef.current = false
       setBusy(false)
+    }
+  }
+
+  /** Ask the server what the table actually looks like now. */
+  async function refresh() {
+    const response = await fetch(`/api/clubs/${club.code}/tables/${view.tableId}`).catch(() => null)
+    if (!response) return
+    if (response.status === 404) {
+      setGone(true)
+      return
+    }
+    const payload = await response.json().catch(() => null)
+    if (response.ok && payload && 'seats' in payload) {
+      setView(payload as CashTableView)
+      if ('recurring' in payload) setRecurring(Boolean(payload.recurring))
     }
   }
 
