@@ -11,13 +11,15 @@ import { LIMITS } from '@/lib/clubs/text'
 import { ClubCrest } from './ClubCrest'
 import { ClubPage } from './ClubPage'
 import { CrestPicker } from './CrestPicker'
+import { VisibilityPicker } from './VisibilityPicker'
 
-/** Found a club: a name and a crest. Its ID is drawn when it is created. */
+/** Found a club: a name, a crest, and whether it is listed. Its ID is drawn when it is created. */
 export function NewClubPanel() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [lacquer, setLacquer] = useState(0)
   const [emblem, setEmblem] = useState<string | null>('spade')
+  const [isPublic, setIsPublic] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,7 +30,7 @@ export function NewClubPanel() {
     setBusy(true)
     setError(null)
     try {
-      const { code } = await clubRequest<{ code: string }>('', 'POST', { name, lacquer, emblem })
+      const { code } = await clubRequest<{ code: string }>('', 'POST', { name, lacquer, emblem, isPublic })
       router.push(`/clubs/${code}`)
       router.refresh()
     } catch (e) {
@@ -68,6 +70,7 @@ export function NewClubPanel() {
             }}
             disabled={busy}
           />
+          <VisibilityPicker isPublic={isPublic} onChange={setIsPublic} disabled={busy} />
           <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="create">
             {busy ? 'Creating…' : 'Create club'}
           </Button>

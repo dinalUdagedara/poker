@@ -14,7 +14,7 @@ import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
 
-import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 import { can, type ClubAction, type ClubRole } from '../clubs/permissions'
 import { cleanEmblem } from '../clubs/emblems'
@@ -54,6 +54,8 @@ export type ClubPreview = {
   emblem: string | null
   ownerNickname: string
   memberCount: number
+  /** Listed on the Discover page. A private club is found by its ID or link alone. */
+  isPublic: boolean
 }
 
 /** A club as one of its members sees it. */
@@ -127,7 +129,15 @@ async function nicknameOf(userId: string): Promise<string> {
 }
 
 function previewOf(club: ClubRow, ownerNickname: string, memberCount: number): ClubPreview {
-  return { code: club.code, name: club.name, lacquer: club.lacquer, emblem: club.emblem, ownerNickname, memberCount }
+  return {
+    code: club.code,
+    name: club.name,
+    lacquer: club.lacquer,
+    emblem: club.emblem,
+    ownerNickname,
+    memberCount,
+    isPublic: club.isPublic,
+  }
 }
 
 /**
@@ -151,6 +161,76 @@ export async function lookupClub(rawCode: unknown): Promise<ClubPreview> {
   const club = await clubByCode(rawCode)
   const counts = await memberCounts([club.id])
   return previewOf(club, await nicknameOf(club.ownerId), counts.get(club.id) ?? 0)
+}
+
+/** A public club on the Discover page, with where the viewer stands in it. */
+export type DiscoverCard = ClubPreview & {
+  /** Tables open right now: a club with a game on is worth a look. */
+  openTables: number
+  standing: 'active' | 'pending' | null
+  full: boolean
+}
+
+/** How many clubs Discover lists at once. Searching narrows it further. */
+export const DISCOVER_LIMIT = 50
+
+/**
+ * The public clubs, busiest first: most tables open, then most members.
+ *
+ * `query` matches a name (case-insensitively, anywhere in it) or a club ID.
+ * A private club never appears here, even to its own members — it is found
+ * by its ID or invite link, as before.
+ */
+export async function discoverClubs(viewer: Viewer, rawQuery: unknown): Promise<DiscoverCard[]> {
+  const query = cleanLine(rawQuery, LIMITS.clubName)
+  const code = normaliseCode(query)
+  // `%` and `_` are wildcards in LIKE; a name typed with them means them.
+  const pattern = `%${query.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
+
+  const members = sql<number>`(select count(*)::int from ${clubMembers} m
+    where m.club_id = ${clubs.id} and m.status = 'active')`
+  const tables = sql<number>`(select count(*)::int from ${clubTables} t
+    where t.club_id = ${clubs.id} and t.status = 'open')`
+
+  const rows = await db()
+    .select({ club: clubs, owner: users.nickname, members, tables })
+    .from(clubs)
+    .innerJoin(users, eq(users.id, clubs.ownerId))
+    .where(
+      and(
+        eq(clubs.isPublic, true),
+        query ? or(ilike(clubs.name, pattern), code ? eq(clubs.code, code) : undefined) : undefined,
+      ),
+    )
+    .orderBy(desc(tables), desc(members), asc(clubs.name))
+    .limit(DISCOVER_LIMIT)
+
+  const mine =
+    rows.length === 0
+      ? []
+      : await db()
+          .select({ clubId: clubMembers.clubId, status: clubMembers.status })
+          .from(clubMembers)
+          .where(
+            and(
+              eq(clubMembers.userId, viewer.id),
+              inArray(
+                clubMembers.clubId,
+                rows.map((row) => row.club.id),
+              ),
+            ),
+          )
+  const standing = new Map(mine.map((row) => [row.clubId, row.status]))
+
+  return rows.map((row) => {
+    const status = standing.get(row.club.id)
+    return {
+      ...previewOf(row.club, row.owner ?? 'Unknown', row.members),
+      openTables: row.tables,
+      standing: status === 'active' || status === 'pending' ? status : null,
+      full: row.members >= MAX_MEMBERS,
+    }
+  })
 }
 
 /** Where the viewer stands in the club with this code, or null if nowhere. */
@@ -327,6 +407,8 @@ export async function createClub(viewer: Viewer, body: unknown): Promise<{ code:
   if (!name) throw new ClubError('Give the club a name', 400)
   const lacquer = cleanLacquer(input.lacquer)
   const emblem = cleanEmblem(input.emblem)
+  // Public unless the founder chose otherwise.
+  const isPublic = input.isPublic !== false
 
   const [owned] = await db().select({ n: count() }).from(clubs).where(eq(clubs.ownerId, viewer.id))
   if ((owned?.n ?? 0) >= MAX_OWNED_CLUBS) {
@@ -338,7 +420,7 @@ export async function createClub(viewer: Viewer, body: unknown): Promise<{ code:
     try {
       await db().transaction(async (tx) => {
         const id = randomUUID()
-        await tx.insert(clubs).values({ id, code, name, lacquer, emblem, ownerId: viewer.id })
+        await tx.insert(clubs).values({ id, code, name, lacquer, emblem, isPublic, ownerId: viewer.id })
         await tx.insert(clubMembers).values({
           clubId: id,
           userId: viewer.id,
@@ -554,7 +636,7 @@ export async function updateClub(viewer: Viewer, rawCode: unknown, body: unknown
     if (!can(membership.role, action)) throw new ClubError('Only the club’s admin can do that', 403)
   }
 
-  const changes: Partial<Pick<ClubRow, 'name' | 'lacquer' | 'emblem' | 'notice' | 'autoApprove'>> = {}
+  const changes: Partial<Pick<ClubRow, 'name' | 'lacquer' | 'emblem' | 'notice' | 'autoApprove' | 'isPublic'>> = {}
   if ('name' in input) {
     allowed('editClub')
     const name = cleanLine(input.name, LIMITS.clubName)
@@ -572,6 +654,10 @@ export async function updateClub(viewer: Viewer, rawCode: unknown, body: unknown
   if ('notice' in input) {
     allowed('editClub')
     changes.notice = cleanText(input.notice, LIMITS.notice)
+  }
+  if ('isPublic' in input) {
+    allowed('editClub')
+    changes.isPublic = input.isPublic === true
   }
   if ('autoApprove' in input) {
     allowed('approveMembers')

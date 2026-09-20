@@ -512,6 +512,22 @@ deal, in a quick game, where no chosen face is ever drawn.
 - *Quick games are untouched*: `TableView.seatCount` is set by the club felt
   alone, and without it the ring is the players, exactly as before.
 
+## Discover, and public or private clubs
+
+- *`/clubs/discover`*, linked from the clubs page: every public club, busiest
+  first (tables open, then members), with its crest, host, members, open tables
+  and where you stand (Member, Waiting, Full). Search by any part of a name or
+  by ID, as you type; the search lives in the URL. See docs/decisions/0013.
+- *Public or private* (`clubs.is_public`, `drizzle/0007_public_clubs.sql`):
+  chosen when founding a club (public by default) and changeable in settings.
+  Private clubs are never listed. Clubs from before this stay private.
+- *Joining is unchanged*: a listed club opens its invite page, and the request
+  goes to the admin or through auto-approve.
+- *Tests*: `lib/server/__tests__/discover.test.ts` (listing, order, standing,
+  search including `%` and `_`, admin-only change), and the club e2e — a private
+  club absent from Discover, a public one found by search and joined, then made
+  private and gone.
+
 ## The table screen, tidied
 
 - *Actions gather bottom-right*, under the viewer's own seat, with whose turn
