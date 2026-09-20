@@ -137,10 +137,20 @@ export const clubs = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     autoApprove: boolean('auto_approve').notNull().default(false),
+    /**
+     * Listed on the Discover page, for anyone to find and ask to join. A
+     * private club is found only by its ID or invite link. Either way, joining
+     * still goes through the admin (or auto-approve). New clubs start public;
+     * clubs from before this existed were left private (docs/decisions/0013).
+     */
+    isPublic: boolean('is_public').notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (table) => [index('clubs_owner_id_idx').on(table.ownerId)],
+  (table) => [
+    index('clubs_owner_id_idx').on(table.ownerId),
+    index('clubs_public_idx').on(table.isPublic),
+  ],
 )
 
 /**

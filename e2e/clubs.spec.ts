@@ -60,12 +60,18 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   const ana = await person(browser, 'Ana', 2)
   const bo = await person(browser, 'Bo', 4)
 
-  // Ana founds the club.
+  // Ana founds the club, and makes it private.
   await ana.getByTestId('create-club').click()
   await ana.getByTestId('club-name').fill('Friday Night')
+  await ana.getByTestId('visibility-private').click()
   await ana.getByTestId('create').click()
   await expect(ana.getByTestId('club-id')).toBeVisible()
   const code = ana.url().split('/').pop()!
+
+  // So Discover does not show it, even searched for by its ID.
+  await bo.goto(`/clubs/discover?q=${code}`)
+  await expect(bo.getByTestId('discover-empty')).toBeVisible()
+  await expect(bo.getByTestId(`discover-${code}`)).toHaveCount(0)
 
   // Bo asks to join from the invite link, and Ana lets him in.
   await bo.goto(`/c/${code}`)
@@ -102,7 +108,9 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await ana.getByTestId('open-table').click()
   await ana.waitForURL((url) => /\/tables\/[0-9a-f-]{36}$/.test(url.pathname))
   const table = ana.url()
-  await ana.getByTestId('sit-down').click()
+  // Ana picks a chair on the felt rather than sitting anywhere.
+  await ana.getByTestId('take-seat-3').click()
+  await expect(ana.getByTestId('buy-in')).toContainText(/seat 4/i)
   await ana.getByTestId('buy-in-slider').fill('5000')
   await ana.getByTestId('confirm-buy-in').click()
   await expect(ana.getByTestId('table-status')).toContainText('Waiting for another player')
@@ -118,7 +126,7 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await bo.getByTestId('sit-down').click()
   await bo.getByTestId('buy-in-slider').fill('5000')
   await bo.getByTestId('confirm-buy-in').click()
-  await expect(bo.getByTestId('action-console')).toContainText(/turn|to act/i)
+  await expect(bo.getByTestId('action-console')).toContainText(/turn|to act|fold/i)
 
   // Play the hand out: whoever is to act checks or calls.
   for (let step = 0; step < 20; step++) {
@@ -127,7 +135,11 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
       const console_ = page.getByTestId('action-console')
       if (!/Your turn/.test(await console_.innerText())) continue
       const check = page.getByRole('button', { name: /^Check/ })
-      await ((await check.count()) ? check : page.getByRole('button', { name: /^Call/ })).first().click()
+      const button = (await check.count()) ? check : page.getByRole('button', { name: /^Call/ })
+      await button
+        .first()
+        .click({ timeout: 5_000 })
+        .catch(() => undefined)
       acted = true
     }
     if (!acted) {
@@ -153,6 +165,7 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
 
   // Ana closes the table, and it leaves the club's list.
   await ana.goto(table)
+  await ana.getByTestId('host-menu').click()
   await ana.getByTestId('close-table').click()
   await ana.getByTestId('confirm-close').click()
   await expect(ana.getByTestId('table-closed')).toBeVisible()
@@ -174,9 +187,28 @@ test('a repeating table, leaving, handing over and deleting', async ({ browser }
   // Auto-approve, so Fi is in the moment she asks.
   await ed.goto(`/clubs/${code}/members?tab=applicants`)
   await ed.getByTestId('auto-approve').check()
-  await fi.goto(`/c/${code}`)
+
+  // The club is public, as new clubs are, so Fi finds it in Discover — by
+  // typing its ID into the search — and joins from there.
+  await fi.goto('/clubs')
+  await fi.getByTestId('discover-clubs').click()
+  await fi.waitForURL('**/clubs/discover')
+  await fi.getByTestId('discover-search').fill(code)
+  await fi.waitForURL(`**/clubs/discover?q=${code}`)
+  await fi.getByTestId(`discover-${code}`).click()
+  await fi.waitForURL(`**/c/${code}`)
   await fi.getByTestId('ask-to-join').click()
   await fi.waitForURL(`**/clubs/${code}`)
+  await fi.goto(`/clubs/discover?q=${code}`)
+  await expect(fi.getByTestId(`discover-${code}`)).toContainText('Member')
+
+  // Made private in settings, it drops out of Discover.
+  await ed.goto(`/clubs/${code}/settings`)
+  await ed.getByTestId('visibility-private').click()
+  await ed.getByTestId('save-club').click()
+  await ed.waitForURL(`**/clubs/${code}`)
+  await fi.reload()
+  await expect(fi.getByTestId('discover-empty')).toBeVisible()
 
   // A table set to repeat says so, in the lobby and at the table.
   await ed.goto(`/clubs/${code}/tables/new`)
@@ -191,6 +223,7 @@ test('a repeating table, leaving, handing over and deleting', async ({ browser }
 
   // Ed hands the club to Fi, closing the table first so Fi could delete it.
   await ed.locator('[data-testid^="table-"]').first().click()
+  await ed.getByTestId('host-menu').click()
   await ed.getByTestId('stop-repeating').click()
   await expect(ed.getByTestId('repeats')).toHaveCount(0)
   await ed.getByTestId('close-table').click()

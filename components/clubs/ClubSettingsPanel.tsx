@@ -12,8 +12,9 @@ import type { ClubView } from '@/lib/server/clubs'
 import { ClubCrest } from './ClubCrest'
 import { ClubPage } from './ClubPage'
 import { CrestPicker } from './CrestPicker'
+import { VisibilityPicker } from './VisibilityPicker'
 
-/** The club's name, crest and notice. */
+/** The club's name, crest, notice, and whether it is listed in Discover. */
 export function ClubSettingsPanel({
   club,
   heirs,
@@ -29,6 +30,7 @@ export function ClubSettingsPanel({
   const [lacquer, setLacquer] = useState(club.lacquer)
   const [emblem, setEmblem] = useState<string | null>(club.emblem)
   const [notice, setNotice] = useState(club.notice)
+  const [isPublic, setIsPublic] = useState(club.isPublic)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,7 +41,7 @@ export function ClubSettingsPanel({
     setBusy(true)
     setError(null)
     try {
-      await clubRequest(`/${club.code}`, 'PATCH', { name, lacquer, emblem, notice })
+      await clubRequest(`/${club.code}`, 'PATCH', { name, lacquer, emblem, notice, isPublic })
       router.push(`/clubs/${club.code}`)
       router.refresh()
     } catch (e) {
@@ -93,6 +95,7 @@ export function ClubSettingsPanel({
               data-testid="notice"
             />
           </div>
+          <VisibilityPicker isPublic={isPublic} onChange={setIsPublic} disabled={busy} />
           <Button type="submit" className={PRIMARY_BUTTON} disabled={busy} data-testid="save-club">
             {busy ? 'Saving…' : 'Save'}
           </Button>

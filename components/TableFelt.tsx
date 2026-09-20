@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { cn } from '@/lib/utils'
 import { calloutsFor } from '@/lib/poker/callouts'
 import type { TableView } from '@/lib/poker/lifecycle'
+import type { RedactedPlayer } from '@/lib/poker/redact'
 import { calloutPlacement, chipSide, seatOrder, seatRing } from '@/lib/table-seating'
 import { usePortrait } from '@/lib/use-portrait'
 import { ChipStack } from './ChipStack'
@@ -21,7 +22,17 @@ import { TableBody } from './TableBody'
  * own animations need; everything a player can do lives with whichever screen
  * is around it.
  */
-export function TableFelt({ table }: { table: TableView }) {
+export function TableFelt({
+  table,
+  onTakeSeat,
+  takingSeat,
+}: {
+  table: TableView
+  /** Called with the chair a watcher tapped, where chairs can be chosen. */
+  onTakeSeat?: (chair: number) => void
+  /** True while a buy-in is on its way, so a second chair cannot be tapped. */
+  takingSeat?: boolean
+}) {
   // A crowded table keeps the board narrower, so the seats on the two rails are
   // not sitting under the ace and the seven.
   const crowded = table.players.length >= 5
@@ -33,10 +44,35 @@ export function TableFelt({ table }: { table: TableView }) {
    * one would seat a phone like a desktop for a frame after a rotation.
    */
   const portrait = usePortrait()
-  const seated = useMemo(
-    () => seatOrder(table.players, table.viewerId),
-    [table.players, table.viewerId],
+  /*
+   * The ring, chair by chair.
+   *
+   * A club table knows how many chairs it has, so every one of them is drawn —
+   * an empty chair is a place to sit, not a gap. A quick game has no chairs to
+   * choose from, and its ring is its players, as it always was.
+   *
+   * Either way the viewer is at the bottom, and the rest follow in dealing
+   * order from them, so nobody's seat moves as others come and go.
+   */
+  const seated = useMemo<(RedactedPlayer | null)[]>(() => {
+    if (table.seatCount === undefined) return seatOrder(table.players, table.viewerId)
+    const mine = table.players.find((player) => player.id === table.viewerId)?.seat ?? 0
+    return Array.from({ length: table.seatCount }, (_, step) => {
+      const chair = (mine + step) % table.seatCount!
+      return table.players.find((player) => player.seat === chair) ?? null
+    })
+  }, [table.players, table.viewerId, table.seatCount])
+
+  /** The chair each place on the ring belongs to, for the empty ones. */
+  const chairAt = useCallback(
+    (step: number) => {
+      if (table.seatCount === undefined) return -1
+      const mine = table.players.find((player) => player.id === table.viewerId)?.seat ?? 0
+      return (mine + step) % table.seatCount
+    },
+    [table.players, table.viewerId, table.seatCount],
   )
+  const open = new Set(table.openSeats ?? [])
   const deskRing = useMemo(() => seatRing(seated.length, false), [seated.length])
   const phoneRing = useMemo(() => seatRing(seated.length, true), [seated.length])
   const ring = portrait ? phoneRing : deskRing
@@ -52,7 +88,7 @@ export function TableFelt({ table }: { table: TableView }) {
    */
   const seatPoint = useCallback(
     (playerId: string) => {
-      const seat = seated.findIndex((p) => p.id === playerId)
+      const seat = seated.findIndex((p) => p?.id === playerId)
       return seat < 0 ? null : (ring[seat] ?? null)
     },
     [seated, ring],
@@ -257,6 +293,26 @@ export function TableFelt({ table }: { table: TableView }) {
             const desk = deskRing[i]
             const phone = phoneRing[i]
             if (!point || !desk || !phone) return null
+            const place = {
+              '--seat-d-l': `${desk.left}%`,
+              '--seat-d-t': `${desk.top}%`,
+              '--seat-p-l': `${phone.left}%`,
+              '--seat-p-t': `${phone.top}%`,
+            } as CSSProperties
+
+            if (!player) {
+              const chair = chairAt(i)
+              return (
+                <div key={`chair-${chair}`} className="table-seat max-sm:scale-[0.82]" style={place}>
+                  <EmptyChair
+                    chair={chair}
+                    onTake={open.has(chair) ? onTakeSeat : undefined}
+                    disabled={takingSeat}
+                  />
+                </div>
+              )
+            }
+
             const isYou = player.id === table.viewerId
             const showing = player.holeCards != null
             return (
@@ -270,14 +326,7 @@ export function TableFelt({ table }: { table: TableView }) {
                   // A revealed hand is the point of the street.
                   isYou ? 'z-30' : showing ? 'z-20' : 'max-sm:scale-[0.82]',
                 )}
-                style={
-                  {
-                    '--seat-d-l': `${desk.left}%`,
-                    '--seat-d-t': `${desk.top}%`,
-                    '--seat-p-l': `${phone.left}%`,
-                    '--seat-p-t': `${phone.top}%`,
-                  } as CSSProperties
-                }
+                style={place}
               >
                 <PlayerSeat
                   player={player}
@@ -302,5 +351,45 @@ export function TableFelt({ table }: { table: TableView }) {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * A chair nobody is in.
+ *
+ * Tappable where the watcher could take it — ClubGG's "Take Seat" — and a
+ * quiet ring otherwise, so a player already sitting still sees the shape of
+ * the table rather than buttons they cannot press.
+ */
+function EmptyChair({
+  chair,
+  onTake,
+  disabled,
+}: {
+  chair: number
+  onTake?: (chair: number) => void
+  disabled?: boolean
+}) {
+  if (!onTake) {
+    return (
+      <span
+        className="block size-13 rounded-full border border-dashed border-white/10 bg-black/15 sm:size-16"
+        aria-hidden
+      />
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onTake(chair)}
+      disabled={disabled}
+      aria-label={`Take seat ${chair + 1}`}
+      data-testid={`take-seat-${chair}`}
+      className="border-brass/45 text-brass-lit hover:border-brass hover:bg-brass/15 grid size-13 place-items-center rounded-full border border-dashed bg-black/45 text-[9px] font-semibold tracking-[0.12em] uppercase transition-colors disabled:opacity-40 sm:size-16 sm:text-[10px]"
+    >
+      Take
+      <br />
+      seat
+    </button>
   )
 }

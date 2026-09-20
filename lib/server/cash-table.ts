@@ -674,7 +674,14 @@ export function cashViewOf(table: CashTable, viewerId: string | null): CashTable
         : null,
     ),
     you: you === -1 ? null : you,
-    hand: table.hand ? { ...redactFor(table.hand, viewerEngineId), names: namesOf(table) } : null,
+    // A finished hand stays on the felt while the next one is coming, so a
+    // showdown can be read. With too few players to deal to, nothing is
+    // coming: the table is idle, and last hand's board and pot would sit
+    // there looking like a game in progress.
+    hand:
+      table.hand && !(table.hand.result !== null && dealable(table).length < 2)
+        ? { ...redactFor(table.hand, viewerEngineId), names: namesOf(table) }
+        : null,
     deadline: table.deadline,
     nextHandAt: table.nextHandAt,
     holdUntil: hold,

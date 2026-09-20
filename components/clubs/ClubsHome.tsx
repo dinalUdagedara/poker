@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
-import { ArrowRight, Plus } from 'lucide-react'
+import { ArrowRight, Compass, Plus } from 'lucide-react'
 
 import { Field } from '@/components/account/Field'
 import { formatClubCode } from '@/lib/clubs/api'
@@ -16,7 +16,7 @@ import { ClubPage, ROW, SectionLabel } from './ClubPage'
  * The clubs page.
  *
  * Your clubs first, with any you are still waiting to be let into; then the
- * two ways to another club — typing its ID, or founding one.
+ * ways to another club — browsing the public ones, typing an ID, or founding one.
  */
 export function ClubsHome({ clubs }: { clubs: ClubCard[] }) {
   const router = useRouter()
@@ -40,7 +40,8 @@ export function ClubsHome({ clubs }: { clubs: ClubCard[] }) {
         <SectionLabel>Your clubs</SectionLabel>
         {clubs.length === 0 ? (
           <p className="text-muted-foreground py-3 text-[14px]">
-            You are not in a club yet. Ask your club&rsquo;s admin for its ID or invite link.
+            You are not in a club yet. Discover a public one below, or ask a club&rsquo;s admin for its ID or
+            invite link.
           </p>
         ) : (
           <ul>
@@ -76,6 +77,16 @@ export function ClubsHome({ clubs }: { clubs: ClubCard[] }) {
 
       <section className="flex flex-col gap-3">
         <SectionLabel>Join a club</SectionLabel>
+        <Link href="/clubs/discover" className={ROW} data-testid="discover-clubs">
+          <span className="border-brass/50 text-brass flex size-11 items-center justify-center rounded-full border">
+            <Compass className="size-5" strokeWidth={1.25} aria-hidden />
+          </span>
+          <span className="flex flex-col gap-0.5">
+            <span className="text-foreground text-[15px] font-medium">Discover clubs</span>
+            <span className="text-muted-foreground text-[13px]">Browse the public clubs and ask to join</span>
+          </span>
+          <ArrowRight className="text-brass ml-auto size-[18px] shrink-0" strokeWidth={1.25} aria-hidden />
+        </Link>
         <form className="flex items-end gap-3" onSubmit={find}>
           <div className="flex-1">
             <Field

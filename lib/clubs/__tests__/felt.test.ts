@@ -29,6 +29,18 @@ describe('drawing a cash table on the felt', () => {
     expect(felt.names.s3).toBe('ana')
   })
 
+  it('offers every chair the table has, and says which are free', () => {
+    const felt = feltOf(cashViewOf(sit(sit(table(), 'ana', 3), 'bo', 0), 'ana'))
+    expect(felt.seatCount).toBe(6)
+    expect(felt.openSeats).toEqual([1, 2, 4, 5])
+  })
+
+  it('has every chair free at a table nobody has sat down at', () => {
+    const felt = feltOf(cashViewOf(table(), 'ana'))
+    expect(felt.openSeats).toEqual([0, 1, 2, 3, 4, 5])
+    expect(felt.players).toEqual([])
+  })
+
   it('draws a latecomer as sitting out until they are dealt in', () => {
     const dealt = sit(sit(table(), 'ana'), 'bo')
     const late = sit(dealt, 'cy')

@@ -497,3 +497,52 @@ deal, in a quick game, where no chosen face is ever drawn.
   record shows what they gave themselves.
 - *The owner no longer has `requestChips`*: the server refuses a request from
   anyone who can add their own.
+
+## Taking a seat
+
+- *Every chair is drawn* at a club table, taken or not, as ClubGG does: the
+  ring is the table's own seats rather than whoever is sitting. The viewer's
+  chair stays at the bottom, so nobody's seat moves as others come and go.
+- *A free chair is a button* — "Take seat" — for anyone who could sit: not
+  seated already, table open, and chips enough for the smallest buy-in. Tapping
+  one opens the buy-in for that chair, which the panel names. "Sit anywhere"
+  stays in the dock and takes the first free chair, as before.
+- *The engine already allowed it*: `sitDown` has always taken an optional
+  `chair`, and `buyIn` passes it through. Nothing changed below the screen.
+- *Quick games are untouched*: `TableView.seatCount` is set by the club felt
+  alone, and without it the ring is the players, exactly as before.
+
+## Discover, and public or private clubs
+
+- *`/clubs/discover`*, linked from the clubs page: every public club, busiest
+  first (tables open, then members), with its crest, host, members, open tables
+  and where you stand (Member, Waiting, Full). Search by any part of a name or
+  by ID, as you type; the search lives in the URL. See docs/decisions/0013.
+- *Public or private* (`clubs.is_public`, `drizzle/0007_public_clubs.sql`):
+  chosen when founding a club (public by default) and changeable in settings.
+  Private clubs are never listed. Clubs from before this stay private.
+- *Joining is unchanged*: a listed club opens its invite page, and the request
+  goes to the admin or through auto-approve.
+- *Tests*: `lib/server/__tests__/discover.test.ts` (listing, order, standing,
+  search including `%` and `_`, admin-only change), and the club e2e — a private
+  club absent from Discover, a public one found by search and joined, then made
+  private and gone.
+
+## The table screen, tidied
+
+- *Actions gather bottom-right*, under the viewer's own seat, with whose turn
+  it is said once above the dock in a size that can be read. The quiet controls
+  — sit out, top up, stand up — sit to the left, out of the way.
+- *Host controls moved into the header*, behind a "Host" button: +1 hour, stop
+  repeating, close table. They were competing with the game's own buttons.
+- *Buying in, topping up, sitting out and watching* are small centred cards
+  rather than sliders stretched across the screen.
+- *An idle table shows nothing*: a finished hand is left on the felt only while
+  the next one is coming (`cashViewOf`). With too few players to deal to, the
+  board and pot go, instead of a dead hand sitting there looking live.
+- *Every empty chair is tappable* for a watcher, chips or no chips: without
+  enough, the seat opens a card saying what is needed and offering to ask for
+  it (or, for an admin, to add it).
+- *A checkbox of our own* (`components/ui/checkbox.tsx`): a brass-rimmed square
+  in place of the browser's blue tick, used by sit-out, auto-approve, repeat
+  and the lobby's "list it publicly".
