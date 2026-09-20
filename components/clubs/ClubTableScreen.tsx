@@ -60,6 +60,8 @@ export function ClubTableScreen({
   const [error, setError] = useState<string | null>(null)
   const [gone, setGone] = useState(false)
   const [buying, setBuying] = useState(false)
+  // The chair the player tapped, or null for "any free one".
+  const [chair, setChair] = useState<number | null>(null)
   const [toppingUp, setToppingUp] = useState(false)
   const [asked, setAsked] = useState(false)
   // An admin short of a buy-in adds the chips themselves rather than asking.
@@ -128,10 +130,18 @@ export function ClubTableScreen({
 
   async function sitDown() {
     buyInOperation.current ??= newOperationId()
-    const ok = await send({ action: 'buy-in', amount, operationId: buyInOperation.current })
+    const ok = await send({
+      action: 'buy-in',
+      amount,
+      operationId: buyInOperation.current,
+      // Left out for "sit anywhere", which the server reads as the first free
+      // chair — the same as before chairs could be picked.
+      ...(chair === null ? {} : { chair }),
+    })
     if (ok) {
       buyInOperation.current = null
       setBuying(false)
+      setChair(null)
       getAudio().play('confirm')
       router.refresh()
     }
@@ -244,7 +254,24 @@ export function ClubTableScreen({
 
       <div className="table-scale flex min-h-0 flex-1 flex-col sm:gap-10">
         <div className="relative min-h-0 flex-1 sm:flex sm:flex-col sm:items-center sm:justify-center sm:px-4">
-          <TableFelt table={table} />
+          <TableFelt
+            table={table}
+            /*
+             * A chair is tappable only for someone who could actually take
+             * it: not seated, table open, and chips enough for the smallest
+             * buy-in. Tapping one opens the buy-in for that chair.
+             */
+            onTakeSeat={
+              !you && !view.closing && !view.closed && !gone && canAfford
+                ? (taken) => {
+                    setChair(taken)
+                    setError(null)
+                    setBuying(true)
+                  }
+                : undefined
+            }
+            takingSeat={busy}
+          />
         </div>
 
         <div className="flex w-full flex-col items-center gap-3 px-3 pb-4 sm:gap-4 sm:px-4 sm:pb-8">
@@ -267,7 +294,9 @@ export function ClubTableScreen({
               buying ? (
                 <div className="flex flex-col gap-3" data-testid="buy-in">
                   <div className="flex items-baseline justify-between text-[13px]">
-                    <span className="text-muted-foreground">Your balance</span>
+                    <span className="text-muted-foreground">
+                      {chair === null ? 'Your balance' : `Seat ${chair + 1} · your balance`}
+                    </span>
                     <span className="text-foreground font-semibold tabular-nums">{formatChips(club.balance)}</span>
                   </div>
                   <input
@@ -312,7 +341,7 @@ export function ClubTableScreen({
                       : !free
                         ? 'Every seat is taken. You can watch.'
                         : canAfford
-                          ? `Buy in with ${formatChips(view.settings.minBuyIn)} to ${formatChips(view.settings.maxBuyIn)} chips.`
+                          ? `Take a seat, or sit anywhere. Buy in with ${formatChips(view.settings.minBuyIn)} to ${formatChips(view.settings.maxBuyIn)} chips.`
                           : `You need ${formatChips(view.settings.minBuyIn)} chips to sit here, and have ${formatChips(club.balance)}. ${addsOwn ? 'Add them from the club bank.' : `Ask ${club.ownerNickname} for chips.`}`}
                   </p>
                   {free && !view.closing && !canAfford && (
@@ -334,10 +363,13 @@ export function ClubTableScreen({
                     <button
                       type="button"
                       className="brass-button h-12 w-full max-w-xs rounded-[2px] text-xs font-semibold tracking-[0.3em] uppercase"
-                      onClick={() => setBuying(true)}
+                      onClick={() => {
+                        setChair(null)
+                        setBuying(true)
+                      }}
                       data-testid="sit-down"
                     >
-                      Sit down
+                      Sit anywhere
                     </button>
                   )}
                 </div>
