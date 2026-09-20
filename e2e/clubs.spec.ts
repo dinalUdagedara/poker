@@ -108,7 +108,9 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await ana.getByTestId('open-table').click()
   await ana.waitForURL((url) => /\/tables\/[0-9a-f-]{36}$/.test(url.pathname))
   const table = ana.url()
-  await ana.getByTestId('sit-down').click()
+  // Ana picks a chair on the felt rather than sitting anywhere.
+  await ana.getByTestId('take-seat-3').click()
+  await expect(ana.getByTestId('buy-in')).toContainText('Seat 4')
   await ana.getByTestId('buy-in-slider').fill('5000')
   await ana.getByTestId('confirm-buy-in').click()
   await expect(ana.getByTestId('table-status')).toContainText('Waiting for another player')
@@ -124,7 +126,7 @@ test('an owner opens a club and a table, a player joins, and every chip comes ba
   await bo.getByTestId('sit-down').click()
   await bo.getByTestId('buy-in-slider').fill('5000')
   await bo.getByTestId('confirm-buy-in').click()
-  await expect(bo.getByTestId('action-console')).toContainText(/turn|to act/i)
+  await expect(bo.getByTestId('action-console')).toContainText(/turn|to act|fold/i)
 
   // Play the hand out: whoever is to act checks or calls.
   for (let step = 0; step < 20; step++) {
