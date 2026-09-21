@@ -24,10 +24,15 @@ const PILL =
   ' border border-transparent' +
   ' transition-[color,border-color,filter] active:translate-y-px'
 
+/*
+ * On a phone the three actions share the width between them, and the sizer
+ * takes a row of its own above: four things in one 393px row left every button
+ * too narrow for the word on it.
+ */
 const FOLD =
-  'w-[62px] bg-transparent text-foreground/80 border-foreground/20 hover:bg-transparent hover:border-foreground/40 hover:text-foreground sm:w-26'
+  'min-w-0 flex-1 bg-transparent text-foreground/80 border-foreground/20 hover:bg-transparent hover:border-foreground/40 hover:text-foreground sm:w-26 sm:flex-none'
 const PASSIVE = 'play-call min-w-0 flex-1 gap-1.5 text-foreground sm:w-32 sm:flex-none'
-const COMMIT = 'brass-button w-[78px] sm:w-32'
+const COMMIT = 'brass-button min-w-0 flex-1 sm:w-32 sm:flex-none'
 const STEP = 'grid h-full w-9 shrink-0 place-items-center rounded-[2px] text-muted-foreground hover:text-foreground disabled:opacity-35'
 
 /** What the stepper calls each shortcut when the amount lands on one. */
@@ -114,7 +119,12 @@ export function BettingControls({
         </div>
       )}
 
-      <div className={cn('flex items-center gap-1.5 sm:gap-2', idle && 'pointer-events-none opacity-40')}>
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2',
+          idle && 'pointer-events-none opacity-40',
+        )}
+      >
         {idle ? (
           <>
             <span className={cn(PILL, FOLD, 'grid place-items-center')} aria-hidden data-testid="action-idle">
@@ -167,7 +177,11 @@ export function BettingControls({
           legal amount, and between turns there is no range — because taking it
           away is the row jumping under the thumb.
         */}
-        <div className="bet-stepper flex h-12 w-32 shrink-0 items-center rounded-[2px] sm:w-42" role="group" aria-label="Bet size">
+        <div
+          className="bet-stepper order-first flex h-12 w-full shrink-0 items-center rounded-[2px] sm:order-none sm:w-42"
+          role="group"
+          aria-label="Bet size"
+        >
           <button
             type="button"
             className={STEP}
