@@ -55,7 +55,7 @@ export function ThisHand({
   const past = table.handNumber > 1 || table.result !== null
 
   return (
-    <div className={cn('flex w-full items-end justify-between gap-2', className)}>
+    <div className={cn('flex items-end justify-between gap-2', className)}>
       <button
         type="button"
         onClick={() => onOpen('current')}
