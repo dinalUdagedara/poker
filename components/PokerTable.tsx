@@ -433,7 +433,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
             table={table}
             iconOnly
             onOpen={openHistory}
-            className="items-center justify-center sm:w-auto"
+            className="w-full items-center justify-center sm:w-auto"
           >
           <div
             data-testid="action-console"
