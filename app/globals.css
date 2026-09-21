@@ -23,13 +23,13 @@
   /* These have to point at the variables layout.tsx actually defines. Naming
      one after itself resolves to nothing, which silently dropped the whole app
      back to the browser's default serif. */
-  --font-sans: var(--font-hanken);
+  --font-sans: var(--font-geist-sans);
   /*
    * Figures, not code. Every `font-mono` in the app is a stack, a bet or a
    * count, and a monospace made the money read like a terminal. The sans has
    * its own tabular figures, so the role points back at it.
    */
-  --font-mono: var(--font-hanken);
+  --font-mono: var(--font-geist-sans);
   /*
    * The house lettering. A didone is what a private room's menu and the box of
    * a good deck are set in, and it is the cheapest way for a screen to say

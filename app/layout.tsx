@@ -1,19 +1,22 @@
 import type { Metadata } from 'next'
-import { Bodoni_Moda, Hanken_Grotesk, Oswald } from 'next/font/google'
+import { Bodoni_Moda, Oswald } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
 import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, siteUrl } from '@/lib/site'
 import './globals.css'
 
 /**
  * Everything read while playing, figures included.
  *
- * A quiet grotesque that stays out of the way of the lettering above it. It
- * carries tabular, lining figures, so stacks and bets line up in a column
- * without falling back to a monospace that makes money read like a terminal.
+ * Geist: a quiet grotesque that stays out of the way of the lettering above
+ * it, and tight enough to keep a dock of buttons compact. It carries tabular,
+ * lining figures, so stacks and bets line up in a column without falling back
+ * to a monospace that makes money read like a terminal.
+ *
+ * Shipped with the app rather than fetched from Google's library, which does
+ * not carry it. It brings its own `--font-geist-sans`, which `globals.css`
+ * points the sans and figure roles at.
  */
-const hanken = Hanken_Grotesk({
-  variable: '--font-hanken',
-  subsets: ['latin'],
-})
+const sans = GeistSans
 
 /**
  * The house lettering.
@@ -111,7 +114,7 @@ export default function RootLayout({
     // white card faces all depend on the surround staying dark.
     <html
       lang="en"
-      className={`dark ${hanken.variable} ${bodoni.variable} ${oswald.variable} h-full antialiased`}
+      className={`dark ${sans.variable} ${bodoni.variable} ${oswald.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
     </html>
