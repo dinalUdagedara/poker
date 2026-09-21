@@ -1,17 +1,21 @@
 import type { Metadata } from 'next'
-import { Bodoni_Moda, Hanken_Grotesk, Oswald } from 'next/font/google'
+import { Bodoni_Moda, Figtree, Oswald } from 'next/font/google'
 import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, siteUrl } from '@/lib/site'
 import './globals.css'
 
 /**
  * Everything read while playing, figures included.
  *
- * A quiet grotesque that stays out of the way of the lettering above it. It
- * carries tabular, lining figures, so stacks and bets line up in a column
+ * Figtree: a friendly grotesque, a little narrower than most, which keeps a
+ * dock of buttons compact and stays out of the way of the lettering above it.
+ * It carries tabular, lining figures, so stacks and bets line up in a column
  * without falling back to a monospace that makes money read like a terminal.
+ *
+ * Chosen by eye against six others at `/lab/type`, which is what that page is
+ * for.
  */
-const hanken = Hanken_Grotesk({
-  variable: '--font-hanken',
+const sans = Figtree({
+  variable: '--font-figtree',
   subsets: ['latin'],
 })
 
@@ -111,7 +115,7 @@ export default function RootLayout({
     // white card faces all depend on the surround staying dark.
     <html
       lang="en"
-      className={`dark ${hanken.variable} ${bodoni.variable} ${oswald.variable} h-full antialiased`}
+      className={`dark ${sans.variable} ${bodoni.variable} ${oswald.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
     </html>
