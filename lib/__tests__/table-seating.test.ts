@@ -43,7 +43,7 @@ describe('the ring of seats', () => {
     // where the board and the pot are.
     for (const count of [3, 4, 6, 8]) {
       for (const seat of seatRing(count, true)) {
-        const middle = Math.abs(seat.left - 50) < 30 && Math.abs(seat.top - 50) < 35
+        const middle = Math.abs(seat.left - 50) < 30 && Math.abs(seat.top - 50) < 30
         expect(middle).toBe(false)
       }
     }

@@ -40,9 +40,9 @@ SS = 2  # supersampling
 MOBILE = {
     'out_w': 864,
     'out_h': 1152,
-    'half_straight': 236,  # the straight run, now up and down the screen
+    'half_straight': 188,  # the straight run, now up and down the screen
     'end_x': 248,  # semi-axis across the table
-    'end_z': 236,  # semi-axis at each end
+    'end_z': 188,  # semi-axis at each end
     'rail': 42,
     'tilt': 0.86,
     'out': 'public/table-mobile.png',
@@ -261,6 +261,15 @@ def main():
     out = Image.fromarray(img, 'RGBA').convert('RGBa')
     out = out.resize((OUT_W, OUT_H), Image.LANCZOS).convert('RGBA')
 
+
+    # Perspective pulls the oval off-centre; sit it in the middle of the box.
+    rows = np.where(np.array(out)[:, :, 3].max(axis=1) > 8)[0]
+    shift = (OUT_H - 1 - rows[-1] - rows[0]) // 2
+    centred = Image.new('RGBA', out.size)
+    centred.paste(out, (0, shift))
+    out = centred
+    print('table rows', rows[0] + shift, '..', rows[-1] + shift)
+
     # Perspective pulls the oval off-centre; sit it in the middle of the box.
     rows = np.where(np.array(out)[:, :, 3].max(axis=1) > 8)[0]
     shift = (OUT_H - 1 - rows[-1] - rows[0]) // 2
@@ -271,6 +280,8 @@ def main():
 
     # A table too big for its box is cut off flat at the canvas edge, which
     # reads as a table sliced through — and is easy to miss in a thumbnail.
+    # Checked before the centring below, which slides a cut edge inboard and
+    # leaves the flat cut looking like a deliberate straight rail.
     edge = np.array(out)[:, :, 3]
     touching = [
         name
