@@ -176,7 +176,22 @@ export function PlayerSeat({
         <SeatWin
           amount={winAmount}
           hero={hero}
-          className="absolute bottom-full left-1/2 z-30 mb-[-0.35em] -translate-x-1/2"
+          /*
+           * Wherever this seat's callout goes, which is already worked out as
+           * "the side of this seat with felt on it": over the board for a seat
+           * on the far rail, out to the side for one on the near rail, where
+           * below is the action dock and above is the board.
+           */
+          className={cn(
+            'absolute z-30',
+            calloutSide === 'right'
+              ? 'top-1/2 left-full ml-1 -translate-y-1/2'
+              : calloutSide === 'left'
+                ? 'top-1/2 right-full mr-1 -translate-y-1/2'
+                : calloutSide === 'above'
+                  ? 'bottom-full left-1/2 mb-[-0.35em] -translate-x-1/2'
+                  : 'top-full left-1/2 mt-[-0.2em] -translate-x-1/2',
+          )}
         />
       )}
 
