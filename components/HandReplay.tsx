@@ -17,7 +17,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { seatName } from '@/lib/names'
-import { calloutPlacement, chipSide, seatOrder, seatRing } from '@/lib/table-seating'
+import { calloutPlacement, seatOrder, seatRing } from '@/lib/table-seating'
 import { usePortrait } from '@/lib/use-portrait'
 import type { HandView } from '@/lib/poker/archive'
 import { annotateHistory, calloutText, type AnnotatedEntry } from '@/lib/poker/callouts'
@@ -388,7 +388,6 @@ function ReplayTable({
                       hero={isYou}
                       callout={callouts.get(player.id)}
                       calloutSide={calloutPlacement(point)}
-                      chipSide={chipSide(point)}
                       bigBlind={hand.bigBlind}
                     />
                     {winners.has(player.id) && (

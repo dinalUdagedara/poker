@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { calloutsFor } from '@/lib/poker/callouts'
 import type { TableView } from '@/lib/poker/lifecycle'
 import type { RedactedPlayer } from '@/lib/poker/redact'
-import { calloutPlacement, chipSide, seatOrder, seatRing } from '@/lib/table-seating'
+import { calloutPlacement, seatOrder, seatRing } from '@/lib/table-seating'
 import { usePortrait } from '@/lib/use-portrait'
 import { ChipStack } from './ChipStack'
 import { PlayerSeat } from './PlayerSeat'
@@ -341,7 +341,6 @@ export function TableFelt({
                   hero={isYou}
                   callout={callouts.get(player.id)}
                   calloutSide={calloutPlacement(point)}
-                  chipSide={chipSide(point)}
                   bigBlind={table.bigBlind}
                   face={table.faces?.[player.id]}
                 />

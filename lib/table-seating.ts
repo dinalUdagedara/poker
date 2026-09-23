@@ -18,88 +18,89 @@ export type SeatPoint = { left: number; top: number }
  * A wide oval is very nearly circular in percentage terms. Seats level with
  * the middle are eased in off the rail so a plate does not hang over the wood.
  */
-const LANDSCAPE = { rx: 41, ry: 42 } as const
+const LANDSCAPE = { rx: 47, ry: 45 } as const
 
 /**
  * How much a seat level with the middle is pulled inboard, in percent.
  *
- * The honest ellipse is right everywhere except at its two widest points, where
- * the rail is closest to the seat: a plate centred on the true point there
- * overhangs the wood. Only seats within a few degrees of level are affected,
- * and they are eased in rather than snapped, so a ring does not visibly kink
- * between one table size and the next.
+ * Nothing, now. It used to be pulled in so a plate at the table's widest point
+ * did not overhang the wood — which was right while seats stood on the cloth,
+ * and is exactly wrong now that they sit on the rail like ClubGG's.
  */
-const RAIL_PULL = 4
+const RAIL_PULL = 0
 
 /**
  * Phone rings, hero first, then clockwise — the same order the action goes.
  *
  * A table rather than trigonometry. An even spread around a standing oval puts
- * someone at 9 o'clock and someone at 3, which is exactly where the board is.
- * ClubGG leaves that waist empty: seats run in pairs down the two long sides
- * and the community cards keep the middle. These numbers are that layout.
+ * someone at 9 o'clock and someone at 3. That used to be where the board is,
+ * so the waist was left empty — but a seat sits on the rail now, outside the
+ * cloth the cards are dealt on, and the sides are the natural place for it.
+ * Four-handed with both opponents bunched at the foot of the table was the
+ * price of the old rule. These numbers spread the ring round the whole oval,
+ * the way ClubGG's phone client does.
  */
 const PORTRAIT: Record<number, SeatPoint[]> = {
-  1: [{ left: 50, top: 93 }],
+  1: [{ left: 50, top: 95 }],
   2: [
-    { left: 50, top: 93 },
-    { left: 50, top: 7 },
+    { left: 50, top: 95 },
+    { left: 50, top: 5 },
   ],
   3: [
-    { left: 50, top: 93 },
-    { left: 13, top: 25 },
-    { left: 87, top: 25 },
+    { left: 50, top: 95 },
+    { left: 13, top: 34 },
+    { left: 87, top: 34 },
   ],
   4: [
-    { left: 50, top: 93 },
-    { left: 12, top: 76 },
-    { left: 50, top: 7 },
-    { left: 88, top: 76 },
+    { left: 50, top: 95 },
+    { left: 13, top: 50 },
+    { left: 50, top: 5 },
+    { left: 87, top: 50 },
   ],
   5: [
-    { left: 50, top: 93 },
+    { left: 50, top: 95 },
     { left: 13, top: 70 },
-    { left: 13, top: 27 },
-    { left: 50, top: 7 },
-    { left: 87, top: 27 },
-  ],
-  6: [
-    { left: 50, top: 93 },
-    { left: 13, top: 70 },
-    { left: 13, top: 27 },
-    { left: 50, top: 6 },
-    { left: 87, top: 27 },
+    { left: 13, top: 22 },
+    { left: 87, top: 22 },
     { left: 87, top: 70 },
   ],
-  7: [
-    { left: 50, top: 93 },
-    { left: 16, top: 82 },
-    { left: 10, top: 64 },
+  6: [
+    { left: 50, top: 95 },
+    { left: 13, top: 72 },
     { left: 13, top: 26 },
-    { left: 50, top: 6 },
+    { left: 50, top: 5 },
     { left: 87, top: 26 },
-    { left: 84, top: 82 },
+    { left: 87, top: 72 },
+  ],
+  7: [
+    { left: 50, top: 95 },
+    { left: 15, top: 78 },
+    { left: 11, top: 50 },
+    { left: 14, top: 22 },
+    { left: 50, top: 5 },
+    { left: 86, top: 22 },
+    { left: 85, top: 78 },
   ],
   8: [
-    { left: 50, top: 93 },
-    { left: 16, top: 82 },
-    { left: 10, top: 64 },
-    { left: 13, top: 26 },
-    { left: 50, top: 6 },
-    { left: 87, top: 26 },
-    { left: 90, top: 64 },
-    { left: 84, top: 82 },
+    { left: 50, top: 95 },
+    { left: 15, top: 79 },
+    { left: 11, top: 52 },
+    { left: 14, top: 24 },
+    { left: 50, top: 5 },
+    { left: 86, top: 24 },
+    { left: 89, top: 52 },
+    { left: 85, top: 79 },
   ],
   9: [
     { left: 50, top: 95 },
-    { left: 17, top: 84 },
-    { left: 9, top: 64 },
-    { left: 12, top: 32 },
-    { left: 32, top: 8 },
-    { left: 68, top: 8 },
-    { left: 88, top: 32 },
-    { left: 91, top: 64 },
-    { left: 83, top: 84 },
+    { left: 16, top: 82 },
+    { left: 10, top: 60 },
+    { left: 12, top: 34 },
+    { left: 33, top: 6 },
+    { left: 67, top: 6 },
+    { left: 88, top: 34 },
+    { left: 90, top: 60 },
+    { left: 84, top: 82 },
   ],
 }
 
@@ -110,9 +111,23 @@ const PORTRAIT: Record<number, SeatPoint[]> = {
  * is the order the action goes in — so a seat's place on screen matches its
  * place in the hand.
  */
+/**
+ * How far out the phone's hand-set points are pushed.
+ *
+ * The same move the landscape ring makes by growing its radii: a seat belongs
+ * on the rail, half off the cloth, not standing on the felt.
+ */
+const PORTRAIT_REACH = 1
+
 export function seatRing(count: number, portrait = false): SeatPoint[] {
   const n = Math.max(count, 1)
-  if (portrait) return PORTRAIT[Math.min(n, 9)] ?? PORTRAIT[6]
+  if (portrait) {
+    const points = PORTRAIT[Math.min(n, 9)] ?? PORTRAIT[6]
+    return points.map(({ left, top }) => ({
+      left: 50 + (left - 50) * PORTRAIT_REACH,
+      top: 50 + (top - 50) * PORTRAIT_REACH,
+    }))
+  }
 
   const { rx, ry } = LANDSCAPE
   return Array.from({ length: n }, (_, index) => {
@@ -160,14 +175,4 @@ export function calloutPlacement({ left, top }: SeatPoint): 'above' | 'below' | 
   if (top < 22 && Math.abs(left - 50) < 20) return 'right'
   if (top > 40 && top < 60) return left < 50 ? 'right' : 'left'
   return top < 50 ? 'above' : 'below'
-}
-
-/**
- * Which side of a seat its chips sit on: always the one facing the middle.
- *
- * A seat out on the left rail with its chips further left pushes them over the
- * edge and off the felt. Inward there is always room.
- */
-export function chipSide({ left }: SeatPoint): 'left' | 'right' {
-  return left < 50 ? 'right' : 'left'
 }

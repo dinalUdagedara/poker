@@ -292,10 +292,11 @@
        than as a gradient on a screen. */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
     radial-gradient(
-      70% 62% at 50% 42%,
-      oklch(0.26 0.03 157) 0%,
-      oklch(0.19 0.018 158) 50%,
-      oklch(0.13 0.007 157) 100%
+      62% 55% at 50% 40%,
+      oklch(0.3 0.035 157) 0%,
+      oklch(0.2 0.02 158) 46%,
+      oklch(0.115 0.006 157) 78%,
+      oklch(0.085 0.004 157) 100%
     );
 }
 
@@ -379,6 +380,11 @@
   height: 100%;
   border: 0;
   pointer-events: none;
+}
+
+.table-body img {
+  filter: drop-shadow(0 10px 14px oklch(0 0 0 / 0.75)) drop-shadow(0 34px 44px oklch(0 0 0 / 0.85))
+    drop-shadow(0 70px 90px oklch(0 0 0 / 0.9));
 }
 
 .table-body img,
@@ -489,19 +495,28 @@
 .seat-plate {
   background: linear-gradient(180deg, var(--plate) 0%, var(--plate-deep) 100%);
   box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.14),
     0 0 0 1px oklch(0 0 0 / 0.65),
     0 16px 30px -8px oklch(0 0 0 / 0.95),
     0 4px 10px -2px oklch(0 0 0 / 0.6),
     var(--edge);
 }
 
-/* The monogram's bezel: black, champagne, black, and a shadow under it all. */
+/*
+ * The monogram's bezel: black, champagne, black, and a shadow under it all.
+ * The inset pair is the light the room is lit by — a catch along the top of the
+ * disc and a shade under its foot — so the portrait reads as a domed medallion
+ * rather than a circle cut out of the cloth.
+ */
 .seat-medallion {
   box-shadow:
+    inset 0 2px 4px oklch(1 0 0 / 0.22),
+    inset 0 -4px 8px oklch(0 0 0 / 0.45),
     0 0 0 1px oklch(0 0 0 / 0.7),
     0 0 0 3px oklch(0.82 0.06 88),
     0 0 0 4px oklch(0 0 0 / 0.5),
-    0 10px 20px -4px oklch(0 0 0 / 0.9);
+    0 3px 6px -1px oklch(0 0 0 / 0.7),
+    0 14px 24px -6px oklch(0 0 0 / 0.95);
 }
 
 /* An ivory disc in a champagne bezel, lettered in the didone. */
@@ -670,14 +685,21 @@
  * lies on, and the edge has to catch the light.
  */
 .card-back {
-  background-color: oklch(0.27 0.04 159);
+  /*
+   * ClubGG's back: pale stock with a fine lattice, not the house's green. A
+   * green back on a green cloth had to be found rather than seen, and it was
+   * the flattest thing on the table — every seat but your own is holding two.
+   */
+  background-color: oklch(0.86 0.004 90);
   background-image:
-    repeating-radial-gradient(circle at 50% 50%, oklch(0.789 0.066 86 / 0.32) 0 1px, transparent 1px 3.5px);
-  border-color: oklch(0.82 0.06 88 / 0.75);
+    repeating-linear-gradient(45deg, oklch(0.62 0.01 250 / 0.28) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, oklch(0.62 0.01 250 / 0.28) 0 1px, transparent 1px 5px),
+    linear-gradient(160deg, oklch(1 0 0 / 0.55) 0%, transparent 55%, oklch(0 0 0 / 0.16) 100%);
+  border-color: oklch(1 0 0 / 0.85);
   box-shadow:
-    0 0 0 1px oklch(0 0 0 / 0.6),
-    inset 0 0 0 2px oklch(0.27 0.04 159),
-    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
+    0 0 0 1px oklch(0 0 0 / 0.45),
+    inset 0 0 0 2px oklch(0.97 0.002 90),
+    0 2px 4px -1px oklch(0 0 0 / 0.55),
     0 8px 16px -4px oklch(0 0 0 / 0.85);
 }
 
@@ -688,19 +710,26 @@
  */
 .card-stock {
   position: relative;
+  /*
+   * Two shadows, not one: a tight dark line where the card meets what it lies
+   * on, and a long soft one further out. A single long shadow reads as a
+   * picture of a card printed on the cloth; the contact shadow is what makes
+   * it a thing resting on the table.
+   */
   box-shadow:
     0 0 0 1px oklch(0 0 0 / 0.28),
     inset 0 0 0 1px oklch(1 0 0 / 0.6),
     0 1px 0 oklch(0.823 0.034 85),
+    0 2px 4px -1px oklch(0 0 0 / 0.55),
     0 12px 22px -8px oklch(0 0 0 / 0.8);
 }
 
 .card-back.card-stock {
   box-shadow:
-    0 0 0 1px oklch(0 0 0 / 0.6),
-    inset 0 0 0 2px oklch(0.27 0.04 159),
-    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
-    0 1px 0 oklch(0.45 0.05 80),
+    0 0 0 1px oklch(0 0 0 / 0.45),
+    inset 0 0 0 2px oklch(0.97 0.002 90),
+    0 1px 0 oklch(0.72 0.01 90),
+    0 2px 4px -1px oklch(0 0 0 / 0.55),
     0 12px 22px -8px oklch(0 0 0 / 0.85);
 }
 

@@ -61,7 +61,6 @@ export function PlayerSeat({
   dense = false,
   callout,
   calloutSide = 'below',
-  chipSide = 'left',
   bigBlind,
   face,
   hero = false,
@@ -81,7 +80,6 @@ export function PlayerSeat({
   bigBlind: number
   callout?: string | null
   calloutSide?: 'right' | 'left' | 'below' | 'above'
-  chipSide?: 'left' | 'right'
   hero?: boolean
   /** The face the player chose for themselves, where they have an account. */
   face?: { lacquer: number | null; picture: number | null }
@@ -115,10 +113,10 @@ export function PlayerSeat({
             ? 'origin-center scale-[0.85] [--medal:2.1rem]'
             : 'origin-center scale-[0.85] [--medal:1.6rem]'
           : hero
-            ? '[--medal:3rem] max-[380px]:[--medal:2.5rem] sm:[--medal:5.25rem]'
+            ? '[--medal:3.6rem] max-[380px]:[--medal:3rem] sm:[--medal:5.25rem]'
             : compact
-              ? '[--medal:2.25rem] max-[380px]:[--medal:1.9rem] sm:[--medal:4.25rem]'
-              : '[--medal:2.5rem] max-[380px]:[--medal:2.1rem] sm:[--medal:4.75rem]',
+              ? '[--medal:2.9rem] max-[380px]:[--medal:2.4rem] sm:[--medal:4.25rem]'
+              : '[--medal:3.1rem] max-[380px]:[--medal:2.6rem] sm:[--medal:4.75rem]',
       )}
       data-testid={`seat-${player.id}`}
     >
@@ -130,7 +128,16 @@ export function PlayerSeat({
       */}
       <div
         className={cn(
-          'relative z-0 flex items-end justify-center -mb-[calc(var(--medal)*0.58)]',
+          'relative z-0 flex items-end justify-center',
+          /*
+           * Face down, a hand is a detail: it sits behind the portrait and off
+           * to one side, with only its tops showing. Face up it is the reason
+           * the hand ended — or your own two cards, read every street — so it
+           * keeps its size and leans out from behind the portrait instead.
+           */
+          shown
+            ? '-mb-[calc(var(--medal)*0.26)]'
+            : '-mb-[calc(var(--medal)*0.72)]',
           // A folded seat has to recede, or the people no longer in the hand
           // become the brightest thing on the felt.
           isOut && 'opacity-45 saturate-50',
@@ -146,7 +153,7 @@ export function PlayerSeat({
               className={cn(
                 shown ? (i % 2 === 0 ? '-rotate-3' : 'rotate-3') : TILT[i % TILT.length],
                 i > 0 && (shown ? '-ml-1' : '-ml-2'),
-                'w-[calc(var(--medal)*0.62)]',
+                shown ? 'w-[calc(var(--medal)*0.66)]' : 'w-[calc(var(--medal)*0.5)]',
                 // The hand that won is lifted clear of the portrait to be read.
                 isWinner && shown && '-translate-y-2 sm:-translate-y-3',
                 'origin-bottom transition-[width,transform,translate] duration-500',
@@ -155,7 +162,7 @@ export function PlayerSeat({
             />
           ))
         ) : (
-          <span className="block h-[calc(var(--medal)*0.62)]" aria-hidden />
+          <span className="block h-[calc(var(--medal)*0.72)]" aria-hidden />
         )}
 
         {/*
@@ -175,7 +182,7 @@ export function PlayerSeat({
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
         className={cn(
-          'relative z-10 rounded-full border-2 transition-colors',
+          'relative z-10 rounded-full border transition-colors',
           isActing ? 'animate-turn-ring border-brass-lit' : isWinner ? 'animate-winner border-win' : 'border-brass/50',
           isOut && 'opacity-60',
         )}
@@ -191,7 +198,7 @@ export function PlayerSeat({
 
         {isButton && (
           <span
-            className="dealer-button absolute -right-1.5 -bottom-0.5 grid size-6 place-items-center rounded-full font-(family-name:--font-display) text-[12px] font-semibold"
+            className="dealer-button absolute -top-1 -right-2 z-20 grid size-6 place-items-center rounded-full font-(family-name:--font-display) text-[12px] font-semibold"
             title="dealer button"
             data-testid="dealer-button"
           >
@@ -207,7 +214,7 @@ export function PlayerSeat({
       */}
       <Card
         className={cn(
-          'seat-plate relative z-10 -mt-[calc(var(--medal)*0.14)] flex min-w-[calc(var(--medal)*1.45)] max-w-[calc(var(--medal)*2.4)] flex-col items-center gap-0 rounded-[4px] border px-2 py-0.5 text-center leading-tight',
+          'seat-plate relative z-10 -mt-[calc(var(--medal)*0.3)] flex min-w-[calc(var(--medal)*1.6)] max-w-[calc(var(--medal)*1.9)] flex-col items-center gap-0 rounded-[5px] border px-2 pt-[calc(var(--medal)*0.16)] pb-0.5 text-center leading-tight sm:max-w-[calc(var(--medal)*2.6)] sm:px-2.5',
           isWinner ? 'border-win' : 'border-brass/50',
           isOut && 'opacity-50',
         )}
@@ -233,17 +240,11 @@ export function PlayerSeat({
         </div>
       </Card>
 
-      {/* The pile in front of them, beside the seat rather than on the plate. */}
-      <ChipStack
-        stack={player.stack}
-        testId={`chips-${player.id}`}
-        className={cn(
-          'absolute top-[calc(var(--medal)*0.55)]',
-          !hero && 'max-sm:hidden',
-          chipSide === 'left' ? 'right-full mr-1.5' : 'left-full ml-1.5',
-          isOut && 'opacity-60',
-        )}
-      />
+      {/*
+        No pile beside the seat. A stack is the figure on the plate; chips on
+        the cloth mean chips in the pot, which is what the wager below draws.
+        Drawing both said a player's whole stack was out in front of them.
+      */}
 
       <div
         className={cn(
