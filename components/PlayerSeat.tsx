@@ -214,16 +214,16 @@ export function PlayerSeat({
       */}
       <Card
         className={cn(
-          'seat-plate relative z-10 -mt-[calc(var(--medal)*0.3)] flex min-w-[calc(var(--medal)*1.6)] max-w-[calc(var(--medal)*1.9)] flex-col items-center gap-0 rounded-[5px] border px-2 pt-[calc(var(--medal)*0.16)] pb-0.5 text-center leading-tight sm:max-w-[calc(var(--medal)*2.6)] sm:px-2.5',
+          'seat-plate relative z-10 -mt-[calc(var(--medal)*0.3)] flex min-w-[calc(var(--medal)*1.7)] max-w-[calc(var(--medal)*2)] flex-col items-center gap-0 rounded-[7px] border px-2.5 pt-[calc(var(--medal)*0.16)] pb-1 text-center leading-tight sm:max-w-[calc(var(--medal)*2.7)] sm:px-3.5',
           isWinner ? 'border-win' : 'border-brass/50',
           isOut && 'opacity-50',
         )}
       >
         <div
           className={cn(
-            'w-full truncate font-medium',
-            hero ? 'text-[11px] sm:text-xs' : 'text-[10px] sm:text-[11px]',
-            isOut ? 'text-foreground/45' : 'text-foreground/90',
+            'w-full truncate',
+            hero ? 'text-[11px] sm:text-[12px]' : 'text-[10px] sm:text-[11px]',
+            isOut ? 'text-foreground/40' : 'text-foreground/70',
           )}
         >
           {displayName(player, viewerId, names)}
@@ -231,7 +231,7 @@ export function PlayerSeat({
         <div
           className={cn(
             'font-mono font-semibold tabular-nums',
-            hero ? 'text-sm sm:text-base' : 'text-xs sm:text-sm',
+            hero ? 'text-base sm:text-lg' : 'text-[13px] sm:text-base',
             player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
           )}
           data-testid={`stack-${player.id}`}
