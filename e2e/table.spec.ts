@@ -240,52 +240,6 @@ test.describe('seat callouts', () => {
   })
 })
 
-test.describe('chip stacks', () => {
-  const chips = (page: Page, id: string) => page.getByTestId(`chips-${id}`).locator('[data-chip]')
-
-  test('draws a stack for everyone who has chips', async ({ page }) => {
-    await dealIn(page, '1')
-
-    await expect(chips(page, 'you')).not.toHaveCount(0)
-    await expect(chips(page, 'bot1')).not.toHaveCount(0)
-  })
-
-  test('draws a deep stack in big chips and a short one in small', async ({ page }) => {
-    // Colour means denomination, so what a stack is worth decides which chips
-    // are on the felt. Nobody sitting behind 100 has a thousand chip.
-    const of = (value: number) => page.getByTestId('chips-you').locator(`[data-chip="${value}"]`)
-
-    // Asserted on which denominations appear, not on an exact count: the blinds
-    // are posted before this can look, so the stack is never quite the buy-in.
-    await shortStackedTable(page, 100)
-    await expect(chips(page, 'you')).not.toHaveCount(0)
-    await expect(of(1000)).toHaveCount(0)
-    await expect(of(500)).toHaveCount(0)
-
-    await dealIn(page, '1')
-    await expect(of(1000)).not.toHaveCount(0)
-  })
-
-  test('draws no chips at all for a player who has busted', async ({ page }) => {
-    // Two big blinds each, so someone is out within a few hands.
-    await shortStackedTable(page, 100)
-
-    const over = page.getByTestId('game-over')
-    for (let step = 0; step < 40 && !(await showing(page, 'game-over')); step++) {
-      const next = page.getByTestId('next-hand')
-      if (await next.isVisible().catch(() => false)) await next.click()
-      else await actPassively(page)
-      await page.waitForTimeout(80)
-    }
-    await expect(over).toBeVisible()
-
-    // Whoever ran out shows an empty space where their chips were, which is the
-    // whole point: no chips is not a short stack, it is no stack.
-    const busted = (await page.getByTestId('stack-you').textContent()) === '0' ? 'you' : 'bot1'
-    await expect(chips(page, busted)).toHaveCount(0)
-  })
-})
-
 test('sizes a bet with the stepper and stakes what it showed', async ({ page }) => {
   await dealIn(page)
 

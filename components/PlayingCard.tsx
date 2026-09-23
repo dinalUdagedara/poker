@@ -104,10 +104,12 @@ function CardFace({
     <div
       className={cn(
         className,
-        // ClubGG's face on the Salon's stock: rank in the suit's colour at the
-        // top left, one large pip in the bottom right, no inverted corner, on
-        // ivory rather than screen white.
-        'overflow-hidden bg-linear-to-b from-[oklch(0.985_0.011_90)] to-[oklch(0.935_0.022_86)]',
+        // ClubGG's face: rank in the suit's colour at the top left, one large
+        // pip in the bottom right, no inverted corner. White stock rather than
+        // the ivory this used to be printed on — against a green cloth the
+        // ivory read as a card already in play, and the room is dark enough
+        // that white is the only thing on the table that looks lit.
+        'overflow-hidden bg-linear-to-b from-white to-[oklch(0.955_0.004_90)]',
       )}
       style={style}
       data-testid="card-face"

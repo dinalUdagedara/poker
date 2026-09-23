@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { calloutsFor } from '@/lib/poker/callouts'
 import type { TableView } from '@/lib/poker/lifecycle'
 import type { RedactedPlayer } from '@/lib/poker/redact'
-import { calloutPlacement, chipSide, seatOrder, seatRing } from '@/lib/table-seating'
+import { calloutPlacement, seatOrder, seatRing } from '@/lib/table-seating'
 import { usePortrait } from '@/lib/use-portrait'
 import { ChipStack } from './ChipStack'
 import { PlayerSeat } from './PlayerSeat'
@@ -149,7 +149,12 @@ export function TableFelt({
     const [winnerId, amount] = Object.entries(payouts).sort(([, a], [, b]) => b - a)[0] ?? []
     if (!winnerId || !amount) return null
     const point = seatPoint(winnerId)
-    return point ? { amount, ...point } : null
+    if (!point) return null
+    return {
+      amount,
+      left: point.left + (50 - point.left) * 0.22,
+      top: point.top + (50 - point.top) * 0.22,
+    }
   })()
 
   return (
@@ -341,7 +346,6 @@ export function TableFelt({
                   hero={isYou}
                   callout={callouts.get(player.id)}
                   calloutSide={calloutPlacement(point)}
-                  chipSide={chipSide(point)}
                   bigBlind={table.bigBlind}
                   face={table.faces?.[player.id]}
                 />

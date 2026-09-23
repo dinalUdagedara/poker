@@ -40,9 +40,9 @@ SS = 2  # supersampling
 MOBILE = {
     'out_w': 864,
     'out_h': 1152,
-    'half_straight': 258,  # the straight run, now up and down the screen
-    'end_x': 281,  # semi-axis across the table
-    'end_z': 255,  # semi-axis at each end
+    'half_straight': 188,  # the straight run, now up and down the screen
+    'end_x': 248,  # semi-axis across the table
+    'end_z': 188,  # semi-axis at each end
     'rail': 42,
     'tilt': 0.86,
     'out': 'public/table-mobile.png',
@@ -59,17 +59,17 @@ HALF_STRAIGHT = 230  # half the straight run along the sides
 END_X = 308  # each end's semi-axis across the table
 END_Z = 238  # each end's semi-axis front to back
 RAIL = 40  # rail width
-RAIL_H = 22  # rail height
+RAIL_H = 30  # rail height
 LINE_INSET = 48  # betting line distance inside the rail
 
 # Camera.
-PERSPECTIVE = 0.00045  # far side shrinks, near side grows
-TILT = 0.90  # vertical squash of the plane
+PERSPECTIVE = 0.00075  # far side shrinks, near side grows
+TILT = 0.7  # vertical squash of the plane
 HEIGHT_SCALE = 1.0  # how far a raised point climbs the screen
 CENTER_Y = 0.5  # table centre as a fraction of height
 
 RAIL_DARK = np.array([8, 8, 9], np.float32)
-RAIL_LIT = np.array([112, 110, 110], np.float32)
+RAIL_LIT = np.array([158, 155, 154], np.float32)
 
 # What changes between skins: the cloth, the betting line, and whether the rail
 # carries a metal inlay. `line_strength` is how strongly the line is printed
@@ -85,8 +85,8 @@ SKINS = {
         'out': 'public/table-desktop.png',
     },
     'salon': {
-        'felt_edge': [15, 48, 32],
-        'felt_hot': [50, 114, 78],
+        'felt_edge': [9, 33, 23],
+        'felt_hot': [54, 120, 82],
         'line': [214, 196, 150],
         # A quarter of what it was: enough of an edge to hold the ring of
         # seats together, not enough to read as a drawn-on circle.
@@ -222,7 +222,7 @@ def main():
         gaussian_filter(rng.normal(0, 1, (H, W)).astype(np.float32), 1.0) * 0.07
         + gaussian_filter(rng.normal(0, 1, (H, W)).astype(np.float32), 3.0) * 0.05
     )
-    shade = (0.10 + 0.22 * lambert**2 + 0.28 * spec + 1.05 * lip + 0.3 * rim) * crease * skirt
+    shade = (0.06 + 0.42 * lambert**3 + 0.34 * spec + 0.95 * lip + 0.34 * rim) * crease * skirt
     shade = np.clip(shade + grain, 0, 1)
     rail = RAIL_DARK + (RAIL_LIT - RAIL_DARK) * shade[..., None]
 
@@ -240,7 +240,7 @@ def main():
     # green under the rail, one betting line, and the cloth's weave.
     spot = np.exp(-((HX / (620 * args.spot)) ** 2 + (HZ / (340 * args.spot)) ** 2))
     felt = FELT_EDGE + (FELT_HOT - FELT_EDGE) * spot[..., None]
-    occlusion = 1.0 - 0.6 * np.exp(np.minimum(d, 0) / 14)
+    occlusion = 1.0 - 0.78 * np.exp(np.minimum(d, 0) / 22)
     felt *= occlusion[..., None]
     line_strength = skin['line_strength'] if args.line_strength is None else args.line_strength
     if line_strength > 0:
@@ -261,6 +261,7 @@ def main():
     out = Image.fromarray(img, 'RGBA').convert('RGBa')
     out = out.resize((OUT_W, OUT_H), Image.LANCZOS).convert('RGBA')
 
+
     # Perspective pulls the oval off-centre; sit it in the middle of the box.
     rows = np.where(np.array(out)[:, :, 3].max(axis=1) > 8)[0]
     shift = (OUT_H - 1 - rows[-1] - rows[0]) // 2
@@ -268,6 +269,32 @@ def main():
     centred.paste(out, (0, shift))
     out = centred
     print('table rows', rows[0] + shift, '..', rows[-1] + shift)
+
+    # Perspective pulls the oval off-centre; sit it in the middle of the box.
+    rows = np.where(np.array(out)[:, :, 3].max(axis=1) > 8)[0]
+    shift = (OUT_H - 1 - rows[-1] - rows[0]) // 2
+    centred = Image.new('RGBA', out.size)
+    centred.paste(out, (0, shift))
+    out = centred
+    print('table rows', rows[0] + shift, '..', rows[-1] + shift)
+
+    # A table too big for its box is cut off flat at the canvas edge, which
+    # reads as a table sliced through — and is easy to miss in a thumbnail.
+    # Checked before the centring below, which slides a cut edge inboard and
+    # leaves the flat cut looking like a deliberate straight rail.
+    edge = np.array(out)[:, :, 3]
+    touching = [
+        name
+        for name, strip in (
+            ('top', edge[0]),
+            ('bottom', edge[-1]),
+            ('left', edge[:, 0]),
+            ('right', edge[:, -1]),
+        )
+        if strip.max() > 8
+    ]
+    if touching:
+        print('WARNING: the table runs off the', ', '.join(touching), '— it will look cut off')
 
     out.save(out_path, optimize=True)
     print('wrote', out_path, out.size)

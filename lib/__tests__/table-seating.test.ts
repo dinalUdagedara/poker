@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calloutPlacement, chipSide, seatOrder, seatRing } from '../table-seating'
+import { calloutPlacement, seatOrder, seatRing } from '../table-seating'
 
 /** Nothing may be placed outside the felt it is a percentage of. */
 const onFelt = (point: { left: number; top: number }) =>
@@ -29,23 +29,22 @@ describe('the ring of seats', () => {
     }
   })
 
-  it('pulls the seats level with the middle in off the rail', () => {
-    // The honest ellipse is right everywhere except its two widest points,
-    // where a plate centred on the true point overhangs the wood. Landscape
-    // only: a phone leaves that waist empty for the board.
+  it('sits the seats level with the middle out on the rail', () => {
+    // A seat belongs on the wood, half off the cloth, the way ClubGG sits one
+    // — not standing on the felt where the cards are played.
     const level = seatRing(4)[1]
     expect(level.top).toBeCloseTo(50)
-    expect(level.left).toBeGreaterThan(50 - 41)
+    expect(level.left).toBeLessThan(10)
   })
 
-  it('leaves the waist of a phone table empty for the board', () => {
-    // ClubGG does not sit anyone at 9 o'clock on a standing oval. Those seats
-    // are where the community cards are, and a plate there covers them.
+  it('keeps a phone’s seats on the rails and out of the middle', () => {
+    // A seat at 9 o'clock is fine now that seats sit on the rail, outside the
+    // cloth — what is never fine is one standing in the middle of the table,
+    // where the board and the pot are.
     for (const count of [3, 4, 6, 8]) {
-      const sides = seatRing(count, true).filter((seat) => Math.abs(seat.left - 50) > 15)
-      expect(sides.length).toBeGreaterThan(0)
-      for (const seat of sides) {
-        expect(seat.top < 38 || seat.top > 62).toBe(true)
+      for (const seat of seatRing(count, true)) {
+        const middle = Math.abs(seat.left - 50) < 30 && Math.abs(seat.top - 50) < 30
+        expect(middle).toBe(false)
       }
     }
   })
@@ -63,19 +62,20 @@ describe('the ring of seats', () => {
   })
 
   it('runs a phone’s seats down the long sides, not across the middle', () => {
-    // A portrait felt has almost no width. The same field has to sit closer
-    // to the rails and keep the waist clear, which is what ClubGG's phone
-    // client does for the same reason.
-    const [wide, tall] = [seatRing(6)[1], seatRing(6, true)[1]]
-    expect(tall.left).toBeLessThan(wide.left)
+    // A portrait felt has almost no width. Its seats hug the two long rails
+    // and leave the waist clear, which is what ClubGG's phone client does for
+    // the same reason.
+    const tall = seatRing(6, true)[1]
+    expect(tall.left).toBeLessThan(15)
+    expect(Math.abs(tall.top - 50)).toBeGreaterThan(10)
   })
 
-  it('drops the viewer onto the near rail on a phone', () => {
-    // A five-card board needs the lower felt. The honest ellipse puts the
-    // viewer at the same reach as the top seat, so only the bottom is pushed.
-    const [desk, phone] = [seatRing(6)[0], seatRing(6, true)[0]]
-    expect(phone.top).toBeGreaterThan(desk.top)
-    expect(phone.top).toBeGreaterThan(90)
+  it('puts the viewer on the near rail, whatever the shape of the screen', () => {
+    // Wherever else the ring goes, your own seat is at the bottom edge of the
+    // table, on the wood — the fixed point everything else is arranged around.
+    for (const portrait of [false, true]) {
+      expect(seatRing(6, portrait)[0].top).toBeGreaterThan(85)
+    }
   })
 })
 
@@ -114,12 +114,5 @@ describe('where a bubble has room to hang', () => {
   it('sends a seat level with the middle inboard, because outboard is the rail', () => {
     expect(calloutPlacement({ left: 13, top: 50 })).toBe('right')
     expect(calloutPlacement({ left: 87, top: 50 })).toBe('left')
-  })
-})
-
-describe('which side the chips sit on', () => {
-  it('always faces the middle, so a stack never falls off the table', () => {
-    expect(chipSide({ left: 14.5, top: 29 })).toBe('right')
-    expect(chipSide({ left: 85.5, top: 29 })).toBe('left')
   })
 })
