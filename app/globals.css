@@ -237,8 +237,8 @@
 
   /* A nameplate. A step lighter than the rail it sits on, so it stands off
      the table rather than lying in it. */
-  --plate: oklch(0.31 0.008 157);
-  --plate-deep: oklch(0.2 0.006 160);
+  --plate: oklch(0.36 0.009 157);
+  --plate-deep: oklch(0.14 0.005 160);
 
   --play-fold: oklch(0.24 0.006 157);
   --play-fold-lit: oklch(0.3 0.008 157);
@@ -523,9 +523,11 @@
     linear-gradient(180deg, oklch(1 0 0 / 0.07) 0%, transparent 38%),
     linear-gradient(180deg, var(--plate) 0%, var(--plate-deep) 100%);
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.1),
-    inset 0 -8px 12px -6px oklch(0 0 0 / 0.55),
-    0 0 0 1px oklch(0 0 0 / 0.65),
+    inset 0 1px 0 oklch(1 0 0 / 0.14),
+    inset 0 -10px 14px -6px oklch(0 0 0 / 0.7),
+    0 0 0 1px oklch(0 0 0 / 0.7),
+    /* Upwards, onto the portrait this plate rides over. */
+    0 -7px 10px -5px oklch(0 0 0 / 0.75),
     0 16px 30px -8px oklch(0 0 0 / 0.95),
     0 4px 10px -2px oklch(0 0 0 / 0.6);
 }
@@ -536,6 +538,21 @@
  * disc and a shade under its foot — so the portrait reads as a domed medallion
  * rather than a circle cut out of the cloth.
  */
+/*
+ * The bezel round a portrait: rendered rather than drawn, so the metal turns
+ * from a catch of light at the top to shade at its foot. `p-[7%]` on the same
+ * element is the band's width, which keeps the portrait inside it.
+ */
+.seat-ring {
+  background: url("/seat-ring.png") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 2px 3px oklch(0 0 0 / 0.7)) drop-shadow(0 10px 16px oklch(0 0 0 / 0.85));
+}
+
+.seat-ring.animate-turn-ring,
+.seat-ring.animate-winner {
+  background-image: none;
+}
+
 .seat-medallion {
   box-shadow:
     inset 0 3px 5px oklch(1 0 0 / 0.24),

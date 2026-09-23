@@ -182,12 +182,8 @@ export function PlayerSeat({
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
         className={cn(
-          'relative z-10 rounded-full p-[2.5px] transition-colors',
-          isActing
-            ? 'animate-turn-ring bg-brass-lit'
-            : isWinner
-              ? 'animate-winner bg-win'
-              : 'bg-linear-160 from-[oklch(0.88_0.05_90)] from-10% via-[oklch(0.6_0.05_84)] via-55% to-[oklch(0.3_0.025_80)]',
+          'seat-ring relative z-10 rounded-full p-[7%] transition-colors',
+          isActing ? 'animate-turn-ring' : isWinner && 'animate-winner',
           isOut && 'opacity-60',
         )}
         data-testid={isActing ? `turn-${player.id}` : undefined}
