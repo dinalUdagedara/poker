@@ -22,14 +22,15 @@ SIZE = 512
 SS = 2  # supersampling
 
 # The band, as fractions of the radius: where the metal starts and stops.
-INNER = 0.845
+INNER = 0.925
 OUTER = 1.0
 
-# Brass, from its darkest to its brightest. The same champagne the rest of the
-# room is lettered in, so the seat belongs to the table it sits on.
-DARK = np.array([54, 41, 20], np.float32)
-MID = np.array([166, 138, 84], np.float32)
-LIT = np.array([252, 240, 206], np.float32)
+# Steel rather than brass, and narrow: a rim round a portrait, the way ClubGG
+# sets one. A wide gold bead made the frame louder than the face inside it,
+# which is the wrong way round — the champagne stays on the lettering.
+DARK = np.array([28, 28, 30], np.float32)
+MID = np.array([116, 118, 122], np.float32)
+LIT = np.array([238, 240, 244], np.float32)
 
 
 def main():

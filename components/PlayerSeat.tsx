@@ -182,7 +182,7 @@ export function PlayerSeat({
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
         className={cn(
-          'seat-ring relative z-10 rounded-full p-[7%] transition-colors',
+          'seat-ring relative z-10 rounded-full p-[3.5%] transition-colors',
           isActing ? 'animate-turn-ring' : isWinner && 'animate-winner',
           isOut && 'opacity-60',
         )}
