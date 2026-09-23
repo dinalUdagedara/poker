@@ -264,7 +264,7 @@
    * warning still owns its hue.
    */
   --state-win: oklch(0.896 0.044 90);
-  --state-healthy: oklch(0.857 0.046 89);
+  --state-healthy: oklch(0.82 0.13 226);
   --state-medium: oklch(0.83 0.13 84);
   --state-short: oklch(0.756 0.095 36);
 
