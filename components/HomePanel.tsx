@@ -40,7 +40,7 @@ export function HomePanel() {
   return (
     <LandingShell fan>
       <SalonFrame>
-        <div className="flex flex-col gap-6 px-6 pt-12 pb-7 sm:px-10">
+        <div className="flex flex-col gap-6 px-6 pt-12 pb-7 sm:px-10 [@media(max-height:880px)]:gap-4 [@media(max-height:880px)]:pt-6 [@media(max-height:880px)]:pb-5">
           <HouseMark />
           <PlayerNameField />
 
@@ -56,7 +56,7 @@ export function HomePanel() {
           />
 
           <Button
-            className="brass-button h-14 w-full rounded-[2px] text-xs font-semibold tracking-[0.3em] uppercase"
+            className="brass-button h-14 w-full rounded-[2px] text-xs font-semibold tracking-[0.3em] uppercase [@media(max-height:880px)]:h-12"
             disabled={busy}
             onClick={() => void deal()}
             data-testid="deal"

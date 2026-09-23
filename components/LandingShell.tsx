@@ -55,7 +55,10 @@ export function LandingShell({
   return (
     <main
       className={cn(
-        'table-room relative flex flex-1 p-6',
+        // A laptop window is shorter than it is tall in a phone's terms: the
+        // landing screens are given back their margins below ~880px so the
+        // whole door fits without scrolling.
+        'table-room relative flex flex-1 p-6 [@media(max-height:880px)]:p-3',
         centered ? 'items-center justify-center' : 'justify-center',
       )}
     >
@@ -75,7 +78,10 @@ export function LandingShell({
         )}
       >
         {fan && (
-          <div className="-mb-5 flex justify-center" aria-hidden>
+          <div
+            className="-mb-5 flex origin-bottom justify-center [@media(max-height:880px)]:-mb-8 [@media(max-height:880px)]:scale-85"
+            aria-hidden
+          >
             {FAN.map((card, i) => (
               <span key={i} className={cn('-ml-5 first:ml-0', FAN_TILT[i])}>
                 <PlayingCard card={card} size="lg" dealDelay={i * 80} className="drop-shadow-xl" />
@@ -121,13 +127,15 @@ export function Ornament({ className }: { className?: string }) {
 /** Crest, game, wordmark — the door of the house. */
 export function HouseMark() {
   return (
-    <div className="flex flex-col items-center gap-3 text-center">
-      <Logo className="h-14 w-auto" />
+    <div className="flex flex-col items-center gap-3 text-center [@media(max-height:880px)]:gap-2">
+      <Logo className="h-14 w-auto [@media(max-height:880px)]:h-10" />
       <span className="text-brass text-[11px] font-semibold tracking-[0.24em] uppercase">
         No-limit Hold&rsquo;em
       </span>
-      <h1 className="wordmark text-5xl leading-none font-medium sm:text-6xl">Showdown</h1>
-      <Ornament />
+      <h1 className="wordmark text-5xl leading-none font-medium sm:text-6xl [@media(max-height:880px)]:text-4xl">
+        Showdown
+      </h1>
+      <Ornament className="[@media(max-height:880px)]:hidden" />
     </div>
   )
 }
