@@ -113,7 +113,7 @@ export function PlayerSeat({
             ? 'origin-center scale-[0.85] [--medal:2.1rem]'
             : 'origin-center scale-[0.85] [--medal:1.6rem]'
           : hero
-            ? '[--medal:4rem] max-[380px]:[--medal:3.3rem] sm:[--medal:5.75rem]'
+            ? '[--medal:4rem] max-[380px]:[--medal:3.3rem] sm:[--medal:5.25rem]'
             : compact
               ? '[--medal:3.2rem] max-[380px]:[--medal:2.7rem] sm:[--medal:4.75rem]'
               : '[--medal:3.4rem] max-[380px]:[--medal:2.9rem] sm:[--medal:5.25rem]',
@@ -136,7 +136,7 @@ export function PlayerSeat({
            * keeps its size and leans out from behind the portrait instead.
            */
           shown
-            ? '-mb-[calc(var(--medal)*0.26)]'
+            ? '-mb-[calc(var(--medal)*0.42)]'
             : '-mb-[calc(var(--medal)*0.72)]',
           // A folded seat has to recede, or the people no longer in the hand
           // become the brightest thing on the felt.
@@ -153,7 +153,7 @@ export function PlayerSeat({
               className={cn(
                 shown ? (i % 2 === 0 ? '-rotate-3' : 'rotate-3') : TILT[i % TILT.length],
                 i > 0 && (shown ? '-ml-1' : '-ml-2'),
-                shown ? 'w-[calc(var(--medal)*0.66)]' : 'w-[calc(var(--medal)*0.5)]',
+                shown ? 'w-[calc(var(--medal)*0.56)]' : 'w-[calc(var(--medal)*0.46)]',
                 // The hand that won is lifted clear of the portrait to be read.
                 isWinner && shown && '-translate-y-2 sm:-translate-y-3',
                 'origin-bottom transition-[width,transform,translate] duration-500',

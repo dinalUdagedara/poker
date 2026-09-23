@@ -18,7 +18,7 @@ export type SeatPoint = { left: number; top: number }
  * A wide oval is very nearly circular in percentage terms. Seats level with
  * the middle are eased in off the rail so a plate does not hang over the wood.
  */
-const LANDSCAPE = { rx: 47, ry: 37 } as const
+const LANDSCAPE = { rx: 49, ry: 42 } as const
 
 /**
  * How much a seat level with the middle is pulled inboard, in percent.
