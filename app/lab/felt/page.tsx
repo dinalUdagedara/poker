@@ -20,6 +20,11 @@ const TABLES = [
     note: 'The same line at a quarter of its strength: an edge to the cloth, not a drawn-on ring.',
   },
   {
+    src: '/lab/table-3d.png',
+    name: 'Desktop, rendered in 3D',
+    note: 'The same table built as real geometry and lit in Blender (scripts/render-table-3d.py) — a padded cushion, a lamp over the cloth, and a shadow the renderer worked out rather than one we drew. Not in the app yet.',
+  },
+  {
     src: '/lab/mobile-before.png',
     name: 'Phone, before',
     note: 'A hand-made picture on the house green, which never matched the desktop table beside it.',
