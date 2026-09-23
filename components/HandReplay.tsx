@@ -384,6 +384,7 @@ function ReplayTable({
                       isWinner={winners.has(player.id)}
                       handOver={frame.settled}
                       compact={!isYou}
+                      dense
                       hero={isYou}
                       callout={callouts.get(player.id)}
                       calloutSide={calloutPlacement(point)}

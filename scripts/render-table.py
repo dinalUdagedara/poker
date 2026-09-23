@@ -40,9 +40,9 @@ SS = 2  # supersampling
 MOBILE = {
     'out_w': 864,
     'out_h': 1152,
-    'half_straight': 258,  # the straight run, now up and down the screen
+    'half_straight': 236,  # the straight run, now up and down the screen
     'end_x': 281,  # semi-axis across the table
-    'end_z': 255,  # semi-axis at each end
+    'end_z': 236,  # semi-axis at each end
     'rail': 42,
     'tilt': 0.86,
     'out': 'public/table-mobile.png',
@@ -268,6 +268,22 @@ def main():
     centred.paste(out, (0, shift))
     out = centred
     print('table rows', rows[0] + shift, '..', rows[-1] + shift)
+
+    # A table too big for its box is cut off flat at the canvas edge, which
+    # reads as a table sliced through — and is easy to miss in a thumbnail.
+    edge = np.array(out)[:, :, 3]
+    touching = [
+        name
+        for name, strip in (
+            ('top', edge[0]),
+            ('bottom', edge[-1]),
+            ('left', edge[:, 0]),
+            ('right', edge[:, -1]),
+        )
+        if strip.max() > 8
+    ]
+    if touching:
+        print('WARNING: the table runs off the', ', '.join(touching), '— it will look cut off')
 
     out.save(out_path, optimize=True)
     print('wrote', out_path, out.size)
