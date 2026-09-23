@@ -20,7 +20,7 @@ green, a champagne betting line, and a thin champagne strip set into the rail
 where it meets the cloth. The geometry, camera and light are untouched, so the
 seat ring lands on it exactly as it does on the house table.
 
-    python3 scripts/render-table-desktop.py [--skin house|salon] [--out PATH]
+    python3 scripts/render-table.py [--skin house|salon] [--pose desktop|mobile] [--out PATH]
 """
 
 import argparse
@@ -32,6 +32,25 @@ from scipy.ndimage import gaussian_filter
 # Output matches the desktop .table-stage (sm:aspect-2/1), so nothing stretches.
 OUT_W, OUT_H = 1280, 640
 SS = 2  # supersampling
+
+# The phone pose: the same table stood on its end, in the 3:4 box the portrait
+# stage gives it. Its extents are chosen to land on the oval the old hand-made
+# picture had, because the seat ring in `table-seating.ts` was measured against
+# that one — a table a few pixels wider would put every plate off the rail.
+MOBILE = {
+    'out_w': 864,
+    'out_h': 1152,
+    'half_straight': 258,  # the straight run, now up and down the screen
+    'end_x': 281,  # semi-axis across the table
+    'end_z': 255,  # semi-axis at each end
+    'rail': 42,
+    'tilt': 0.86,
+    'out': 'public/table-mobile.png',
+}
+
+# Whether the straight run of the stadium lies across the screen (desktop) or
+# up and down it (the phone).
+VERTICAL = False
 
 # Table, in plane units (≈ output px at the table's centre). The felt spans
 # HALF_STRAIGHT + END_X either side and END_Z front and back — the same
@@ -69,9 +88,9 @@ SKINS = {
         'felt_edge': [15, 48, 32],
         'felt_hot': [50, 114, 78],
         'line': [214, 196, 150],
-        # Printed boldly enough to read from across the room: the table's outline
-        # is what holds the seat ring together once the plates stand off it.
-        'line_strength': 0.6,
+        # A quarter of what it was: enough of an edge to hold the ring of
+        # seats together, not enough to read as a drawn-on circle.
+        'line_strength': 0.15,
         'line_width': 1.8,
         'inlay': [205, 184, 138],
         'out': 'public/table-desktop-salon.png',
@@ -85,10 +104,18 @@ def felt_edge(X, Z):
     iq's approximation for an ellipse, applied past the straight run. Exact along
     the sides and at the tips, and close enough between them that the rail's
     width does not visibly swell round the ends.
+
+    Standing the table up is the same maths with the two axes exchanged: the
+    straight run goes up and down the screen, and the ends are at the top and
+    bottom.
     """
-    qx = np.maximum(np.abs(X) - HALF_STRAIGHT, 0.0)
-    k0 = np.hypot(qx / END_X, Z / END_Z)
-    k1 = np.hypot(qx / (END_X * END_X), Z / (END_Z * END_Z))
+    if VERTICAL:
+        a, b, ea, eb = Z, X, END_Z, END_X
+    else:
+        a, b, ea, eb = X, Z, END_X, END_Z
+    q = np.maximum(np.abs(a) - HALF_STRAIGHT, 0.0)
+    k0 = np.hypot(q / ea, b / eb)
+    k1 = np.hypot(q / (ea * ea), b / (eb * eb))
     return k0 * (k0 - 1.0) / np.maximum(k1, 1e-9)
 
 
@@ -115,10 +142,26 @@ def rail_profile(d):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--skin', choices=sorted(SKINS), default='house')
+    parser.add_argument('--pose', choices=['desktop', 'mobile'], default='desktop')
     parser.add_argument('--out')
+    # Overrides, for trying a cloth without editing the skin: how strongly the
+    # betting line is printed, and how far the overhead light spreads before it
+    # falls away to the deep green under the rail.
+    parser.add_argument('--line-strength', type=float)
+    parser.add_argument('--spot', type=float, default=1.0)
     args = parser.parse_args()
     skin = SKINS[args.skin]
     out_path = args.out or skin['out']
+
+    global OUT_W, OUT_H, HALF_STRAIGHT, END_X, END_Z, RAIL, TILT, VERTICAL
+    if args.pose == 'mobile':
+        OUT_W, OUT_H = MOBILE['out_w'], MOBILE['out_h']
+        HALF_STRAIGHT = MOBILE['half_straight']
+        END_X, END_Z = MOBILE['end_x'], MOBILE['end_z']
+        RAIL = MOBILE['rail']
+        TILT = MOBILE['tilt']
+        VERTICAL = True
+        out_path = args.out or MOBILE['out']
     FELT_EDGE = np.array(skin['felt_edge'], np.float32)
     FELT_HOT = np.array(skin['felt_hot'], np.float32)
     LINE = np.array(skin['line'], np.float32)
@@ -195,12 +238,14 @@ def main():
 
     # Felt: an overhead light brightest in the middle, falling off to a deep
     # green under the rail, one betting line, and the cloth's weave.
-    spot = np.exp(-((HX / 620) ** 2 + (HZ / 340) ** 2))
+    spot = np.exp(-((HX / (620 * args.spot)) ** 2 + (HZ / (340 * args.spot)) ** 2))
     felt = FELT_EDGE + (FELT_HOT - FELT_EDGE) * spot[..., None]
     occlusion = 1.0 - 0.6 * np.exp(np.minimum(d, 0) / 14)
     felt *= occlusion[..., None]
-    line = np.clip(1.4 - np.abs(d + LINE_INSET) / skin['line_width'], 0, 1) * skin['line_strength']
-    felt += (LINE - felt) * line[..., None]
+    line_strength = skin['line_strength'] if args.line_strength is None else args.line_strength
+    if line_strength > 0:
+        line = np.clip(1.4 - np.abs(d + LINE_INSET) / skin['line_width'], 0, 1) * line_strength
+        felt += (LINE - felt) * line[..., None]
     weave = (
         rng.normal(0, 3.2, (H, W)).astype(np.float32)
         + gaussian_filter(rng.normal(0, 1, (H, W)).astype(np.float32), 0.7) * 5.0
