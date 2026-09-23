@@ -2,8 +2,8 @@
  * The table as ClubGG draws it: a still, not a mesh.
  *
  * One pose for a phone (the oval stands up) and one for a wide screen (the 2:1
- * felt). The wide one is the Salon render — `render-table-desktop.py --skin
- * salon` — which prints its own racing green and champagne line. Seats, cards and chips stay 2D on top — that is the same split their
+ * felt). Both are the Salon render — `render-table.py --skin salon [--pose
+ * mobile]` — which prints its own racing green and the faint champagne line. Seats, cards and chips stay 2D on top — that is the same split their
  * Unity client uses, and it is why the nameplates stay readable.
  *
  * `className` swaps the skin, not the file: the win veil is this same picture

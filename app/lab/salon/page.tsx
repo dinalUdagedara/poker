@@ -32,7 +32,7 @@ const index = Oswald({
  * The Private Salon, as a still life.
  *
  * The approved direction from the luxury revamp, on the real 3D table rendered
- * in the Salon skin (`render-table-desktop.py --skin salon`). Kept off the
+ * in the Salon skin (`render-table.py --skin salon`). Kept off the
  * index like the other lab: nothing live imports from here and this imports
  * nothing from the live table's components beyond the chips, so the route can
  * be deleted in one move once the look has been carried over.
