@@ -293,10 +293,10 @@
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
     radial-gradient(
       66% 58% at 50% 40%,
-      oklch(0.4 0.03 140) 0%,
-      oklch(0.3 0.024 145) 44%,
-      oklch(0.2 0.014 150) 76%,
-      oklch(0.15 0.01 152) 100%
+      oklch(0.33 0.026 140) 0%,
+      oklch(0.24 0.02 145) 44%,
+      oklch(0.16 0.012 150) 76%,
+      oklch(0.12 0.008 152) 100%
     );
 }
 

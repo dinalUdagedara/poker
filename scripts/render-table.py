@@ -41,7 +41,7 @@ MOBILE = {
     'out_w': 864,
     'out_h': 1152,
     'half_straight': 236,  # the straight run, now up and down the screen
-    'end_x': 281,  # semi-axis across the table
+    'end_x': 248,  # semi-axis across the table
     'end_z': 236,  # semi-axis at each end
     'rail': 42,
     'tilt': 0.86,
