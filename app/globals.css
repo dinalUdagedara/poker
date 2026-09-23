@@ -237,8 +237,8 @@
 
   /* A nameplate. A step lighter than the rail it sits on, so it stands off
      the table rather than lying in it. */
-  --plate: oklch(0.31 0.008 157);
-  --plate-deep: oklch(0.2 0.006 160);
+  --plate: oklch(0.36 0.009 157);
+  --plate-deep: oklch(0.14 0.005 160);
 
   --play-fold: oklch(0.24 0.006 157);
   --play-fold-lit: oklch(0.3 0.008 157);
@@ -264,7 +264,7 @@
    * warning still owns its hue.
    */
   --state-win: oklch(0.896 0.044 90);
-  --state-healthy: oklch(0.857 0.046 89);
+  --state-healthy: oklch(0.82 0.13 226);
   --state-medium: oklch(0.83 0.13 84);
   --state-short: oklch(0.756 0.095 36);
 
@@ -292,10 +292,11 @@
        than as a gradient on a screen. */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
     radial-gradient(
-      70% 62% at 50% 42%,
-      oklch(0.26 0.03 157) 0%,
-      oklch(0.19 0.018 158) 50%,
-      oklch(0.13 0.007 157) 100%
+      66% 58% at 50% 40%,
+      oklch(0.33 0.026 140) 0%,
+      oklch(0.24 0.02 145) 44%,
+      oklch(0.16 0.012 150) 76%,
+      oklch(0.12 0.008 152) 100%
     );
 }
 
@@ -364,6 +365,33 @@
  * only a coordinate space: seats and cards sit on top as 2D, inset so they
  * land on the cloth rather than on the painted rail.
  */
+/*
+ * The floor under the table.
+ *
+ * An ellipse of its own rather than a blur of the table's outline: a shadow
+ * pools beneath a thing and falls away from the light, darkest where the foot
+ * meets the ground. Drawn before the table so the wood sits on top of it.
+ */
+.table-stage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  right: 7%;
+  bottom: -7%;
+  left: 7%;
+  height: 30%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    oklch(0 0 0 / 0.85) 0%,
+    oklch(0 0 0 / 0.6) 45%,
+    oklch(0 0 0 / 0.18) 78%,
+    transparent 100%
+  );
+  filter: blur(18px);
+  pointer-events: none;
+}
+
 .table-stage {
   isolation: isolate;
 }
@@ -379,6 +407,10 @@
   height: 100%;
   border: 0;
   pointer-events: none;
+}
+
+.table-body img {
+  filter: drop-shadow(0 8px 10px oklch(0 0 0 / 0.7));
 }
 
 .table-body img,
@@ -487,21 +519,42 @@
  * champagne-lit on a turn or ivory on a win from the utility classes.
  */
 .seat-plate {
-  background: linear-gradient(180deg, var(--plate) 0%, var(--plate-deep) 100%);
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 0.07) 0%, transparent 38%),
+    linear-gradient(180deg, var(--plate) 0%, var(--plate-deep) 100%);
   box-shadow:
-    0 0 0 1px oklch(0 0 0 / 0.65),
+    inset 0 1px 0 oklch(1 0 0 / 0.14),
+    inset 0 -10px 14px -6px oklch(0 0 0 / 0.7),
+    0 0 0 1px oklch(0 0 0 / 0.7),
+    /* Upwards, onto the portrait this plate rides over. */
+    0 -7px 10px -5px oklch(0 0 0 / 0.75),
     0 16px 30px -8px oklch(0 0 0 / 0.95),
-    0 4px 10px -2px oklch(0 0 0 / 0.6),
-    var(--edge);
+    0 4px 10px -2px oklch(0 0 0 / 0.6);
 }
 
-/* The monogram's bezel: black, champagne, black, and a shadow under it all. */
+/*
+ * The monogram's bezel: black, champagne, black, and a shadow under it all.
+ * The inset pair is the light the room is lit by — a catch along the top of the
+ * disc and a shade under its foot — so the portrait reads as a domed medallion
+ * rather than a circle cut out of the cloth.
+ */
+/*
+ * The bezel round a portrait: rendered rather than drawn, so the metal turns
+ * from a catch of light at the top to shade at its foot. `p-[7%]` on the same
+ * element is the band's width, which keeps the portrait inside it.
+ */
+.seat-ring {
+  background: url("/seat-ring.png") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 2px 3px oklch(0 0 0 / 0.7)) drop-shadow(0 10px 16px oklch(0 0 0 / 0.85));
+}
+
 .seat-medallion {
   box-shadow:
+    inset 0 3px 5px oklch(1 0 0 / 0.24),
+    inset 0 -5px 10px oklch(0 0 0 / 0.5),
     0 0 0 1px oklch(0 0 0 / 0.7),
-    0 0 0 3px oklch(0.82 0.06 88),
-    0 0 0 4px oklch(0 0 0 / 0.5),
-    0 10px 20px -4px oklch(0 0 0 / 0.9);
+    0 3px 6px -1px oklch(0 0 0 / 0.7),
+    0 14px 24px -6px oklch(0 0 0 / 0.95);
 }
 
 /* An ivory disc in a champagne bezel, lettered in the didone. */
@@ -670,14 +723,21 @@
  * lies on, and the edge has to catch the light.
  */
 .card-back {
-  background-color: oklch(0.27 0.04 159);
+  /*
+   * ClubGG's back: pale stock with a fine lattice, not the house's green. A
+   * green back on a green cloth had to be found rather than seen, and it was
+   * the flattest thing on the table — every seat but your own is holding two.
+   */
+  background-color: oklch(0.86 0.004 90);
   background-image:
-    repeating-radial-gradient(circle at 50% 50%, oklch(0.789 0.066 86 / 0.32) 0 1px, transparent 1px 3.5px);
-  border-color: oklch(0.82 0.06 88 / 0.75);
+    repeating-linear-gradient(45deg, oklch(0.62 0.01 250 / 0.28) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, oklch(0.62 0.01 250 / 0.28) 0 1px, transparent 1px 5px),
+    linear-gradient(160deg, oklch(1 0 0 / 0.55) 0%, transparent 55%, oklch(0 0 0 / 0.16) 100%);
+  border-color: oklch(1 0 0 / 0.85);
   box-shadow:
-    0 0 0 1px oklch(0 0 0 / 0.6),
-    inset 0 0 0 2px oklch(0.27 0.04 159),
-    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
+    0 0 0 1px oklch(0 0 0 / 0.45),
+    inset 0 0 0 2px oklch(0.97 0.002 90),
+    0 2px 4px -1px oklch(0 0 0 / 0.55),
     0 8px 16px -4px oklch(0 0 0 / 0.85);
 }
 
@@ -688,19 +748,26 @@
  */
 .card-stock {
   position: relative;
+  /*
+   * Two shadows, not one: a tight dark line where the card meets what it lies
+   * on, and a long soft one further out. A single long shadow reads as a
+   * picture of a card printed on the cloth; the contact shadow is what makes
+   * it a thing resting on the table.
+   */
   box-shadow:
     0 0 0 1px oklch(0 0 0 / 0.28),
     inset 0 0 0 1px oklch(1 0 0 / 0.6),
     0 1px 0 oklch(0.823 0.034 85),
+    0 2px 4px -1px oklch(0 0 0 / 0.55),
     0 12px 22px -8px oklch(0 0 0 / 0.8);
 }
 
 .card-back.card-stock {
   box-shadow:
-    0 0 0 1px oklch(0 0 0 / 0.6),
-    inset 0 0 0 2px oklch(0.27 0.04 159),
-    inset 0 0 0 3px oklch(0.789 0.066 86 / 0.4),
-    0 1px 0 oklch(0.45 0.05 80),
+    0 0 0 1px oklch(0 0 0 / 0.45),
+    inset 0 0 0 2px oklch(0.97 0.002 90),
+    0 1px 0 oklch(0.72 0.01 90),
+    0 2px 4px -1px oklch(0 0 0 / 0.55),
     0 12px 22px -8px oklch(0 0 0 / 0.85);
 }
 
