@@ -215,7 +215,7 @@ export function PlayerSeat({
       <Card
         className={cn(
           'seat-plate relative z-10 -mt-[calc(var(--medal)*0.3)] flex min-w-[calc(var(--medal)*1.7)] max-w-[calc(var(--medal)*2)] flex-col items-center gap-0 rounded-[7px] border px-2.5 pt-[calc(var(--medal)*0.16)] pb-1 text-center leading-tight sm:max-w-[calc(var(--medal)*2.7)] sm:px-3.5',
-          isWinner ? 'border-win' : 'border-brass/50',
+          isWinner ? 'border-win' : 'border-foreground/12',
           isOut && 'opacity-50',
         )}
       >
