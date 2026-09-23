@@ -113,10 +113,10 @@ export function PlayerSeat({
             ? 'origin-center scale-[0.85] [--medal:2.1rem]'
             : 'origin-center scale-[0.85] [--medal:1.6rem]'
           : hero
-            ? '[--medal:3.6rem] max-[380px]:[--medal:3rem] sm:[--medal:5.25rem]'
+            ? '[--medal:4rem] max-[380px]:[--medal:3.3rem] sm:[--medal:5.75rem]'
             : compact
-              ? '[--medal:2.9rem] max-[380px]:[--medal:2.4rem] sm:[--medal:4.25rem]'
-              : '[--medal:3.1rem] max-[380px]:[--medal:2.6rem] sm:[--medal:4.75rem]',
+              ? '[--medal:3.2rem] max-[380px]:[--medal:2.7rem] sm:[--medal:4.75rem]'
+              : '[--medal:3.4rem] max-[380px]:[--medal:2.9rem] sm:[--medal:5.25rem]',
       )}
       data-testid={`seat-${player.id}`}
     >
@@ -182,8 +182,12 @@ export function PlayerSeat({
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
         className={cn(
-          'relative z-10 rounded-full border transition-colors',
-          isActing ? 'animate-turn-ring border-brass-lit' : isWinner ? 'animate-winner border-win' : 'border-brass/50',
+          'relative z-10 rounded-full p-[2.5px] transition-colors',
+          isActing
+            ? 'animate-turn-ring bg-brass-lit'
+            : isWinner
+              ? 'animate-winner bg-win'
+              : 'bg-linear-160 from-[oklch(0.88_0.05_90)] from-10% via-[oklch(0.6_0.05_84)] via-55% to-[oklch(0.3_0.025_80)]',
           isOut && 'opacity-60',
         )}
         data-testid={isActing ? `turn-${player.id}` : undefined}
@@ -214,7 +218,7 @@ export function PlayerSeat({
       */}
       <Card
         className={cn(
-          'seat-plate relative z-10 -mt-[calc(var(--medal)*0.3)] flex min-w-[calc(var(--medal)*1.7)] max-w-[calc(var(--medal)*2)] flex-col items-center gap-0 rounded-[7px] border px-2.5 pt-[calc(var(--medal)*0.16)] pb-1 text-center leading-tight sm:max-w-[calc(var(--medal)*2.7)] sm:px-3.5',
+          'seat-plate relative z-10 -mt-[calc(var(--medal)*0.3)] flex min-w-[calc(var(--medal)*1.4)] max-w-[calc(var(--medal)*1.75)] flex-col items-center gap-0 rounded-[7px] border px-2.5 pt-[calc(var(--medal)*0.16)] pb-1 text-center leading-tight sm:max-w-[calc(var(--medal)*2.1)] sm:px-3',
           isWinner ? 'border-win' : 'border-foreground/12',
           isOut && 'opacity-50',
         )}
