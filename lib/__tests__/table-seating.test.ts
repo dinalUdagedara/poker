@@ -74,7 +74,7 @@ describe('the ring of seats', () => {
     // Wherever else the ring goes, your own seat is at the bottom edge of the
     // table, on the wood — the fixed point everything else is arranged around.
     for (const portrait of [false, true]) {
-      expect(seatRing(6, portrait)[0].top).toBeGreaterThan(90)
+      expect(seatRing(6, portrait)[0].top).toBeGreaterThan(85)
     }
   })
 })

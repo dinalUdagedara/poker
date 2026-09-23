@@ -64,7 +64,7 @@ LINE_INSET = 48  # betting line distance inside the rail
 
 # Camera.
 PERSPECTIVE = 0.00075  # far side shrinks, near side grows
-TILT = 0.84  # vertical squash of the plane
+TILT = 0.7  # vertical squash of the plane
 HEIGHT_SCALE = 1.0  # how far a raised point climbs the screen
 CENTER_Y = 0.5  # table centre as a fraction of height
 
