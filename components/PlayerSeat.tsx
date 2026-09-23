@@ -165,19 +165,20 @@ export function PlayerSeat({
           <span className="block h-[calc(var(--medal)*0.72)]" aria-hidden />
         )}
 
-        {/*
-          Struck across the seam between the cards and the portrait: the word
-          covers the foot of the cards, and the chips and amount spill onto the
-          plate below.
-        */}
-        {isWinner && winAmount > 0 && (
-          <SeatWin
-            amount={winAmount}
-            hero={hero}
-            className="absolute top-full left-1/2 z-20 mt-[-0.8em] -translate-x-1/2"
-          />
-        )}
       </div>
+
+      {/*
+        The win, struck over the seat rather than through it: the word used to
+        sit on the seam between the cards and the plate, which is where the
+        portrait now is — so it landed across the winner's own face.
+      */}
+      {isWinner && winAmount > 0 && (
+        <SeatWin
+          amount={winAmount}
+          hero={hero}
+          className="absolute bottom-full left-1/2 z-30 mb-[-0.35em] -translate-x-1/2"
+        />
+      )}
 
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
