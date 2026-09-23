@@ -365,6 +365,33 @@
  * only a coordinate space: seats and cards sit on top as 2D, inset so they
  * land on the cloth rather than on the painted rail.
  */
+/*
+ * The floor under the table.
+ *
+ * An ellipse of its own rather than a blur of the table's outline: a shadow
+ * pools beneath a thing and falls away from the light, darkest where the foot
+ * meets the ground. Drawn before the table so the wood sits on top of it.
+ */
+.table-stage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  right: 7%;
+  bottom: -7%;
+  left: 7%;
+  height: 30%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    oklch(0 0 0 / 0.85) 0%,
+    oklch(0 0 0 / 0.6) 45%,
+    oklch(0 0 0 / 0.18) 78%,
+    transparent 100%
+  );
+  filter: blur(18px);
+  pointer-events: none;
+}
+
 .table-stage {
   isolation: isolate;
 }
@@ -383,8 +410,7 @@
 }
 
 .table-body img {
-  filter: drop-shadow(0 10px 14px oklch(0 0 0 / 0.75)) drop-shadow(0 34px 44px oklch(0 0 0 / 0.85))
-    drop-shadow(0 70px 90px oklch(0 0 0 / 0.9));
+  filter: drop-shadow(0 8px 10px oklch(0 0 0 / 0.7));
 }
 
 .table-body img,
