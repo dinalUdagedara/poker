@@ -240,23 +240,26 @@ test.describe('seat callouts', () => {
   })
 })
 
-test('sizes a bet with the stepper and stakes what it showed', async ({ page }) => {
+test('sizes a bet with the pot keys and stakes what it showed', async ({ page }) => {
   await dealIn(page)
-
-  // A forced all-in has one legal amount, so there is nothing to step through.
-  const more = page.getByTestId('bet-more')
   if (!(await page.getByTestId('action-bet').isVisible().catch(() => false))) test.skip()
-  if (!(await more.isEnabled())) test.skip()
 
-  // Step up twice, so the amount is nothing like the opening one.
-  const opening = (await page.getByTestId('bet-amount').textContent())!.trim()
-  await more.click()
-  await more.click()
+  // Whichever pot key moves the amount off where it opened. A forced all-in
+  // has one legal amount, so there may be nothing to size at all.
+  const amount = page.getByTestId('bet-amount')
+  const opening = await amount.inputValue()
+  let shown = opening
+  for (const fraction of ['100', '75', '50', '33']) {
+    const key = page.getByTestId(`bet-pot-${fraction}`)
+    if (!(await key.isEnabled())) continue
+    await key.click()
+    shown = await amount.inputValue()
+    if (shown !== opening) break
+  }
+  if (shown === opening) test.skip()
 
-  // The stepper and the button have to agree: one is what you are reading
-  // while you size, the other is what actually gets staked.
-  const shown = (await page.getByTestId('bet-amount').textContent())!.trim()
-  expect(shown).not.toBe(opening)
+  // The well and the button have to agree: one is what you are reading while
+  // you size, the other is what actually gets staked.
   await expect(page.getByTestId('action-bet')).toContainText(shown)
 
   await page.getByTestId('action-bet').click()

@@ -69,16 +69,14 @@ const STREETS: Array<{ name: string; detail: string; board?: string }> = [
 
 /**
  * The colours here are the ones on the real buttons in BettingControls: fold is
- * unlit stone, the two ways of staying in without new chips are felt green, and
- * the only action that commits money is brass. Explaining a control in a
- * different colour from the control itself would be worse than not colouring it
- * at all — which is also why fold is a swatch of stone and not of red: red is
- * already the suits, and the fold button is the one cold surface in the room.
+ * red, the two ways of staying in without new chips are green, and the only
+ * action that commits money is gold. Explaining a control in a different
+ * colour from the control itself would be worse than not colouring it at all.
  */
 const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
   {
     name: 'Fold',
-    swatch: 'bg-play-fold ring-1 ring-white/15',
+    swatch: 'bg-play-fold',
     detail: 'Give up the hand. Anything you already put in stays in the pot.',
   },
   {
@@ -94,14 +92,14 @@ const ACTIONS: Array<{ name: string; swatch: string; detail: string }> = [
   },
   {
     name: 'Bet',
-    swatch: 'bg-brass',
+    swatch: 'bg-play-commit',
     detail: `Open the betting on a street nobody has bet yet. The minimum is the big blind, ${BIG_BLIND}.`,
   },
   {
     name: 'Raise',
-    swatch: 'bg-brass',
+    swatch: 'bg-play-commit',
     detail:
-      'Put in more than the current bet. The slider shows the legal range; the shortcuts size it against the pot.',
+      'Put in more than the current bet. The slider shows the legal range; the percentage keys size it against the pot.',
   },
 ]
 

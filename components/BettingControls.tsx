@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Minus, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getAudio } from '@/lib/audio'
 import type { LegalActions } from '@/lib/poker/types'
@@ -10,56 +8,51 @@ import type { LegalActions } from '@/lib/poker/types'
 export type SubmitAction = (action: { type: string; amount?: number }) => void
 
 /**
- * The three plays are separated by material: folding is a hairline and
- * nothing else, staying in is cloth, and putting chips in is the only
- * champagne-filled object on the screen. Call is green because it is the
- * cloth, not because it is money — stacks are ivory.
+ * The three plays, after ClubGG's client: moulded keys, told apart by colour
+ * as well as by what they say — fold is red, staying in is green, putting
+ * chips in is gold. The keycap itself is drawn in `globals.css`.
  *
- * Milled rather than moulded: tight corners and small spaced capitals, the
- * way the rest of the Salon is lettered. The row keeps its height, because the
- * table's zoom steps were measured against it.
+ * On a phone the three share the width between them and their words may wrap;
+ * on a desktop they fill the dock's width at ClubGG's proportions.
  */
-const PILL =
-  'h-12 shrink-0 rounded-[2px] px-3 text-[11px] font-semibold tracking-[0.12em] whitespace-nowrap uppercase sm:text-xs sm:tracking-[0.2em]' +
-  ' border border-transparent' +
-  ' transition-[color,border-color,filter] active:translate-y-px'
+const PLAY =
+  'play-key flex h-15.5 min-w-0 flex-1 flex-col items-center justify-center text-center text-base leading-[1.1] font-bold sm:h-19 sm:text-[1.3rem]'
 
-/*
- * On a phone the three actions share the width between them, and the sizer
- * takes a row of its own above: four things in one 393px row left every button
- * too narrow for the word on it.
- */
-const FOLD =
-  'min-w-0 flex-1 bg-transparent text-foreground/80 border-foreground/20 hover:bg-transparent hover:border-foreground/40 hover:text-foreground sm:w-26 sm:flex-none'
-const PASSIVE = 'play-call min-w-0 flex-1 gap-1.5 text-foreground sm:w-32 sm:flex-none'
-const COMMIT = 'brass-button min-w-0 flex-1 sm:w-32 sm:flex-none'
-const STEP = 'grid h-full w-9 shrink-0 place-items-center rounded-[2px] text-muted-foreground hover:text-foreground disabled:opacity-35'
-
-/** What the stepper calls each shortcut when the amount lands on one. */
-const SIZE_NAMES: Record<string, string> = {
-  Min: 'Min',
-  '½': '½ pot',
-  '¾': '¾ pot',
-  Pot: 'Pot',
-  Max: 'All in',
-}
+/** A pot fraction in the sizing row. */
+const KEY =
+  'dock-key grid h-8.5 min-w-0 flex-1 place-items-center text-[15px] font-medium sm:h-9 sm:text-base'
 
 /**
- * The action dock: one row.
+ * The pot fractions ClubGG offers, in the order it lays them out.
+ *
+ * A fraction of the pot as it will stand once you have called: 100% facing a
+ * bet is call, then raise by everything in the middle including your call. A
+ * straight share of the pot as it stands undersized every raise, and preflop
+ * put all four keys below the minimum.
+ */
+const FRACTIONS: Array<[string, number]> = [
+  ['33', 0.33],
+  ['50', 0.5],
+  ['75', 0.75],
+  ['100', 1],
+]
+
+/**
+ * The action dock: a sizing row over the three plays.
  *
  * Every control is drawn from the `legalActions` the server sent. The client
  * never works out for itself what is legal — it would only be guessing, and
  * the server revalidates everything anyway.
  *
- * Sizing lives in the row, not above it, so the table keeps the height. The
- * stepper moves a big blind at a time, and tapping the amount walks through
- * the shortcuts (min, half pot, three-quarter pot, pot, all in) — the same
- * sizes the preset row used to spell out, without the row.
+ * The sizing row is four pot fractions, an amount you can type into, and — on a
+ * desktop — a slider over the whole legal range. A phone drops the slider: the
+ * fractions and the keypad are quicker under a thumb, and it keeps the dock to
+ * two rows so the table does not give up height for it.
  */
 export function BettingControls({
   legal,
   pot,
-  bigBlind,
+  committed = 0,
   busy,
   status,
   onAction,
@@ -67,47 +60,54 @@ export function BettingControls({
   /** Null while it is somebody else's turn: the controls stay, greyed out. */
   legal: LegalActions | null
   pot: number
-  bigBlind: number
+  /** What the viewer already has in front of them this street. */
+  committed?: number
   busy: boolean
   status: string
   onAction: SubmitAction
 }) {
   const idle = legal === null
   const sizing = legal ? (legal.raise ?? legal.bet) : null
+  const clamp = (value: number) =>
+    sizing ? Math.min(Math.max(Math.round(value), sizing.min), sizing.max) : 0
+
   const [chosen, setChosen] = useState(sizing?.min ?? 0)
+  // What is typed into the well, kept apart so a half-typed figure is not
+  // clamped under the cursor. Settled on Enter, on blur, or by the key itself.
+  const [draft, setDraft] = useState<string | null>(null)
+  const typed = draft === null ? null : Number(draft.replace(/[^\d]/g, ''))
+  const amount = clamp(typed && Number.isFinite(typed) ? typed : chosen)
+  const adjustable = sizing ? sizing.min < sizing.max : false
+
+  const settle = () => {
+    if (draft === null) return
+    setChosen(amount)
+    setDraft(null)
+  }
 
   function act(action: { type: string; amount?: number }) {
     getAudio().unlock()
     getAudio().play('click')
+    settle()
     onAction(action)
   }
 
-  const clamp = (value: number) => (sizing ? Math.min(Math.max(value, sizing.min), sizing.max) : 0)
-  const amount = clamp(chosen)
-  const adjustable = sizing ? sizing.min < sizing.max : false
+  const allInBet = sizing !== null && amount === sizing.max
 
-  const shortcuts: Array<[string, number]> = sizing
-    ? ([
-        ['Min', sizing.min],
-        ['½', Math.round(pot * 0.5)],
-        ['¾', Math.round(pot * 0.75)],
-        ['Pot', pot],
-        ['Max', sizing.max],
-      ] as Array<[string, number]>).filter(
-        ([, value], i, all) =>
-          value >= sizing.min &&
-          value <= sizing.max &&
-          all.findIndex(([, other]) => other === value) === i,
-      )
-    : []
-
-  const landedOn = shortcuts.find(([, value]) => value === amount)
-  const sizeName = landedOn ? SIZE_NAMES[landedOn[0]] : 'Custom'
-  // The next shortcut above where the amount sits, wrapping back to the first.
-  const nextShortcut = shortcuts.find(([, value]) => value > amount) ?? shortcuts[0]
+  // Bet and raise bounds are totals for the street, so a fraction is measured
+  // from the level you would be calling to.
+  const toCall = legal?.call?.amount ?? 0
+  const potKeys = FRACTIONS.map(([name, fraction]) => {
+    const raw = Math.round(committed + toCall + fraction * (pot + toCall))
+    return { name, value: clamp(raw), usable: adjustable && sizing !== null && raw >= sizing.min }
+  })
+  // Several fractions can clamp to the same all-in; only the first is lit.
+  const lit = potKeys.find((key) => key.usable && key.value === amount)?.name
 
   return (
-    <div className="relative">
+    // Its own width on a desktop: the keys stretch to fill the dock, so they
+    // cannot size it the way the old fixed-width pills did.
+    <div className="relative w-full sm:w-138">
       {idle && status && (
         <div className="pointer-events-none absolute inset-0 z-1 grid place-items-center">
           <span
@@ -119,122 +119,134 @@ export function BettingControls({
         </div>
       )}
 
-      <div
-        className={cn(
-          'flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2',
-          idle && 'pointer-events-none opacity-40',
-        )}
-      >
-        {idle ? (
-          <>
-            <span className={cn(PILL, FOLD, 'grid place-items-center')} aria-hidden data-testid="action-idle">
-              Fold
-            </span>
-            <span className={cn(PILL, PASSIVE, 'grid place-items-center')} aria-hidden>
-              Call
-            </span>
-          </>
-        ) : (
-          <>
-            <Button
-              className={cn(PILL, FOLD)}
-              disabled={busy}
-              onClick={() => act({ type: 'fold' })}
-              data-testid="action-fold"
-            >
-              Fold
-            </Button>
-
-            {legal.canCheck && (
-              <Button
-                className={cn(PILL, PASSIVE)}
-                disabled={busy}
-                onClick={() => act({ type: 'check' })}
-                data-testid="action-check"
-              >
-                Check
-              </Button>
-            )}
-
-            {legal.call && (
-              <Button
-                className={cn(PILL, PASSIVE)}
-                disabled={busy}
-                onClick={() => act({ type: 'call' })}
-                data-testid="action-call"
-              >
-                <span>{legal.call.allIn ? 'All in' : 'Call'}</span>
-                <span className="font-mono text-[13px] tracking-normal tabular-nums normal-case sm:text-sm">
-                  {legal.call.amount.toLocaleString()}
-                </span>
-              </Button>
-            )}
-          </>
-        )}
-
+      <div className={cn('flex flex-col gap-2.5 sm:gap-3', idle && 'pointer-events-none opacity-45')}>
         {/*
           Always drawn, even with nothing to size — a forced all-in has one
           legal amount, and between turns there is no range — because taking it
-          away is the row jumping under the thumb.
+          away is the dock changing height under the thumb.
         */}
-        <div
-          className="bet-stepper order-first flex h-12 w-full shrink-0 items-center rounded-[2px] sm:order-none sm:w-42"
-          role="group"
-          aria-label="Bet size"
-        >
-          <button
-            type="button"
-            className={STEP}
-            disabled={busy || !adjustable || amount <= (sizing?.min ?? 0)}
-            onClick={() => setChosen(clamp(amount - bigBlind))}
-            aria-label="Less"
-            data-testid="bet-less"
-          >
-            <Minus className="size-4.5" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center disabled:cursor-default"
+        <div className="flex items-center gap-1.5 sm:gap-2" role="group" aria-label="Bet size">
+          {potKeys.map(({ name, value, usable }) => (
+            <button
+              key={name}
+              type="button"
+              className={KEY}
+              disabled={busy || !usable}
+              aria-pressed={name === lit}
+              onClick={() => {
+                setDraft(null)
+                setChosen(value)
+              }}
+              data-testid={`bet-pot-${name}`}
+            >
+              {name}%
+            </button>
+          ))}
+          <input
+            className="dock-amount h-8.5 w-[27%] min-w-0 shrink-0 text-center text-[17px] font-bold tabular-nums sm:h-9 sm:w-28"
+            inputMode="numeric"
+            aria-label="Bet size"
             disabled={busy || !adjustable}
-            onClick={() => nextShortcut && setChosen(nextShortcut[1])}
-            aria-label={sizing ? `${amount.toLocaleString()}, ${sizeName}. Next size` : 'No bet to size'}
-            data-testid="bet-size"
-          >
-            <span className="text-foreground font-mono text-[15px] leading-4.5 font-semibold tabular-nums" data-testid="bet-amount">
-              {sizing ? amount.toLocaleString() : '—'}
-            </span>
-            <span className="text-muted-foreground text-[9px] leading-2.75 font-semibold tracking-[0.08em] uppercase">
-              {sizing ? sizeName : ' '}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={STEP}
-            disabled={busy || !adjustable || amount >= (sizing?.max ?? 0)}
-            onClick={() => setChosen(clamp(amount + bigBlind))}
-            aria-label="More"
-            data-testid="bet-more"
-          >
-            <Plus className="size-4.5" aria-hidden />
-          </button>
+            value={sizing ? (draft ?? amount.toLocaleString()) : '—'}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={settle}
+            onKeyDown={(e) => e.key === 'Enter' && settle()}
+            data-testid="bet-amount"
+          />
+          <input
+            type="range"
+            className="dock-slider hidden h-9 w-28 shrink-0 sm:block"
+            aria-label="Bet size slider"
+            min={sizing?.min ?? 0}
+            max={sizing?.max ?? 0}
+            step={1}
+            value={amount}
+            disabled={busy || !adjustable}
+            onChange={(e) => {
+              setDraft(null)
+              setChosen(Number(e.target.value))
+            }}
+            data-testid="bet-slider"
+          />
         </div>
 
-        {sizing && legal ? (
-          <Button
-            className={cn(PILL, COMMIT)}
-            disabled={busy}
-            onClick={() => act({ type: legal.raise ? 'raise' : 'bet', amount })}
-            data-testid="action-bet"
-          >
-            {legal.raise ? 'Raise' : 'Bet'}
-            {/* The stepper shows the figure; the button still says it aloud. */}
-            <span className="sr-only"> {amount.toLocaleString()}</span>
-          </Button>
-        ) : (
-          <span className={cn(PILL, COMMIT, 'grid place-items-center', !idle && 'opacity-40')} aria-hidden>
-            Raise
-          </span>
-        )}
+        {/* Room under the row for the keys' shadow. */}
+        <div className="flex gap-1.5 pb-1 sm:gap-2">
+          {idle ? (
+            <>
+              <span className={cn(PLAY, 'play-key-fold')} aria-hidden data-testid="action-idle">
+                Fold
+              </span>
+              <span className={cn(PLAY, 'play-key-pass')} aria-hidden>
+                Call
+              </span>
+              <span className={cn(PLAY, 'play-key-commit')} aria-hidden>
+                Raise
+              </span>
+            </>
+          ) : (
+            <>
+              {/*
+                ClubGG's wording when checking is free: nothing is lost by
+                checking, so the key that would fold checks instead, and only
+                a bet coming back round can fold the hand.
+              */}
+              <button
+                type="button"
+                className={cn(PLAY, 'play-key-fold')}
+                disabled={busy}
+                onClick={() => act({ type: legal.canCheck ? 'check' : 'fold' })}
+                data-testid="action-fold"
+              >
+                {legal.canCheck ? 'Check / Fold' : 'Fold'}
+              </button>
+
+              {legal.canCheck && (
+                <button
+                  type="button"
+                  className={cn(PLAY, 'play-key-pass')}
+                  disabled={busy}
+                  onClick={() => act({ type: 'check' })}
+                  data-testid="action-check"
+                >
+                  Check
+                </button>
+              )}
+
+              {legal.call && (
+                <button
+                  type="button"
+                  className={cn(PLAY, 'play-key-pass')}
+                  disabled={busy}
+                  onClick={() => act({ type: 'call' })}
+                  data-testid="action-call"
+                >
+                  <span>{legal.call.allIn ? 'All-in' : 'Call'}</span>
+                  <span className="tabular-nums">{legal.call.amount.toLocaleString()}</span>
+                </button>
+              )}
+
+              {sizing ? (
+                <button
+                  type="button"
+                  className={cn(PLAY, 'play-key-commit')}
+                  disabled={busy}
+                  onClick={() => act({ type: legal.raise ? 'raise' : 'bet', amount })}
+                  data-testid="action-bet"
+                >
+                  <span>{allInBet ? 'All-in' : legal.raise ? 'Raise' : 'Bet'}</span>
+                  <span className="tabular-nums">{amount.toLocaleString()}</span>
+                </button>
+              ) : (
+                // Nothing left to raise with. The key stays, dimmed, so the row
+                // does not re-flow between turns.
+                <span className={cn(PLAY, 'play-key-commit opacity-40')} aria-hidden>
+                  Raise
+                </span>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
