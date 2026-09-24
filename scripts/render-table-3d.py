@@ -24,15 +24,15 @@ import bpy
 # The table, in metres. A real nine-handed table is about 2.1m by 1.1m.
 HALF_STRAIGHT = 0.52  # half the straight run down each side
 END_RADIUS = 0.55  # the radius of each rounded end
-RAIL_RADIUS = 0.075  # the cushion's own thickness
+RAIL_RADIUS = 0.055  # the cushion's own thickness
 SKIRT = 0.13  # how far the table's body drops below the cloth
 
 POSES = {
     # Landscape: the wide 2:1 felt a desktop draws.
     'desktop': {
         'size': (1280, 640),
-        'camera': (0.0, -2.62, 1.46),
-        'lens': 52,
+        'camera': (0.0, -3.15, 1.78),
+        'lens': 50,
         'out': 'public/table-desktop-salon.png',
     },
     # Portrait: the same table stood on its end for a phone.
@@ -122,7 +122,7 @@ def build():
     cloth = stadium('cloth', z=0.0)
     cloth.scale = (0.92, 0.86, 1.0)  # the felt stops short of the cushion
     cloth.data.materials.append(
-        material('felt', (0.024, 0.092, 0.055), 0.95, sheen=0.45, bump=(520.0, 0.045))
+        material('felt', (0.026, 0.1, 0.06), 0.94, sheen=0.35, bump=(520.0, 0.04))
     )
 
     rail = stadium('rail', z=0.012, fill=False, bevel=RAIL_RADIUS)
@@ -132,8 +132,8 @@ def build():
     body.scale = (0.99, 0.99, 1.0)
     body.data.materials.append(material('body', (0.014, 0.014, 0.016), 0.6))
 
-    inlay = stadium('inlay', z=0.052, fill=False, bevel=0.004)
-    inlay.scale = (0.955, 0.925, 1.0)
+    inlay = stadium('inlay', z=0.026, fill=False, bevel=0.0035)
+    inlay.scale = (0.945, 0.905, 1.0)
     inlay.data.materials.append(material('brass', (0.62, 0.48, 0.22), 0.28, metallic=1.0))
 
     bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -SKIRT - 0.02))
@@ -146,11 +146,11 @@ def build():
 def light():
     """One soft lamp over the table, and a dim fill, as a card room is lit."""
     key = bpy.data.lights.new('key', 'AREA')
-    key.energy = 58
-    key.size = 1.9
+    key.energy = 62
+    key.size = 0.85
     key.color = (1.0, 0.95, 0.86)
     key_obj = bpy.data.objects.new('key', key)
-    key_obj.location = (-0.15, -0.08, 1.95)
+    key_obj.location = (-0.08, -0.04, 1.55)
     key_obj.rotation_euler = (math.radians(8), math.radians(-7), 0)
     bpy.context.collection.objects.link(key_obj)
 
@@ -164,7 +164,7 @@ def light():
     bpy.context.collection.objects.link(fill_obj)
 
     rim = bpy.data.lights.new('rim', 'AREA')
-    rim.energy = 60
+    rim.energy = 34
     rim.size = 3.0
     rim.color = (0.7, 0.82, 1.0)
     rim_obj = bpy.data.objects.new('rim', rim)
