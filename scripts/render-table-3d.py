@@ -39,7 +39,10 @@ POSES = {
     'mobile': {
         'size': (864, 1152),
         'camera': (0.0, -2.22, 2.88),
-        'lens': 50,
+        # Long enough that the table reaches the edges of the frame. A phone
+        # gives the table the whole screen, so every percent of the picture
+        # spent on empty room is a percent the table is not using.
+        'lens': 60,
         'look': (0.0, 0.0, -0.42),
         'turn': True,
         'out': 'public/table-mobile.png',
