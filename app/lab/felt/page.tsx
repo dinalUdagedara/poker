@@ -22,7 +22,7 @@ const TABLES = [
   {
     src: '/lab/table-3d.png',
     name: 'Desktop, rendered in 3D',
-    note: 'The same table built as real geometry and lit in Blender (scripts/render-table-3d.py). Honest state of it: the cushion and the shadow are real, but the cloth is flatter and greyer than the one above, and the materials want a proper pass. Not in the app, and not better than what is.',
+    note: 'The same table built as real geometry and lit in Blender (scripts/render-table-3d.py): a padded cushion, a lamp hung over the cloth, a brass line set into the rail, and a shadow the renderer worked out rather than one we drew. Not in the app yet.',
   },
   {
     src: '/lab/mobile-before.png',

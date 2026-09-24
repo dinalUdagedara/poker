@@ -91,7 +91,36 @@ def stadium(name, z=0.0, fill=True, bevel=None, extrude=0.0):
     return obj
 
 
-def material(name, base, roughness, metallic=0.0, sheen=0.0, bump=None):
+def weave(mat, bsdf, scale, strength):
+    """A woven cloth, rather than noise: two fine gratings crossed.
+
+    Cloth is threads over threads, and that is what catches the light at a
+    grazing angle. A cloud of noise gives a surface that is merely uneven.
+    """
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    coords = nodes.new('ShaderNodeTexCoord')
+    warp = nodes.new('ShaderNodeTexWave')
+    warp.bands_direction = 'X'
+    warp.inputs['Scale'].default_value = scale
+    warp.inputs['Distortion'].default_value = 1.2
+    weft = nodes.new('ShaderNodeTexWave')
+    weft.bands_direction = 'Y'
+    weft.inputs['Scale'].default_value = scale
+    weft.inputs['Distortion'].default_value = 1.2
+    mix = nodes.new('ShaderNodeMix')
+    mix.data_type = 'FLOAT'
+    mix.inputs['Factor'].default_value = 0.5
+    links.new(coords.outputs['Object'], warp.inputs['Vector'])
+    links.new(coords.outputs['Object'], weft.inputs['Vector'])
+    links.new(warp.outputs['Fac'], mix.inputs[2])
+    links.new(weft.outputs['Fac'], mix.inputs[3])
+    bumper = nodes.new('ShaderNodeBump')
+    bumper.inputs['Strength'].default_value = strength
+    links.new(mix.outputs[0], bumper.inputs['Height'])
+    links.new(bumper.outputs['Normal'], bsdf.inputs['Normal'])
+
+
+def material(name, base, roughness, metallic=0.0, sheen=0.0, bump=None, cloth=None):
     """A Principled surface, which is what every real material here is."""
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -104,6 +133,9 @@ def material(name, base, roughness, metallic=0.0, sheen=0.0, bump=None):
         # as felt rather than as green plastic.
         bsdf.inputs['Sheen Weight'].default_value = sheen
         bsdf.inputs['Sheen Roughness'].default_value = 0.35
+
+    if cloth:
+        weave(mat, bsdf, *cloth)
 
     if bump:
         nodes, links = mat.node_tree.nodes, mat.node_tree.links
@@ -122,19 +154,26 @@ def build():
     cloth = stadium('cloth', z=0.0)
     cloth.scale = (0.92, 0.86, 1.0)  # the felt stops short of the cushion
     cloth.data.materials.append(
-        material('felt', (0.026, 0.1, 0.06), 0.94, sheen=0.35, bump=(520.0, 0.04))
+        # The room's racing green, and a weave you can see at the size this is
+        # drawn — the two things that were most obviously missing.
+        material('felt', (0.03, 0.115, 0.07), 0.97, sheen=0.14, cloth=(150.0, 0.55))
     )
 
     rail = stadium('rail', z=0.012, fill=False, bevel=RAIL_RADIUS)
-    rail.data.materials.append(material('leather', (0.014, 0.014, 0.017), 0.52, bump=(900.0, 0.1)))
+    leather = material('leather', (0.015, 0.015, 0.018), 0.5, bump=(1400.0, 0.09))
+    hide = leather.node_tree.nodes['Principled BSDF']
+    if 'Coat Weight' in hide.inputs:
+        hide.inputs['Coat Weight'].default_value = 0.12
+        hide.inputs['Coat Roughness'].default_value = 0.4
+    rail.data.materials.append(leather)
 
     body = stadium('body', z=-SKIRT, extrude=SKIRT / 2)
     body.scale = (0.99, 0.99, 1.0)
     body.data.materials.append(material('body', (0.014, 0.014, 0.016), 0.6))
 
-    inlay = stadium('inlay', z=0.026, fill=False, bevel=0.0035)
+    inlay = stadium('inlay', z=0.027, fill=False, bevel=0.005)
     inlay.scale = (0.945, 0.905, 1.0)
-    inlay.data.materials.append(material('brass', (0.62, 0.48, 0.22), 0.28, metallic=1.0))
+    inlay.data.materials.append(material('brass', (0.78, 0.62, 0.32), 0.22, metallic=1.0))
 
     bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -SKIRT - 0.02))
     floor = bpy.context.active_object
@@ -146,8 +185,8 @@ def build():
 def light():
     """One soft lamp over the table, and a dim fill, as a card room is lit."""
     key = bpy.data.lights.new('key', 'AREA')
-    key.energy = 62
-    key.size = 0.85
+    key.energy = 34
+    key.size = 0.7
     key.color = (1.0, 0.95, 0.86)
     key_obj = bpy.data.objects.new('key', key)
     key_obj.location = (-0.08, -0.04, 1.55)
@@ -164,7 +203,7 @@ def light():
     bpy.context.collection.objects.link(fill_obj)
 
     rim = bpy.data.lights.new('rim', 'AREA')
-    rim.energy = 34
+    rim.energy = 26
     rim.size = 3.0
     rim.color = (0.7, 0.82, 1.0)
     rim_obj = bpy.data.objects.new('rim', rim)
@@ -213,6 +252,9 @@ def render(pose, samples, out):
         print('rendering on', [d.name for d in prefs.devices if d.use])
     except Exception as error:  # a machine without Metal renders on its cores
         print('rendering on the CPU:', error)
+
+    scene.view_settings.view_transform = 'Standard'
+    scene.view_settings.look = 'None'
 
     scene.render.resolution_x, scene.render.resolution_y = pose['size']
     scene.render.film_transparent = True
