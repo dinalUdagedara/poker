@@ -9,9 +9,8 @@ const CHIP =
   'inline-flex h-7 items-center gap-1 rounded-full border border-white/12 bg-black/55 px-2.5 text-[11px] font-medium text-white/80 shadow-sm backdrop-blur-sm' +
   ' transition-colors hover:border-white/25 hover:text-white'
 
-const ICON =
-  'grid size-10 place-items-center rounded-full border border-white/12 bg-black/55 text-white/80 shadow-sm backdrop-blur-sm' +
-  ' transition-colors hover:border-white/25 hover:text-white'
+/** Beside the action dock, so cut as one of its grey keys. */
+const ICON = 'dock-key grid size-10 place-items-center text-white/85 hover:text-white'
 
 /** Which hand the drawer should open on. */
 export type HistoryOpen = 'current' | 'past'
