@@ -204,11 +204,13 @@ def build():
     body = stadium('body', z=-SKIRT, extrude=SKIRT / 2, inset=-RAIL_RADIUS * 0.55)
     body.data.materials.append(material('body', (0.014, 0.014, 0.016), 0.6))
 
-    ribbon('line', RAIL_RADIUS * 3.2, 0.0035, 0.0008, material('line', (0.6, 0.56, 0.36), 0.8))
-
+    # One line, and it is the betting line: far enough in from the cushion that
+    # it is plainly a line players put chips behind. A second ring following it
+    # a finger away read as a printing error rather than as trim.
+    #
     # Painted gold rather than polished: a mirror ring can only be bright on
     # the arc that faces the lamp, and the rest of it goes out.
-    ribbon('inlay', RAIL_RADIUS * 1.5, 0.004, 0.0011, material('brass', (0.72, 0.57, 0.3), 0.85))
+    ribbon('line', RAIL_RADIUS * 3.2, 0.004, 0.0009, material('line', (0.66, 0.54, 0.31), 0.85))
 
     bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -SKIRT - 0.02))
     floor = bpy.context.active_object
