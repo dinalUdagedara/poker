@@ -51,14 +51,13 @@
   --color-brass-deep: var(--brass-deep);
 
   /*
-   * The three plays. They differ in material as well as hue, because a red
-   * fold button on a red table is one object: folding is unlit stone, staying
-   * in is felt, and committing chips is the only metal on the screen.
+   * The three plays, one colour each: fold is red, staying in is green, and
+   * putting chips in is gold. These are the faces of the keys in the dock, so
+   * anything that explains a play can be painted in the play's own colour.
    */
   --color-play-fold: var(--play-fold);
-  --color-play-fold-lit: var(--play-fold-lit);
   --color-play-pass: var(--play-pass);
-  --color-play-pass-lit: var(--play-pass-lit);
+  --color-play-commit: var(--play-commit);
 
   /*
    * The red suits. A signal red rather than the room's own red: a heart drawn
@@ -240,16 +239,9 @@
   --plate: oklch(0.36 0.009 157);
   --plate-deep: oklch(0.14 0.005 160);
 
-  --play-fold: oklch(0.24 0.006 157);
-  --play-fold-lit: oklch(0.3 0.008 157);
-  /*
-   * Staying in is cloth, but not this cloth. Held at the felt's own hue it
-   * became the one button you could not see against the table behind it, so it
-   * is lifted a step and given a little more green — near enough to still read
-   * as "the colour of staying in", far enough to be an object on the table.
-   */
-  --play-pass: oklch(0.47 0.08 160);
-  --play-pass-lit: oklch(0.53 0.085 160);
+  --play-fold: #c42a2b;
+  --play-pass: #2b8e41;
+  --play-commit: #d7a13a;
 
   /* A card's red: deep and slightly warm, printed rather than lit. */
   --suit-red: oklch(0.5 0.17 25);
@@ -638,8 +630,8 @@
 }
 
 /*
- * The action dock. One row of pills on the room — no sheet, no hairline — at
- * every width, so the table keeps the height a console used to take.
+ * The action dock, straight on the room — no sheet, no hairline: a sizing row
+ * over the three plays.
  */
 .action-dock {
   display: flex;
@@ -658,38 +650,269 @@
   }
 }
 
-/* The bet stepper: set into the room rather than onto it, like a well. */
-.bet-stepper {
-  background: oklch(0 0 0 / 0.32);
-  border: 1px solid oklch(0.789 0.066 86 / 0.24);
+/*
+ * The dock's keys, after ClubGG's client: a sizing row of grey pot keys, an
+ * amount well and a slider, over three moulded keys for the plays.
+ */
+
+/* A pot fraction: a flat grey cap with a dark foot. */
+.dock-key {
+  border-radius: 7px;
+  background: linear-gradient(180deg, #45474b, #34363a);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.1),
+    inset 0 -2px 0 oklch(0 0 0 / 0.25),
+    0 2px 0 #151618,
+    0 4px 6px oklch(0 0 0 / 0.5);
+  color: #d4d4d4;
+  transition: filter 120ms;
 }
 
-/* Staying in: cloth, lit along its top edge. */
-.play-call {
-  border-color: oklch(0.896 0.044 90 / 0.18);
-  background: linear-gradient(180deg, var(--play-pass-lit), var(--play-pass));
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.12);
+.dock-key:hover:not(:disabled) {
+  filter: brightness(1.15);
 }
 
-.play-call:hover {
-  filter: brightness(1.08);
+.dock-key:active:not(:disabled) {
+  translate: 0 2px;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.08),
+    0 2px 3px oklch(0 0 0 / 0.5);
+}
+
+/* Out of range: sits darker rather than fading, the way ClubGG shows it. */
+.dock-key:disabled {
+  background: #26272a;
+  color: #8e8e8e;
+}
+
+/* The fraction the amount is sitting on. */
+.dock-key[aria-pressed='true'] {
+  box-shadow:
+    inset 0 0 0 1px #c9ccd0,
+    0 2px 0 #151618,
+    0 4px 6px oklch(0 0 0 / 0.5);
+  color: #fff;
+}
+
+/* A black well, ringed in the fold key's red. */
+.dock-amount {
+  border: 2px solid #e8584f;
+  border-radius: 6px;
+  background: #000;
+  color: #fff;
+  outline: none;
+}
+
+.dock-amount:focus {
+  box-shadow: 0 0 0 2px oklch(0.63 0.19 27 / 0.35);
+}
+
+.dock-amount:disabled {
+  border-color: oklch(0.63 0.19 27 / 0.4);
+  color: #8e8e8e;
 }
 
 /*
- * Next-hand countdown: the fill sweeps the whole brass face. The unfilled
- * portion is the wait left; when it covers the button, the hand deals.
+ * A thin black groove with a red poker chip for a thumb: six white edge spots,
+ * a pale inset ring and a red face.
  */
-.next-hand-button {
-  background: linear-gradient(180deg, oklch(0.72 0.05 86) 0%, oklch(0.6 0.06 82) 100%);
+.dock-slider {
+  --chip-red: #d23d36;
+  --chip:
+    radial-gradient(circle, #d8444a 0 50%, oklch(1 0 0 / 0.6) 50% 54%, var(--chip-red) 54% 64%, transparent 64%),
+    conic-gradient(
+      from -9deg,
+      #fff 0deg 18deg, var(--chip-red) 18deg 60deg,
+      #fff 60deg 78deg, var(--chip-red) 78deg 120deg,
+      #fff 120deg 138deg, var(--chip-red) 138deg 180deg,
+      #fff 180deg 198deg, var(--chip-red) 198deg 240deg,
+      #fff 240deg 258deg, var(--chip-red) 258deg 300deg,
+      #fff 300deg 318deg, var(--chip-red) 318deg 360deg
+    );
+
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
 }
 
-.next-hand-button:hover {
-  background: linear-gradient(180deg, oklch(0.76 0.05 87) 0%, oklch(0.64 0.06 83) 100%);
+.dock-slider:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.dock-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: #060606;
+  box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.8), 0 1px 0 oklch(1 0 0 / 0.08);
+}
+
+.dock-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: #060606;
+  box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.8), 0 1px 0 oklch(1 0 0 / 0.08);
+}
+
+.dock-slider::-webkit-slider-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: calc(4px - 0.875rem);
+  appearance: none;
+  border: none;
+  border-radius: 9999px;
+  background: var(--chip);
+  box-shadow: 0 2px 4px oklch(0 0 0 / 0.6);
+}
+
+.dock-slider::-moz-range-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 9999px;
+  background: var(--chip);
+  box-shadow: 0 2px 4px oklch(0 0 0 / 0.6);
+}
+
+/*
+ * A play: a keycap, sampled off ClubGG's Check / Fold key (338 × 158 in the
+ * capture). Seen from just above and in front, so the skirt shows on every
+ * side — a pale lip along the top (13px of 158), a dark foot under the face
+ * (22px) and a side on each end (24px) — meeting on the diagonal at the
+ * corners. The face is darkest just under the lip and lightens towards the
+ * foot, with a thin light seam where it drops into the skirt.
+ *
+ * The skirt is the button's border, which is what draws the diagonals. The
+ * face is `::before`, over the padding box with corners of its own; `::after`
+ * draws the lit outer edge of the two sides and the shading on the lip.
+ */
+.play-key {
+  --skirt-t: 5px;
+  --skirt-x: 8px;
+  --skirt-b: 9px;
+
+  position: relative;
+  isolation: isolate;
+  border-style: solid;
+  border-width: var(--skirt-t) var(--skirt-x) var(--skirt-b);
+  border-color: var(--lip) var(--side) var(--foot);
+  border-radius: 5px;
+  background: var(--side);
+  box-shadow: 0 2px 4px oklch(0 0 0 / 0.35);
+  color: var(--ink, #fff);
+  text-shadow: var(--ink-shadow, 0 1px 1px oklch(0 0 0 / 0.25));
+  transition:
+    filter 120ms,
+    translate 70ms;
+}
+
+@media (min-width: 640px) {
+  .play-key {
+    --skirt-t: 6px;
+    --skirt-x: 11px;
+    --skirt-b: 11px;
+  }
+}
+
+.play-key::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 5px;
+  background: linear-gradient(180deg, var(--face-lip) 0%, var(--face-top) 10%, var(--face-foot) 100%);
+  box-shadow:
+    inset 2px 0 0 var(--seam),
+    inset -2px 0 0 var(--seam),
+    inset 0 -2px 0 var(--seam-foot);
+  pointer-events: none;
+}
+
+.play-key::after {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  inset: calc(var(--skirt-t) * -1) calc(var(--skirt-x) * -1) calc(var(--skirt-b) * -1);
+  border-radius: 5px;
+  /* The lip is palest at its top edge and warms towards the face. */
+  background: linear-gradient(180deg, var(--lip-top) 0, transparent var(--skirt-t));
+  box-shadow:
+    inset 2px 0 0 var(--rim),
+    inset -2px 0 0 var(--rim);
+  pointer-events: none;
+}
+
+.play-key:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.play-key:active:not(:disabled) {
+  translate: 0 1px;
+  filter: brightness(0.93);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.35);
+}
+
+/* Folding: ClubGG's red, as sampled. */
+.play-key-fold {
+  --lip-top: #ee9090;
+  --lip: #e67d7b;
+  --side: #b22725;
+  --rim: #c63b3b;
+  --foot: #7d1917;
+  --face-lip: #be2425;
+  --face-top: #ad1f1f;
+  --face-foot: #de3a3d;
+  --seam: #d64141;
+  --seam-foot: #e8454a;
+}
+
+/* Staying in: the same key, turned green at the same lightness. */
+.play-key-pass {
+  --lip-top: #8ddca1;
+  --lip: #7cd493;
+  --side: #358e4b;
+  --rim: #4da062;
+  --foot: #1a5226;
+  --face-lip: #36984f;
+  --face-top: #2e8945;
+  --face-foot: #42c262;
+  --seam: #49b965;
+  --seam-foot: #4acf6b;
+}
+
+/* Putting chips in: gold, a step lighter so it reads as metal. */
+.play-key-commit {
+  --lip-top: #f5e2b5;
+  --lip: #eccf8f;
+  --side: #c8962f;
+  --rim: #d9ab52;
+  --foot: #7a5a17;
+  --face-lip: #d7a236;
+  --face-top: #cf962a;
+  --face-foot: #e6bb5e;
+  --seam: #e0b862;
+  --seam-foot: #efc76e;
+  --ink: #2b1d05;
+  --ink-shadow: 0 1px 0 oklch(1 0 0 / 0.3);
+}
+
+/*
+ * Next-hand countdown: the gold key's face starts dim, and the lit face sweeps
+ * across it. The dim part is the wait left; when it is covered, the hand deals.
+ */
+.next-hand-key {
+  --face-lip: #9e7a2f;
+  --face-top: #947126;
+  --face-foot: #ad883a;
 }
 
 .next-hand-fill {
   width: 0%;
-  background: linear-gradient(180deg, oklch(0.869 0.054 89) 0%, oklch(0.749 0.072 86) 100%);
+  border-radius: 5px;
+  background: linear-gradient(180deg, #d7a236 0%, #cf962a 10%, #e6bb5e 100%);
+  box-shadow:
+    inset 2px 0 0 #e0b862,
+    inset 0 -2px 0 #efc76e;
   animation: next-hand-fill var(--next-hand-ms, 4s) linear forwards;
 }
 

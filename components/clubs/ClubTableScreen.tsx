@@ -597,7 +597,7 @@ export function ClubTableScreen({
                       <BettingControls
                         legal={hand?.legalActions ?? null}
                         pot={hand?.pot ?? 0}
-                        bigBlind={view.settings.bigBlind}
+                        committed={hand?.players.find((p) => p.id === `s${view.you}`)?.currentBet}
                         busy={busy}
                         status=""
                         onAction={(move) => void send({ action: 'act', move })}

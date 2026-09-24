@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getAudio } from '@/lib/audio'
 
@@ -16,8 +15,8 @@ export const NEXT_HAND_MS = 4000
 /**
  * Deal the next hand — by click, or when the countdown across the button runs out.
  *
- * The fill is the whole button, not a thin bar under it: the remaining time is
- * the unfilled brass, and the hand deals the moment it is covered.
+ * The dock's gold key. The fill is its whole face, not a thin bar under it: the
+ * remaining time is the dim gold, and the hand deals the moment it is covered.
  */
 export function NextHandButton({
   busy,
@@ -59,8 +58,9 @@ export function NextHandButton({
   }
 
   return (
-    <Button
-      className="next-hand-button brass-button relative h-12 w-full max-w-xs overflow-hidden rounded-[2px] text-sm font-semibold tracking-[0.24em] uppercase"
+    <button
+      type="button"
+      className="play-key play-key-commit next-hand-key flex h-15.5 w-full max-w-xs items-center justify-center text-base font-bold sm:h-19 sm:text-[1.3rem]"
       disabled={busy}
       onClick={go}
       data-testid="next-hand"
@@ -74,6 +74,6 @@ export function NextHandButton({
         )}
       />
       <span className="relative z-10">Next hand</span>
-    </Button>
+    </button>
   )
 }

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Logo } from './Logo'
 import { TableFelt } from './TableFelt'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
@@ -481,14 +481,15 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                       somewhere to go that is not the door.
                     */}
                     {canRematch && (
-                      <Button
-                        className="h-12 w-full brass-button rounded-[2px] text-sm font-semibold tracking-[0.24em] uppercase"
+                      <button
+                        type="button"
+                        className="play-key play-key-commit flex h-15.5 w-full items-center justify-center text-base font-bold sm:h-19 sm:text-[1.3rem]"
                         disabled={busy}
                         onClick={() => void playAgain()}
                         data-testid="play-again"
                       >
                         {busy ? 'Opening…' : 'Play again'}
-                      </Button>
+                      </button>
                     )}
                     {/* This Button has no asChild, so the link carries its styles. */}
                     <Link
@@ -545,7 +546,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
                 <BettingControls
                   legal={table.legalActions}
                   pot={table.pot}
-                  bigBlind={table.bigBlind}
+                  committed={you?.currentBet}
                   busy={busy}
                   status={busy ? 'Thinking…' : 'Waiting for the other players…'}
                   onAction={(action) => void send(`/api/table/${tableId}/action`, action)}
