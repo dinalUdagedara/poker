@@ -25,15 +25,15 @@ The red suits take `--suit-red`, not the signal red. It is deeper and slightly w
 
 ## Play semantics
 
-The three decisions a player makes are separated by **material**, not only hue — a red fold button on a red table is one object:
+The three decisions a player makes each have their own colour, on the same moulded key. The key is ClubGG's, sampled pixel by pixel off their Check / Fold key: a pale lip along the top, a dark foot, sides that meet them on the diagonal, and a face that lightens towards the foot.
 
-| Play | Material | Token |
+| Play | Colour | Token |
 | --- | --- | --- |
-| Fold | Unlit stone — the one cold surface in a warm room | `--play-fold` |
-| Check / Call | Felt green — staying in without paying | `--play-pass` |
-| Bet / Raise | Struck brass — the only metal on the screen | `--play-commit` |
+| Fold (and Check / Fold) | ClubGG's red | `--play-fold` |
+| Check / Call | Green — staying in without paying | `--play-pass` |
+| Bet / Raise / All-in | Gold — the one that moves chips | `--play-commit` |
 
-The primary button elsewhere in the system is the same brass, for the same reason: it is always the action that costs something.
+The tokens are the key faces. The rest of each key (lip, sides, foot, seams) is set on its `.play-*` class. Next hand is the gold key too, with its countdown sweeping the face. The primary button elsewhere in the system is still brass, for the same reason the commit key is gold: it is always the action that costs something.
 
 ## Type
 
@@ -48,8 +48,8 @@ Every duration is a physical claim: dealing is quick and light (`--dur-deal`), c
 | Class | What it is | Shown in |
 | --- | --- | --- |
 | `.btn` with `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-icon`, `.btn-block` | Actions — the primary is the one struck-brass object | components/buttons.html |
-| `.play` with `.play-fold`, `.play-pass`, `.play-commit`, `.play-note` | The three plays, separated by material | components/buttons.html |
-| `.action-dock` + `.bet-stepper` (`.bet-step`, `.bet-amount`, `.bet-size`) | The one-row dock: the plays, with the stepper between call and raise | components/action-bar.html |
+| `.play` with `.play-fold`, `.play-pass`, `.play-commit`; `.play-countdown` + `.play-fill` | The three plays as moulded keys, and Next hand with its countdown | components/buttons.html |
+| `.action-dock` with `.dock-sizing` (`.dock-key`, `.dock-amount`, `.dock-slider`) and `.dock-plays`; `.dock-key.dock-icon` | The dock: pot keys, the amount and a slider over the three plays, with the hand-log icons beside it | components/action-bar.html |
 | `.tag` with `.tag-accent`, `.tag-danger`, `.tag-mono` | Small labels — blinds, street, status | components/buttons.html |
 | `.card-face` with `.card-red`, `.card-back`, `.card-xs/-sm/-lg`, `.card-slot`, `.hand-folded` | Playing cards — paper, the only light surface | components/playing-cards.html |
 | `.chip` with `.chip-1/-5/-25/-100/-500/-1000` | Chips — denominations, never decoration | components/chips.html |
@@ -69,7 +69,7 @@ States are built in: hovers step the surface ramp and warm the border to brass, 
 - Say whose turn it is on the **felt**, not only on the plate — a tinted border is the same weight as every other border on a busy table.
 - Reserve height for anything that can appear and disappear at a seat, so a bot acting never nudges the table under the pointer.
 - Keep the action bar mounted and dimmed between turns rather than swapping it for a message; replacing it collapses the row on every opponent action.
-- Size a bet in the row: − and + move a big blind, and tapping the amount walks the shortcuts. Never stack a presets strip or a slider above the plays — the table pays for every pixel of height the dock takes.
+- Size a bet in the row above the plays: the four pot keys size a real pot raise (measured from the level you would call to), the amount can be typed, and a desktop gets the slider. On a phone the slider goes, so the dock stays two rows — the table pays for every pixel of height the dock takes.
 - Read hands back over the table — a sheet on a phone, a dialog on a desktop — rather than on a page that takes the player out of the game.
 
 ## Don't
@@ -89,11 +89,11 @@ States are built in: hovers step the surface ramp and warm the border to brass, 
 - `foundations/color.html` — roles, ramps, the table palette and the play semantics.
 - `foundations/type.html` — the three voices and the scale at real sizes.
 - `foundations/layout.html` — spacing, radii, elevation and the motion tokens.
-- `components/buttons.html` — buttons, the three plays, and tags.
+- `components/buttons.html` — buttons, the three plays as keys, and tags.
 - `components/playing-cards.html` — cards in every size, the house back, and the rules for them.
 - `components/chips.html` — denominations, stacks, wagers and the pot.
 - `components/seat.html` — a seat resting, to act, winning and folded.
-- `components/action-bar.html` — the one-row dock in all three of its states.
+- `components/action-bar.html` — the dock facing a bet, checked to, between turns, and the Next hand key.
 - `components/panels.html` — panels, rows and wells.
 - `components/forms.html` — inputs, the segmented control and one-tap choices.
 - `components/dialog.html` — the rankings chart as a modal over the felt.

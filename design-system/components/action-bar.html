@@ -1,4 +1,4 @@
-<!-- @dsCard group="Components" name="Action bar" subtitle="One row: fold, call, the bet stepper, raise. The table keeps the height." viewport="640x640" -->
+<!-- @dsCard group="Components" name="Action bar" subtitle="Pot keys, an amount and a slider over three moulded keys: fold red, call green, raise gold." viewport="640x760" -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -8,6 +8,12 @@
     <style>
       .dock-frame {
         position: relative;
+      }
+      .dock-row {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: var(--space-2);
       }
       .status {
         display: inline-block;
@@ -33,53 +39,85 @@
       <div>
         <h2>Action dock</h2>
         <p class="muted" style="font-size: 13px; margin-top: 6px">
-          One row at the bottom of the table. The stepper <em>is</em> the sizing control &mdash;
-          there is no presets strip or slider stacked above the plays, because every pixel of
-          height the dock takes is a pixel the table gives up. The figure lives in the stepper;
-          the brass button still says it aloud to a screen reader.
+          A sizing row over the three plays, after ClubGG&rsquo;s client. The pot keys size a real
+          pot raise &mdash; measured from the level you would call to, so 100% facing a bet is the
+          call, then the whole pot including it. The amount can be typed into, and the key that
+          commits says the figure on its second line.
         </p>
       </div>
 
       <div class="col" style="gap: var(--space-2)">
-        <span class="eyebrow">Your turn</span>
+        <span class="eyebrow">Facing a bet</span>
+        <p class="muted" style="font-size: 12px">
+          Pot 150, 100 to call, raise from 200. 33% would be 183, under the minimum, so it sits
+          darker; only one key is ever lit.
+        </p>
         <div class="action-dock">
-          <button class="play play-fold">Fold</button>
-          <button class="play play-pass">Call <span class="money">250</span></button>
-          <div class="bet-stepper" role="group" aria-label="Bet size">
-            <button class="bet-step" aria-label="Less">&minus;</button>
-            <button class="bet-amount" aria-label="620, half pot. Next size">
-              <span class="money">620</span>
-              <span class="bet-size">&frac12; pot</span>
-            </button>
-            <button class="bet-step" aria-label="More">+</button>
+          <div class="dock-sizing" role="group" aria-label="Bet size">
+            <button class="dock-key" disabled>33%</button>
+            <button class="dock-key">50%</button>
+            <button class="dock-key">75%</button>
+            <button class="dock-key" aria-pressed="true">100%</button>
+            <input class="dock-amount" inputmode="numeric" aria-label="Bet size" value="350" />
+            <input class="dock-slider" type="range" min="200" max="2075" value="350" aria-label="Bet size slider" />
           </div>
-          <button class="play play-commit">Raise</button>
+          <div class="dock-plays">
+            <button class="play play-fold">Fold</button>
+            <button class="play play-pass"><span>Call</span><span>100</span></button>
+            <button class="play play-commit"><span>Raise</span><span>350</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap: var(--space-2)">
+        <span class="eyebrow">Checked to you</span>
+        <p class="muted" style="font-size: 12px">
+          Nothing to call, so the red key reads <b>Check / Fold</b> and checks: nothing is lost by
+          checking, and only a bet coming back round can fold the hand.
+        </p>
+        <div class="action-dock">
+          <div class="dock-sizing" role="group" aria-label="Bet size">
+            <button class="dock-key">33%</button>
+            <button class="dock-key">50%</button>
+            <button class="dock-key">75%</button>
+            <button class="dock-key">100%</button>
+            <input class="dock-amount" inputmode="numeric" aria-label="Bet size" value="100" />
+            <input class="dock-slider" type="range" min="50" max="2025" value="100" aria-label="Bet size slider" />
+          </div>
+          <div class="dock-plays">
+            <button class="play play-fold">Check / Fold</button>
+            <button class="play play-pass">Check</button>
+            <button class="play play-commit"><span>Bet</span><span>100</span></button>
+          </div>
         </div>
       </div>
 
       <div class="col" style="gap: var(--space-2)">
         <span class="eyebrow">On a desktop</span>
         <p class="muted" style="font-size: 12px">
-          The hand log and the finished hands shrink to icons at either end of the row, so they
-          cost no height of their own. Both open over the table &mdash; a sheet on a phone, a
-          dialog on a desktop &mdash; never a page that leaves the game.
+          The hand log and the finished hands are grey keys at either end of the dock, so they cost
+          no height of their own. Both open over the table &mdash; a sheet on a phone, a dialog on
+          a desktop &mdash; never a page that leaves the game. On a phone the slider goes, and the
+          dock stays two rows.
         </p>
-        <div class="row" style="gap: var(--space-2); align-items: center; justify-content: center">
-          <button class="btn btn-icon" aria-label="This hand">&#9776;</button>
+        <div class="dock-row">
+          <button class="dock-key dock-icon" aria-label="This hand">&#9776;</button>
           <div class="action-dock">
-            <button class="play play-fold">Fold</button>
-            <button class="play play-pass">Call <span class="money">250</span></button>
-            <div class="bet-stepper" role="group" aria-label="Bet size">
-              <button class="bet-step" aria-label="Less">&minus;</button>
-              <button class="bet-amount" aria-label="620, half pot. Next size">
-                <span class="money">620</span>
-                <span class="bet-size">&frac12; pot</span>
-              </button>
-              <button class="bet-step" aria-label="More">+</button>
+            <div class="dock-sizing" role="group" aria-label="Bet size">
+              <button class="dock-key" disabled>33%</button>
+              <button class="dock-key" aria-pressed="true">50%</button>
+              <button class="dock-key">75%</button>
+              <button class="dock-key">100%</button>
+              <input class="dock-amount" inputmode="numeric" aria-label="Bet size" value="225" />
+              <input class="dock-slider" type="range" min="200" max="2075" value="225" aria-label="Bet size slider" />
             </div>
-            <button class="play play-commit">Raise</button>
+            <div class="dock-plays">
+              <button class="play play-fold">Fold</button>
+              <button class="play play-pass"><span>Call</span><span>100</span></button>
+              <button class="play play-commit"><span>Raise</span><span>225</span></button>
+            </div>
           </div>
-          <button class="btn btn-icon" aria-label="Past hands">&#8634;</button>
+          <button class="dock-key dock-icon" aria-label="Past hands">&#8634;</button>
         </div>
       </div>
 
@@ -89,15 +127,20 @@
           <div class="status-over">
             <span class="status">Waiting for the other players&hellip;</span>
           </div>
-          <div class="action-dock" style="opacity: 0.4">
-            <span class="play play-fold">Fold</span>
-            <span class="play play-pass">Call</span>
-            <div class="bet-stepper">
-              <span class="bet-step">&minus;</span>
-              <span class="bet-amount"><span class="money">&mdash;</span><span class="bet-size">&nbsp;</span></span>
-              <span class="bet-step">+</span>
+          <div class="action-dock" style="opacity: 0.45">
+            <div class="dock-sizing">
+              <span class="dock-key">33%</span>
+              <span class="dock-key">50%</span>
+              <span class="dock-key">75%</span>
+              <span class="dock-key">100%</span>
+              <input class="dock-amount" value="&mdash;" disabled aria-hidden="true" />
+              <input class="dock-slider" type="range" disabled aria-hidden="true" />
             </div>
-            <span class="play play-commit">Raise</span>
+            <div class="dock-plays">
+              <span class="play play-fold">Fold</span>
+              <span class="play play-pass">Call</span>
+              <span class="play play-commit">Raise</span>
+            </div>
           </div>
         </div>
       </div>
@@ -111,17 +154,19 @@
             </p>
             <p class="muted" style="font-size: 13px">Two pair</p>
           </div>
-          <button class="btn btn-primary btn-block" style="height: 48px; max-width: 280px; letter-spacing: 0.06em; text-transform: uppercase">
-            Next hand
+          <!-- The countdown: the lit face sweeps across the dim one, and the hand deals when it is covered. -->
+          <button class="play play-commit play-countdown" style="flex: none; width: 100%; max-width: 320px">
+            <span class="play-fill" aria-hidden="true"></span>
+            <span>Next hand</span>
           </button>
         </div>
       </div>
 
       <p class="muted" style="font-size: 12px">
-        The row stays mounted and dims between turns, with the same four slots in the same
-        places, so it never jumps under the thumb. With nothing to size &mdash; a forced all-in,
-        or somebody else deciding &mdash; the stepper and the brass button stay where they are,
-        greyed out, rather than leaving a hole.
+        The dock stays mounted and dims between turns, with the sizing row and the three keys in
+        the same places, so it never jumps under the thumb. With nothing to size &mdash; a forced
+        all-in, or somebody else deciding &mdash; the sizing row and the gold key stay where they
+        are, greyed out, rather than leaving a hole.
       </p>
     </div>
   </body>

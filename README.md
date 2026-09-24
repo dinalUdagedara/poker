@@ -171,8 +171,8 @@ the design system for new work. This folder is the mirror of what was pushed
 there; re-pushing it is a `DesignSync` job, not something the app build does.
 
 [design-system/readme.md](design-system/readme.md) is the guide proper: what
-each class is for, and the rules — why fold is not red, why a card back is not
-red either, and why green only ever means money.
+each class is for, and the rules — why each play has its own colour on the same
+moulded key, why a card back is not red, and why green only ever means money.
 
 ## The rest of the docs
 
