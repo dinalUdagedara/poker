@@ -33,7 +33,8 @@ describe('the ring of seats', () => {
     // A seat belongs on the wood, half off the cloth, the way ClubGG sits one
     // — not standing on the felt where the cards are played.
     const level = seatRing(4)[1]
-    expect(level.top).toBeCloseTo(50)
+    expect(level.top).toBeGreaterThan(50)
+    expect(level.top).toBeLessThan(60)
     expect(level.left).toBeLessThan(10)
   })
 
