@@ -22,7 +22,7 @@ const TABLES = [
   {
     src: '/lab/table-3d.png',
     name: 'Desktop, rendered in 3D',
-    note: 'The same table built as real geometry and lit in Blender (scripts/render-table-3d.py): a padded cushion, a lamp hung over the cloth, a brass line set into the rail, and a shadow the renderer worked out rather than one we drew. Not in the app yet.',
+    note: 'The same table built as real geometry and lit in Blender (scripts/render-table-3d.py): a padded cushion, a lamp hung over the cloth, a brass line set into the rail, the house mark printed on the cloth in the same didone as the wordmark, and a shadow the renderer worked out rather than one we drew. Not in the app yet.',
   },
   {
     src: '/lab/mobile-before.png',

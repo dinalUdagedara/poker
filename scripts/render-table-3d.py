@@ -182,6 +182,40 @@ def build():
     floor.data.materials.append(material('floor', (0.02, 0.025, 0.022), 0.85))
 
 
+def mark(text='SHOWDOWN'):
+    """The house's name printed on the cloth, the way a room prints its own.
+
+    Laid on the felt rather than drawn over the picture afterwards, so it takes
+    the same lamp as everything else: brighter where the light pools, lost
+    towards the rail. Set in the didone the app letters everything else in.
+    """
+    bpy.ops.object.text_add(location=(0.0, -0.2, 0.0006))
+    letters = bpy.context.active_object
+    letters.name = 'mark'
+    letters.data.body = text
+    letters.data.align_x = 'CENTER'
+    letters.data.align_y = 'CENTER'
+    letters.data.size = 0.155
+    letters.data.space_character = 1.45  # printed wide, as a house mark is
+    letters.data.extrude = 0.0
+
+    for path in (
+        '/System/Library/Fonts/Supplemental/Bodoni 72.ttc',
+        '/System/Library/Fonts/Supplemental/Bodoni 72 Smallcaps Book.ttf',
+        '/System/Library/Fonts/Supplemental/Baskerville.ttc',
+    ):
+        try:
+            letters.data.font = bpy.data.fonts.load(path)
+            break
+        except Exception:
+            continue  # Blender's own face, if none of the house ones are here
+
+    # A shade lighter than the cloth it is printed on, and no shinier: a mark
+    # dyed into felt, not a label stuck on top of it.
+    letters.data.materials.append(material('mark', (0.075, 0.2, 0.13), 0.97))
+    return letters
+
+
 def light():
     """One soft lamp over the table, and a dim fill, as a card room is lit."""
     key = bpy.data.lights.new('key', 'AREA')
@@ -281,6 +315,7 @@ def main():
         for obj in bpy.context.collection.objects:
             if obj.type == 'CURVE':
                 obj.rotation_euler.z = math.radians(90)
+    mark()
     light()
     camera(pose)
     render(pose, args.samples, args.out or pose['out'])
