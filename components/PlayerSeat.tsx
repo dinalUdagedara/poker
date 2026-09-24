@@ -128,15 +128,28 @@ export function PlayerSeat({
       */}
       <div
         className={cn(
-          'relative z-0 flex items-end justify-center',
+          'relative flex items-end justify-center',
+          /*
+           * Your own hand comes out in front of your portrait while the table
+           * is waiting on you, and goes back behind it the moment you have
+           * acted. Behind, only the top third of a card shows; in front it is
+           * read whole — but a hand over a face costs you the seat's monogram,
+           * so it is only worth paying on the one seat, at the one moment, it
+           * is being read.
+           */
+          hero && isActing && shown ? 'z-20' : 'z-0',
           /*
            * Face down, a hand is a detail: it sits behind the portrait and off
            * to one side, with only its tops showing. Face up it is the reason
            * the hand ended — or your own two cards, read every street — so it
            * keeps its size and leans out from behind the portrait instead.
            */
+          // Out in front, the foot of the card stops just short of the plate,
+          // so the whole card shows and the seat is no taller for it.
           shown
-            ? '-mb-[calc(var(--medal)*0.42)]'
+            ? hero && isActing
+              ? '-mb-[calc(var(--medal)*0.75)]'
+              : '-mb-[calc(var(--medal)*0.73)]'
             : '-mb-[calc(var(--medal)*0.72)]',
           // A folded seat has to recede, or the people no longer in the hand
           // become the brightest thing on the felt.
@@ -153,7 +166,20 @@ export function PlayerSeat({
               className={cn(
                 shown ? (i % 2 === 0 ? '-rotate-3' : 'rotate-3') : TILT[i % TILT.length],
                 i > 0 && (shown ? '-ml-1' : '-ml-2'),
-                shown ? 'w-[calc(var(--medal)*0.56)]' : 'w-[calc(var(--medal)*0.46)]',
+                /*
+                 * A face-up hand is read across the table, so it is drawn wide
+                 * and sunk deeper behind the portrait rather than made taller:
+                 * the rank rides at the top of the card, so what a bigger card
+                 * buys is a bigger glyph, not more card showing. Growing it
+                 * upwards instead runs the hero's hand into the board.
+                 *
+                 * The rank is drawn in ems, so it only follows the card if the
+                 * card's own text size does — left at the preset it stayed 16px
+                 * however wide the card got.
+                 */
+                shown
+                  ? 'w-[calc(var(--medal)*0.78)] text-[calc(var(--medal)*0.27)]'
+                  : 'w-[calc(var(--medal)*0.46)]',
                 // The hand that won is lifted clear of the portrait to be read.
                 isWinner && shown && '-translate-y-2 sm:-translate-y-3',
                 'origin-bottom transition-[width,transform,translate] duration-500',
@@ -198,7 +224,7 @@ export function PlayerSeat({
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
         className={cn(
-          'seat-ring relative z-10 rounded-full p-[3.5%] transition-colors',
+          'seat-ring relative rounded-full p-[3.5%] transition-colors',
           isActing ? 'animate-turn-ring' : isWinner && 'animate-winner',
           isOut && 'opacity-60',
         )}

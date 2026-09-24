@@ -406,50 +406,65 @@ test.describe('while the bots are deciding', () => {
   })
 })
 
-test('lays every seat out without anything running into anything else', async ({ page }) => {
-  // A full table is the tight case: near the left and right of the arc two
-  // seats sit only a few percent of the felt apart, so all the room between
-  // them is vertical. Sizing a seat up eats that gap without looking like it
-  // has, which is why this is measured rather than watched.
-  await dealIn(page, '5')
+for (const [screen, viewport] of [
+  ['a desktop', { width: 1280, height: 800 }],
+  ['a phone', { width: 390, height: 844 }],
+] as const) {
+  test(`lays every seat out without anything running into anything else on ${screen}`, async ({
+    page,
+  }) => {
+    // A full table is the tight case: near the left and right of the arc two
+    // seats sit only a few percent of the felt apart, so all the room between
+    // them is vertical. Sizing a seat up eats that gap without looking like it
+    // has, which is why this is measured rather than watched.
+    await page.setViewportSize(viewport)
+    await dealIn(page, '5')
 
-  const boxes = await page.evaluate(() => {
-    const rect = (e: Element, id: string) => {
-      const b = e.getBoundingClientRect()
-      return { id, left: b.left, right: b.right, top: b.top, bottom: b.bottom }
+    const boxes = await page.evaluate(() => {
+      const rect = (e: Element, id: string) => {
+        const b = e.getBoundingClientRect()
+        return { id, left: b.left, right: b.right, top: b.top, bottom: b.bottom }
+      }
+      const all = (sel: string, tag: string) =>
+        [...document.querySelectorAll(sel)].map((e, i) =>
+          rect(e, (e as HTMLElement).dataset?.testid ?? `${tag}${i}`),
+        )
+      return {
+        width: document.documentElement.clientWidth,
+        seats: all('[data-testid^="seat-"]', 'seat'),
+        // The header's own content, not its full-width box, which spans the page.
+        fixed: [
+          ...all('[data-testid="pot"]', 'pot'),
+          ...all('[data-testid="board"]', 'board'),
+          ...all('header a, header [data-slot=badge]', 'header'),
+        ],
+      }
+    })
+
+    type Box = (typeof boxes.seats)[number]
+    const overlapping = (a: Box, b: Box) =>
+      !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)
+
+    const clashes: string[] = []
+    for (const seat of boxes.seats) {
+      for (const other of boxes.seats) {
+        if (other.id < seat.id && overlapping(seat, other)) clashes.push(`${seat.id} / ${other.id}`)
+      }
+      for (const target of boxes.fixed) {
+        if (overlapping(seat, target)) clashes.push(`${seat.id} / ${target.id}`)
+      }
     }
-    const all = (sel: string, tag: string) =>
-      [...document.querySelectorAll(sel)].map((e, i) =>
-        rect(e, (e as HTMLElement).dataset?.testid ?? `${tag}${i}`),
-      )
-    return {
-      seats: all('[data-testid^="seat-"]', 'seat'),
-      // The header's own content, not its full-width box, which spans the page.
-      fixed: [
-        ...all('[data-testid="pot"]', 'pot'),
-        ...all('[data-testid="board"]', 'board'),
-        ...all('header a, header [data-slot=badge]', 'header'),
-      ],
-    }
+
+    expect(boxes.seats).toHaveLength(6)
+    expect(clashes).toEqual([])
+
+    // Seats sit on the rail, so framing the table larger walks them outwards.
+    // Overlap alone would not catch that: a seat half off the left of a phone
+    // runs into nothing at all on its way out.
+    const off = boxes.seats.filter((s) => s.left < 0 || s.right > boxes.width)
+    expect(off.map((s) => s.id)).toEqual([])
   })
-
-  type Box = (typeof boxes.seats)[number]
-  const overlapping = (a: Box, b: Box) =>
-    !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)
-
-  const clashes: string[] = []
-  for (const seat of boxes.seats) {
-    for (const other of boxes.seats) {
-      if (other.id < seat.id && overlapping(seat, other)) clashes.push(`${seat.id} / ${other.id}`)
-    }
-    for (const target of boxes.fixed) {
-      if (overlapping(seat, target)) clashes.push(`${seat.id} / ${target.id}`)
-    }
-  }
-
-  expect(boxes.seats).toHaveLength(6)
-  expect(clashes).toEqual([])
-})
+}
 
 /**
  * Every rectangle in the hand drawer that could run into another: the replay's
