@@ -110,22 +110,29 @@ function CardFace({
         // ivory read as a card already in play, and the room is dark enough
         // that white is the only thing on the table that looks lit.
         'overflow-hidden bg-linear-to-b from-white to-[oklch(0.955_0.004_90)]',
+        // The card is its own container, so what is printed on it is sized from
+        // its width. Sized from the text size instead, a card drawn wider than
+        // its preset (the board's are) kept the preset's rank and pips.
+        '@container',
       )}
       style={style}
       data-testid="card-face"
       aria-label={`${rank} of ${SUIT_NAMES[card.suit]}`}
     >
-      <span className={cn(ink, 'absolute top-[1%] left-[10%] flex flex-col items-start leading-[0.85]')}>
-        {/* Tall and condensed, so the rank is read by its shape across the table. */}
-        <span className="font-(family-name:--font-index) text-[1.6em] font-medium tracking-[-0.04em]">{rank}</span>
-        <span className="text-[1.15em] leading-none">{pip}</span>
-      </span>
-      {/*
-        The large pip rides high on the right rather than in the bottom corner.
-        The bottom of a hand is exactly where the nameplate overlaps the cards,
-        so a corner pip was hidden on the one pair a player reads every hand.
-      */}
-      <span className={cn(ink, 'absolute top-[36%] right-[6%] text-[2.5em] leading-[0.85]')}>{pip}</span>
+      {/* One em is a third of the card's width: every size below is in ems. */}
+      <div className="absolute inset-0 text-[32cqw]">
+        {/*
+          Rank and a small pip, inset from the corner so nothing presses on the
+          edge. Bold and upright rather than condensed: it is read at a glance
+          across the table, like ClubGG's.
+        */}
+        <span className={cn(ink, 'absolute top-[0.2em] left-[0.26em] flex flex-col items-center')}>
+          <span className="text-[1.45em] font-bold tracking-[-0.04em]">{rank}</span>
+          <span className="mt-[0.06em] text-[0.75em]">{pip}</span>
+        </span>
+        {/* One large pip in the bottom right corner, inset like the rank. */}
+        <span className={cn(ink, 'absolute right-[6.5%] bottom-[5%] text-[2.2em]')}>{pip}</span>
+      </div>
     </div>
   )
 }

@@ -1,30 +1,10 @@
 import type { CSSProperties } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import { ChipStack } from './ChipStack'
 import { PlayerAvatar } from './PlayerAvatar'
 import { PlayingCard } from './PlayingCard'
 import { SeatWin } from './SeatWin'
-import { stackTone, type StackTone } from '@/lib/poker/chips'
+import { cn } from '@/lib/utils'
 import type { RedactedPlayer } from '@/lib/poker/redact'
-
-/**
- * The count warns when the stack is short. The chips beside it cannot: their
- * colours are denominations, so they say what a stack is, not how long it has.
- */
-const STACK_TEXT: Record<StackTone, string> = {
-  healthy: 'text-stack-healthy',
-  medium: 'text-stack-medium',
-  short: 'text-stack-short',
-}
-
-/**
- * A pair of hole cards is squared up in front of a player, not laid out in a
- * row — so they overlap and lean away from each other, the way two cards sit
- * when someone has just pulled the corners up to look.
- */
-const TILT = ['-rotate-6', 'rotate-6', '-rotate-3', 'rotate-3'] as const
 
 /**
  * What to call this seat.
@@ -43,10 +23,15 @@ function displayName(
 }
 
 /**
- * One seat at the table.
+ * One seat at the table, drawn the way ClubGG draws one: a portrait in a grey
+ * hoop, a slab of a nameplate across its foot — name, a hairline, then the
+ * stack in cyan — and the stack in big blinds keyed to the plate's top edge.
  *
  * Cards are drawn from whatever the server sent: a player whose `holeCards` is
- * null is drawn face down, because there is nothing here to reveal.
+ * null is drawn face down, because there is nothing here to reveal. Face down,
+ * a hand peeks out from behind the portrait; face up — your own, or one turned
+ * over at showdown — it stands in front of it, because then it is the thing
+ * being read.
  */
 export function PlayerSeat({
   player,
@@ -85,209 +70,183 @@ export function PlayerSeat({
   face?: { lacquer: number | null; picture: number | null }
 }) {
   const isOut = player.status === 'folded' || player.status === 'sitting-out'
-  const tone = stackTone(player.stack, bigBlind)
-  // Cards or a face, never both. See the slot below.
+  const allIn = player.status === 'all-in'
+  // Cards or none: a folded hand is gone from the seat, and the face comes back.
   const holds = player.cardCount > 0 && player.status !== 'folded'
-  // A back can be a speck on the rail. A face is the reason the hand ended,
-  // so it takes the same size as the board the moment it turns over.
   const shown = player.holeCards != null
+  // How many big blinds they sit behind: the one figure that says how deep a
+  // stack is. Left off the replay's diagram, where there is no room for it.
+  const blinds = bigBlind > 0 ? Math.floor(player.stack / bigBlind) : 0
 
   return (
     <div
       className={cn(
         'relative flex flex-col items-center',
         /*
-         * `--medal` is the portrait's size, and everything else at the seat is
-         * measured from it: how far the cards tuck behind it, how far the plate
-         * rides up under it, and how wide that plate may grow.
+         * `--seat` is the portrait's size, and everything else at the seat is
+         * measured from it. `--medal` is the same figure under the name the
+         * shared seat styles (`.seat-hoop`, `.seat-plate`, `.seat-bb`) read.
+         *
+         * The replay draws the whole table into a fixed, far smaller box, so
+         * its seats are shrunk bodily rather than re-drawn.
          */
-        // Bigger than the old medallion on a wide screen, where there is room
-        // for ClubGG's portrait; kept small on a phone, where the ring runs
-        // close to the board and a tall seat lands on the cards.
-        // The replay draws the whole table into a fixed, far smaller box, where
-        // a seat that stands portrait-over-plate is taller than the diagram has
-        // room for. Shrunk bodily rather than re-drawn: the shape stays the one
-        // people know from the table itself.
         dense
           ? hero
-            ? 'origin-center scale-[0.85] [--medal:2.1rem]'
-            : 'origin-center scale-[0.85] [--medal:1.6rem]'
-          : hero
-            ? '[--medal:4rem] max-[380px]:[--medal:3.3rem] sm:[--medal:5.25rem]'
+            ? 'origin-center scale-[0.85] [--seat:2.1rem]'
+            : 'origin-center scale-[0.85] [--seat:1.6rem]'
+          : // A wide screen has the room for ClubGG's proportions, where the
+            // portrait is what the seat is built round; below that the sizes
+            // are the ones the table's rings were laid out for. Your own seat
+            // grows sooner: it sits on the near rail, clear of the pot.
+            hero
+            ? '[--seat:4rem] max-[380px]:[--seat:3.3rem] sm:[--seat:5.25rem] lg:[--seat:6.5rem] min-[1440px]:[--seat:7.5rem]'
             : compact
-              ? '[--medal:3.2rem] max-[380px]:[--medal:2.7rem] sm:[--medal:4.75rem]'
-              : '[--medal:3.4rem] max-[380px]:[--medal:2.9rem] sm:[--medal:5.25rem]',
+              ? '[--seat:3.2rem] max-[380px]:[--seat:2.7rem] sm:[--seat:4.75rem] min-[1440px]:[--seat:6.75rem]'
+              : '[--seat:3.4rem] max-[380px]:[--seat:2.9rem] sm:[--seat:5.25rem] min-[1440px]:[--seat:7rem]',
+        '[--medal:var(--seat)]',
+        // Room above the portrait for a hand peeking out from behind it, held
+        // whether or not there is one, so every seat measures the same shape.
+        // A hand turned over stands higher than this, over the felt: it is
+        // only up while it is being read — your own, or at showdown.
+        'pt-[calc(var(--seat)*0.14)]',
       )}
       data-testid={`seat-${player.id}`}
     >
-      {/*
-        The cards, tucked behind the portrait the way ClubGG holds them: their
-        feet disappear under the medallion, so a seat is a face first and a
-        hand second. A seat with none keeps the same footprint, so the rings and
-        the overlap tests still measure the same shape.
-      */}
-      <div
-        className={cn(
-          'relative flex items-end justify-center',
-          /*
-           * Your own hand comes out in front of your portrait while the table
-           * is waiting on you, and goes back behind it the moment you have
-           * acted. Behind, only the top third of a card shows; in front it is
-           * read whole — but a hand over a face costs you the seat's monogram,
-           * so it is only worth paying on the one seat, at the one moment, it
-           * is being read.
-           */
-          hero && isActing && shown ? 'z-20' : 'z-0',
-          /*
-           * Face down, a hand is a detail: it sits behind the portrait and off
-           * to one side, with only its tops showing. Face up it is the reason
-           * the hand ended — or your own two cards, read every street — so it
-           * keeps its size and leans out from behind the portrait instead.
-           */
-          // Out in front, the foot of the card stops just short of the plate,
-          // so the whole card shows and the seat is no taller for it.
-          shown
-            ? hero && isActing
-              ? '-mb-[calc(var(--medal)*0.75)]'
-              : '-mb-[calc(var(--medal)*0.73)]'
-            : '-mb-[calc(var(--medal)*0.72)]',
-          // A folded seat has to recede, or the people no longer in the hand
-          // become the brightest thing on the felt.
-          isOut && 'opacity-45 saturate-50',
-        )}
-      >
-        {holds ? (
-          Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
-            <PlayingCard
-              key={i}
-              card={player.holeCards?.[i] ?? null}
-              size={shown ? 'md' : 'xs'}
-              dealDelay={i * 90}
-              className={cn(
-                shown ? (i % 2 === 0 ? '-rotate-3' : 'rotate-3') : TILT[i % TILT.length],
-                i > 0 && (shown ? '-ml-1' : '-ml-2'),
-                /*
-                 * A face-up hand is read across the table, so it is drawn wide
-                 * and sunk deeper behind the portrait rather than made taller:
-                 * the rank rides at the top of the card, so what a bigger card
-                 * buys is a bigger glyph, not more card showing. Growing it
-                 * upwards instead runs the hero's hand into the board.
-                 *
-                 * The rank is drawn in ems, so it only follows the card if the
-                 * card's own text size does — left at the preset it stayed 16px
-                 * however wide the card got.
-                 */
-                shown
-                  ? 'w-[calc(var(--medal)*0.78)] text-[calc(var(--medal)*0.27)]'
-                  : 'w-[calc(var(--medal)*0.46)]',
-                // The hand that won is lifted clear of the portrait to be read.
-                isWinner && shown && '-translate-y-2 sm:-translate-y-3',
-                'origin-bottom transition-[width,transform,translate] duration-500',
-                'hover:z-10 hover:-translate-y-1 hover:rotate-0',
-              )}
-            />
-          ))
-        ) : (
-          <span className="block h-[calc(var(--medal)*0.72)]" aria-hidden />
+      <div className="relative isolate size-(--seat)">
+        {holds && (
+          <div
+            className={cn(
+              'absolute left-1/2 flex -translate-x-1/2 transition-[top] duration-500',
+              shown ? 'top-[calc(var(--seat)*-0.25)] z-10' : 'top-[calc(var(--seat)*-0.14)] -z-10',
+            )}
+          >
+            {Array.from({ length: Math.max(player.cardCount, 2) }).map((_, i) => (
+              <PlayingCard
+                key={i}
+                card={player.holeCards?.[i] ?? null}
+                size={shown ? 'md' : 'xs'}
+                dealDelay={i * 90}
+                className={cn(
+                  'origin-bottom transition-[width,rotate,margin] duration-500',
+                  /*
+                   * Face up, the hand is the thing being read — yours every
+                   * street, or the one that ended the hand — so it is drawn
+                   * near the size of the board: two wide cards standing up over
+                   * the portrait, their feet under the plate. A face sizes its
+                   * own printing from its width; a back's tiles follow the text
+                   * size, so that is set for the small ones.
+                   */
+                  shown
+                    ? 'w-[calc(var(--seat)*0.72)]'
+                    : 'w-[calc(var(--seat)*0.36)] text-[length:calc(var(--seat)*0.116)]',
+                  shown
+                    ? i % 2 === 0
+                      ? 'rotate-[-4deg]'
+                      : 'rotate-[4deg]'
+                    : i % 2 === 0
+                      ? 'rotate-[-8deg]'
+                      : 'rotate-[8deg]',
+                  i > 0 &&
+                    (shown ? '-ml-[calc(var(--seat)*0.08)]' : '-ml-[calc(var(--seat)*0.1)]'),
+                )}
+              />
+            ))}
+          </div>
         )}
 
-      </div>
-
-      {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
-      <div
-        className={cn(
-          'seat-ring relative rounded-full p-[3.5%] transition-colors',
-          isActing ? 'animate-turn-ring' : isWinner && 'animate-winner',
-          isOut && 'opacity-60',
-        )}
-        data-testid={isActing ? `turn-${player.id}` : undefined}
-      >
-        <PlayerAvatar
-          seed={player.id}
-          name={displayName(player, null, names)}
-          lacquer={face?.lacquer}
-          picture={face?.picture}
-          className="seat-medallion block size-(--medal)"
-        />
+        {/* The portrait, and whose turn it is breathing round it. */}
+        <div
+          className="seat-hoop relative size-full"
+          data-testid={isActing ? `turn-${player.id}` : undefined}
+        >
+          {isActing && (
+            <span className="animate-turn-ring absolute inset-0 rounded-full" aria-hidden />
+          )}
+          <PlayerAvatar
+            seed={player.id}
+            name={displayName(player, null, names)}
+            lacquer={face?.lacquer}
+            picture={face?.picture}
+            className={cn(
+              'block size-full transition-[filter]',
+              // Out of the hand, the face steps back. The plate stays legible.
+              isOut && 'brightness-[0.35] saturate-50',
+              isWinner && 'animate-winner',
+            )}
+          />
+        </div>
 
         {/*
-          The win sits on the portrait itself — a brass plaque on the crown of
-          the medallion — so it names the winner without floating off into the
-          felt or covering the face.
+          The win, on a brass plaque lifted clear of the crown so it does not
+          sit on the ranks of a hand turned over. Drawn at three-quarters of the
+          portrait, the proportion it has always had to the seat.
         */}
         {isWinner && winAmount > 0 && (
           <SeatWin
             amount={winAmount}
-            className="absolute top-0 left-1/2 z-30 -translate-x-1/2 -translate-y-[42%]"
+            className="absolute top-0 left-1/2 z-40 -translate-x-1/2 -translate-y-[88%] [--medal:calc(var(--seat)*0.75)]"
           />
         )}
 
+      </div>
+
+      {/*
+        Name, a hairline, then the money, on a plate laid across the foot of the
+        portrait. The stack is the louder of the two, because it is the one
+        re-read every street.
+      */}
+      <div
+        className={cn(
+          'seat-plate relative z-20 -mt-[calc(var(--seat)*0.19)] grid min-h-[calc(var(--seat)*0.47)] min-w-[calc(var(--seat)*1.16)] max-w-[calc(var(--seat)*1.5)] grid-cols-[minmax(0,1fr)] content-center px-[max(6px,calc(var(--seat)*0.07))] py-[max(3px,calc(var(--seat)*0.04))] text-center leading-tight',
+          isWinner && 'is-winner',
+        )}
+      >
+        {/*
+          The dealer button takes the plate's other corner — ClubGG's flag slot —
+          rather than the portrait's shoulder, where a hand held up in front of
+          the face would cover it.
+        */}
         {isButton && (
           <span
-            className="dealer-button absolute -top-1 -right-2 z-20 grid size-6 place-items-center rounded-full font-(family-name:--font-display) text-[12px] font-semibold"
+            className="dealer-button absolute right-[calc(var(--seat)*-0.026)] bottom-[calc(100%+2px)] z-30 grid size-[max(20px,calc(var(--seat)*0.22))] place-items-center rounded-full text-[length:max(11px,calc(var(--seat)*0.13))] font-bold"
             title="dealer button"
             data-testid="dealer-button"
           >
             D
           </span>
         )}
-      </div>
-
-      {/*
-        Name over money, on a plate that rides up under the portrait — the order
-        they are asked for: who is this, then what have they got. The stack is
-        the louder of the two, because it is the one re-read every street.
-      */}
-      <Card
-        className={cn(
-          'seat-plate relative z-10 -mt-[calc(var(--medal)*0.3)] flex min-w-[calc(var(--medal)*1.4)] max-w-[calc(var(--medal)*1.75)] flex-col items-center gap-0 rounded-[7px] border px-2.5 pt-[calc(var(--medal)*0.16)] pb-1 text-center leading-tight sm:max-w-[calc(var(--medal)*2.1)] sm:px-3',
-          isWinner ? 'border-win' : 'border-foreground/12',
-          isOut && 'opacity-50',
+        {!dense && blinds > 0 && (
+          <span
+            className="seat-bb absolute bottom-full left-[calc(var(--seat)*-0.026)] z-30 grid place-items-center font-bold tabular-nums"
+            title={`${blinds} big blinds`}
+            data-testid={`bb-${player.id}`}
+          >
+            {blinds}
+          </span>
         )}
-      >
-        <div
-          className={cn(
-            'w-full truncate',
-            hero ? 'text-[11px] sm:text-[12px]' : 'text-[10px] sm:text-[11px]',
-            isOut ? 'text-foreground/40' : 'text-foreground/70',
-          )}
-        >
+        <div className="truncate text-[length:max(10px,calc(var(--seat)*0.15))] leading-[1.15] text-[oklch(0.86_0_0)]">
           {displayName(player, viewerId, names)}
         </div>
+        <div className="mx-[calc(var(--seat)*0.01)] my-[max(2px,calc(var(--seat)*0.02))] h-px bg-(--plate-rule)" />
         <div
           className={cn(
-            'font-mono font-semibold tabular-nums',
-            hero ? 'text-base sm:text-lg' : 'text-[13px] sm:text-base',
-            player.stack === 0 ? 'text-neutral-500' : STACK_TEXT[tone],
+            'text-[length:max(12px,calc(var(--seat)*0.165))] leading-none font-bold tabular-nums',
+            player.stack === 0 && !allIn
+              ? 'text-neutral-500'
+              : 'text-[oklch(0.84_0.13_215)]',
           )}
           data-testid={`stack-${player.id}`}
         >
-          {player.stack.toLocaleString()}
+          {allIn ? 'All-in' : player.stack.toLocaleString()}
         </div>
-      </Card>
+      </div>
 
       {/*
-        No pile beside the seat. A stack is the figure on the plate; chips on
-        the cloth mean chips in the pot, which is what the wager below draws.
-        Drawing both said a player's whole stack was out in front of them.
+        The wager, on the cloth below. No pile for the stack — chips on the
+        cloth mean chips in the pot — and no "folded" badge: a folded seat says
+        so by its darkened face and its empty hands.
       */}
-
-      <div
-        className={cn(
-          'flex items-center gap-1',
-          hero ? 'h-7 sm:h-10' : 'h-6 sm:h-10',
-        )}
-      >
-        {player.status === 'folded' && (
-          <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
-            folded
-          </Badge>
-        )}
-        {player.status === 'all-in' && (
-          <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
-            all in
-          </Badge>
-        )}
+      <div className={cn('flex items-center gap-1', hero ? 'h-7 sm:h-10' : 'h-6 sm:h-10')}>
         {player.currentBet > 0 && player.status !== 'folded' && !handOver && (
           <span
             key={player.currentBet}
