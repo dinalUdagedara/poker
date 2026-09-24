@@ -19,10 +19,10 @@
     "trim": "brass"
   },
   "play": {
-    "fold": "oklch(0.34 0.012 250)",
-    "pass": "oklch(0.55 0.13 163)",
-    "commit": "oklch(0.8 0.135 82)",
-    "principle": "separate by material, not only hue — stone, felt, metal"
+    "fold": "#c42a2b",
+    "pass": "#2b8e41",
+    "commit": "#d7a13a",
+    "principle": "one moulded key, sampled off ClubGG's client; each play its own colour — fold red, call green, raise gold"
   },
   "money": {
     "win": "oklch(0.84 0.115 202)",

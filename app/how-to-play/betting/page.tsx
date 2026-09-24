@@ -92,8 +92,8 @@ export default function BettingPage() {
             Raising to 400 is not allowed, because that is only an increase of 100.
           </p>
           <p className="text-white/55">
-            The slider at the table already knows this. Its lowest position is the minimum, so you
-            cannot make an illegal raise by accident.
+            The table already knows this. The slider starts at the minimum, and the amount box
+            and the pot keys never go below it, so you cannot make an illegal raise by accident.
           </p>
         </Worked>
       </Section>
