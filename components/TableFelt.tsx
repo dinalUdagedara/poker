@@ -161,15 +161,7 @@ export function TableFelt({
     <div className="table-stage absolute inset-x-1.5 top-1 bottom-2 max-sm:bottom-23 sm:relative sm:inset-auto sm:top-auto sm:right-auto sm:bottom-auto sm:left-auto sm:aspect-2/1 sm:max-h-full sm:w-full sm:max-w-5xl">
       <TableBody />
       <div className="table-felt">
-        {/* The house mark printed on the cloth. Barely there, and never
-                  read aloud — it sits below the board, on the apron of felt
-                  between the last community card and the near rail. */}
-        <span
-          className="felt-mark pointer-events-none absolute top-[68%] left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase select-none sm:top-[79%]"
-          aria-hidden
-        >
-          Showdown
-        </span>
+
 
         {/* Pot and board */}
         <div

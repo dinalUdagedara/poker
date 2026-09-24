@@ -31,15 +31,16 @@ POSES = {
     # Landscape: the wide 2:1 felt a desktop draws.
     'desktop': {
         'size': (1280, 640),
-        'camera': (0.0, -3.15, 1.78),
-        'lens': 50,
+        'camera': (0.0, -2.8, 2.72),
+        'lens': 54,
         'out': 'public/table-desktop-salon.png',
     },
     # Portrait: the same table stood on its end for a phone.
     'mobile': {
         'size': (864, 1152),
-        'camera': (0.0, -1.95, 2.55),
+        'camera': (0.0, -2.22, 2.88),
         'lens': 50,
+        'look': (0.0, 0.0, -0.42),
         'turn': True,
         'out': 'public/table-mobile.png',
     },
@@ -171,6 +172,10 @@ def build():
     body.scale = (0.99, 0.99, 1.0)
     body.data.materials.append(material('body', (0.014, 0.014, 0.016), 0.6))
 
+    line = stadium('line', z=0.0007, fill=False, bevel=0.0012)
+    line.scale = (0.8, 0.66, 1.0)
+    line.data.materials.append(material('line', (0.42, 0.4, 0.26), 0.85))
+
     inlay = stadium('inlay', z=0.027, fill=False, bevel=0.005)
     inlay.scale = (0.945, 0.905, 1.0)
     inlay.data.materials.append(material('brass', (0.78, 0.62, 0.32), 0.22, metallic=1.0))
@@ -262,7 +267,9 @@ def camera(pose):
     bpy.context.collection.objects.link(obj)
 
     target = bpy.data.objects.new('target', None)
-    target.location = (0, 0, 0)
+    # Aiming below the cloth tips the camera down, which lifts the table in the
+    # frame — the phone pose needs it, or the near cushion runs off the bottom.
+    target.location = pose.get('look', (0, 0, 0))
     bpy.context.collection.objects.link(target)
     track = obj.constraints.new('TRACK_TO')
     track.target = target

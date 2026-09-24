@@ -546,3 +546,30 @@ deal, in a quick game, where no chosen face is ever drawn.
 - *A checkbox of our own* (`components/ui/checkbox.tsx`): a brass-rimmed square
   in place of the browser's blue tick, used by sit-out, auto-approve, repeat
   and the lobby's "list it publicly".
+
+## The table, rendered in 3D
+
+- *`scripts/render-table-3d.py`* builds the table as real geometry in Blender
+  and renders it: one outline makes the cloth (filled), the cushion (swept with
+  a circle) and the body (extruded down), so nothing drifts out of line. Felt
+  with cloth sheen and a woven bump, leather with grain and a thin coat, brass
+  for the inlay; a warm lamp over the cloth and a cold rim behind; the floor is
+  a shadow catcher, so what ships is the table and its shadow on transparency.
+- *The model is the script, not a `.blend`*: it can be read and reviewed.
+  Nothing runs at build — the PNGs are committed, as the flat renderer's were.
+- *The house mark is printed on the cloth* in the didone the app letters
+  everything else in, so it takes the same lamp. The CSS mark it replaced is
+  gone; drawing both printed it twice.
+- *`--pose mobile`* renders the phone's table, aimed a little below the cloth so
+  the near cushion stays in frame.
+- *Colour as authored*: Blender grades through AgX by default, which pulls the
+  colour out of the highlights and turned racing green into sage whatever the
+  material said. This is a picture the app composites, not a photograph.
+- *`scripts/table-ring.py`* measures where the rail falls in a render, in the
+  percentages `table-seating.ts` needs, so re-rendering the table no longer
+  means guessing the seat ring.
+- *The ring itself* is a squircle now rather than an ellipse — the table is a
+  stadium, and an honest ellipse cut inside the rail on the two shoulders — and
+  it sits below the middle of the box, because the table is seen from a
+  player's eye rather than from above.
+

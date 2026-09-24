@@ -18,7 +18,13 @@ export type SeatPoint = { left: number; top: number }
  * A wide oval is very nearly circular in percentage terms. Seats level with
  * the middle are eased in off the rail so a plate does not hang over the wood.
  */
-const LANDSCAPE = { rx: 49, ry: 42 } as const
+const LANDSCAPE = { rx: 47, ry: 39.3, cy: 55 } as const
+
+/**
+ * How square the ring is. Two is an honest ellipse; higher pushes the curve out
+ * towards a rounded rectangle, which is the shape of the table.
+ */
+const SQUIRCLE = 3.2
 
 /**
  * How much a seat level with the middle is pulled inboard, in percent.
@@ -44,63 +50,63 @@ const PORTRAIT: Record<number, SeatPoint[]> = {
   1: [{ left: 50, top: 86 }],
   2: [
     { left: 50, top: 86 },
-    { left: 50, top: 16 },
+    { left: 50, top: 6 },
   ],
   3: [
     { left: 50, top: 86 },
-    { left: 13, top: 34 },
-    { left: 87, top: 34 },
+    { left: 14.5, top: 34 },
+    { left: 83, top: 34 },
   ],
   4: [
     { left: 50, top: 86 },
-    { left: 13, top: 50 },
-    { left: 50, top: 16 },
-    { left: 87, top: 50 },
+    { left: 14.5, top: 50 },
+    { left: 50, top: 6 },
+    { left: 83, top: 50 },
   ],
   5: [
     { left: 50, top: 86 },
-    { left: 13, top: 70 },
-    { left: 13, top: 22 },
-    { left: 87, top: 22 },
-    { left: 87, top: 70 },
+    { left: 14.5, top: 70 },
+    { left: 14.5, top: 22 },
+    { left: 83, top: 22 },
+    { left: 83, top: 70 },
   ],
   6: [
     { left: 50, top: 86 },
-    { left: 13, top: 72 },
-    { left: 13, top: 26 },
-    { left: 50, top: 16 },
-    { left: 87, top: 26 },
-    { left: 87, top: 72 },
+    { left: 14.5, top: 72 },
+    { left: 14.5, top: 26 },
+    { left: 50, top: 6 },
+    { left: 83, top: 26 },
+    { left: 83, top: 72 },
   ],
   7: [
     { left: 50, top: 86 },
-    { left: 15, top: 78 },
-    { left: 11, top: 50 },
+    { left: 17, top: 78 },
+    { left: 13, top: 50 },
     { left: 14, top: 22 },
-    { left: 50, top: 16 },
+    { left: 50, top: 6 },
     { left: 86, top: 22 },
-    { left: 85, top: 78 },
+    { left: 83, top: 78 },
   ],
   8: [
     { left: 50, top: 86 },
-    { left: 15, top: 79 },
-    { left: 11, top: 52 },
+    { left: 17, top: 79 },
+    { left: 13, top: 52 },
     { left: 14, top: 24 },
-    { left: 50, top: 16 },
+    { left: 50, top: 6 },
     { left: 86, top: 24 },
-    { left: 89, top: 52 },
-    { left: 85, top: 79 },
+    { left: 87, top: 52 },
+    { left: 83, top: 79 },
   ],
   9: [
     { left: 50, top: 86 },
-    { left: 16, top: 82 },
-    { left: 10, top: 60 },
-    { left: 12, top: 34 },
-    { left: 33, top: 16 },
-    { left: 67, top: 16 },
-    { left: 88, top: 34 },
-    { left: 90, top: 60 },
-    { left: 84, top: 82 },
+    { left: 17, top: 82 },
+    { left: 13.5, top: 60 },
+    { left: 13.5, top: 34 },
+    { left: 33, top: 6 },
+    { left: 67, top: 6 },
+    { left: 86.5, top: 34 },
+    { left: 86.5, top: 60 },
+    { left: 83, top: 82 },
   ],
 }
 
@@ -129,14 +135,17 @@ export function seatRing(count: number, portrait = false): SeatPoint[] {
     }))
   }
 
-  const { rx, ry } = LANDSCAPE
+  const { rx, ry, cy } = LANDSCAPE
   return Array.from({ length: n }, (_, index) => {
     const radians = ((90 + (index * 360) / n) * Math.PI) / 180
     const cos = Math.cos(radians)
+    const squared = (value: number) => Math.sign(value) * Math.abs(value) ** (2 / SQUIRCLE)
     const pull = Math.max(0, (Math.abs(cos) - 0.9) / 0.1) * RAIL_PULL
     return {
-      left: 50 + (rx - pull) * cos,
-      top: 50 + ry * Math.sin(radians),
+      left: 50 + (rx - pull) * squared(cos),
+      // Below the middle, because the table is seen from a player's eye: the
+      // far rail is nearer the centre of the picture than the near one is.
+      top: cy + ry * squared(Math.sin(radians)),
     }
   })
 }
