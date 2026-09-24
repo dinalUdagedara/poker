@@ -25,7 +25,7 @@ import bpy
 HALF_STRAIGHT = 0.52  # half the straight run down each side
 END_RADIUS = 0.55  # the radius of each rounded end
 RAIL_RADIUS = 0.055  # the cushion's own thickness
-SKIRT = 0.13  # how far the table's body drops below the cloth
+SKIRT = 0.075  # how far the table's body drops below the cloth
 
 POSES = {
     # Landscape: the wide 2:1 felt a desktop draws.
@@ -172,9 +172,9 @@ def build():
     body.scale = (0.99, 0.99, 1.0)
     body.data.materials.append(material('body', (0.014, 0.014, 0.016), 0.6))
 
-    line = stadium('line', z=0.0007, fill=False, bevel=0.0012)
+    line = stadium('line', z=0.0008, fill=False, bevel=0.0022)
     line.scale = (0.8, 0.66, 1.0)
-    line.data.materials.append(material('line', (0.42, 0.4, 0.26), 0.85))
+    line.data.materials.append(material('line', (0.6, 0.56, 0.36), 0.8))
 
     inlay = stadium('inlay', z=0.027, fill=False, bevel=0.005)
     inlay.scale = (0.945, 0.905, 1.0)
@@ -185,40 +185,6 @@ def build():
     floor.name = 'floor'
     floor.is_shadow_catcher = True
     floor.data.materials.append(material('floor', (0.02, 0.025, 0.022), 0.85))
-
-
-def mark(text='SHOWDOWN'):
-    """The house's name printed on the cloth, the way a room prints its own.
-
-    Laid on the felt rather than drawn over the picture afterwards, so it takes
-    the same lamp as everything else: brighter where the light pools, lost
-    towards the rail. Set in the didone the app letters everything else in.
-    """
-    bpy.ops.object.text_add(location=(0.0, -0.2, 0.0006))
-    letters = bpy.context.active_object
-    letters.name = 'mark'
-    letters.data.body = text
-    letters.data.align_x = 'CENTER'
-    letters.data.align_y = 'CENTER'
-    letters.data.size = 0.155
-    letters.data.space_character = 1.45  # printed wide, as a house mark is
-    letters.data.extrude = 0.0
-
-    for path in (
-        '/System/Library/Fonts/Supplemental/Bodoni 72.ttc',
-        '/System/Library/Fonts/Supplemental/Bodoni 72 Smallcaps Book.ttf',
-        '/System/Library/Fonts/Supplemental/Baskerville.ttc',
-    ):
-        try:
-            letters.data.font = bpy.data.fonts.load(path)
-            break
-        except Exception:
-            continue  # Blender's own face, if none of the house ones are here
-
-    # A shade lighter than the cloth it is printed on, and no shinier: a mark
-    # dyed into felt, not a label stuck on top of it.
-    letters.data.materials.append(material('mark', (0.075, 0.2, 0.13), 0.97))
-    return letters
 
 
 def light():
@@ -322,7 +288,6 @@ def main():
         for obj in bpy.context.collection.objects:
             if obj.type == 'CURVE':
                 obj.rotation_euler.z = math.radians(90)
-    mark()
     light()
     camera(pose)
     render(pose, args.samples, args.out or pose['out'])

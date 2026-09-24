@@ -557,9 +557,9 @@ deal, in a quick game, where no chosen face is ever drawn.
   a shadow catcher, so what ships is the table and its shadow on transparency.
 - *The model is the script, not a `.blend`*: it can be read and reviewed.
   Nothing runs at build — the PNGs are committed, as the flat renderer's were.
-- *The house mark is printed on the cloth* in the didone the app letters
-  everything else in, so it takes the same lamp. The CSS mark it replaced is
-  gone; drawing both printed it twice.
+- *No house mark on the cloth.* One was printed there and taken off again: a
+  table with a name on it reads as a brochure, and the room says who it is
+  everywhere else. The CSS mark went with it.
 - *`--pose mobile`* renders the phone's table, aimed a little below the cloth so
   the near cushion stays in frame.
 - *Colour as authored*: Blender grades through AgX by default, which pulls the
