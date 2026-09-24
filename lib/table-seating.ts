@@ -18,7 +18,7 @@ export type SeatPoint = { left: number; top: number }
  * A wide oval is very nearly circular in percentage terms. Seats level with
  * the middle are eased in off the rail so a plate does not hang over the wood.
  */
-const LANDSCAPE = { rx: 47, ry: 38.3, cy: 54 } as const
+const LANDSCAPE = { rx: 47.5, ry: 38.8, cy: 54.3 } as const
 
 /**
  * How square the ring is. Two is an honest ellipse; higher pushes the curve out

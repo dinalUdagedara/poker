@@ -52,12 +52,18 @@ def clear():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
-def stadium(name, z=0.0, fill=True, bevel=None, extrude=0.0):
+def stadium(name, z=0.0, fill=True, bevel=None, extrude=0.0, inset=0.0):
     """A curve round the table's outline: two straight runs and two half-ends.
 
     Everything the table is made of comes from this one shape — the cloth is it
     filled, the cushion is it swept with a circle, the body is it extruded down
     — so nothing can drift out of line with anything else.
+
+    `inset` pulls the outline in by that many metres all the way round, which is
+    how the cloth stops short of the cushion. Scaling it instead pulls it in
+    further along one axis than the other, and the phone's table — the same
+    model turned on its end — then had a crescent of shadow between felt and
+    wood at its ends.
     """
     curve = bpy.data.curves.new(name, 'CURVE')
     curve.dimensions = '2D' if fill else '3D'
@@ -74,12 +80,13 @@ def stadium(name, z=0.0, fill=True, bevel=None, extrude=0.0):
     spline = curve.splines.new('POLY')
     points = []
     steps = 64
+    radius = END_RADIUS - inset
     for i in range(steps + 1):  # the right-hand end, from bottom to top
         angle = -math.pi / 2 + math.pi * i / steps
-        points.append((HALF_STRAIGHT + END_RADIUS * math.cos(angle), END_RADIUS * math.sin(angle)))
+        points.append((HALF_STRAIGHT + radius * math.cos(angle), radius * math.sin(angle)))
     for i in range(steps + 1):  # and the left-hand one, back again
         angle = math.pi / 2 + math.pi * i / steps
-        points.append((-HALF_STRAIGHT + END_RADIUS * math.cos(angle), END_RADIUS * math.sin(angle)))
+        points.append((-HALF_STRAIGHT + radius * math.cos(angle), radius * math.sin(angle)))
 
     spline.points.add(len(points) - 1)
     for point, (x, y) in zip(spline.points, points):
@@ -152,8 +159,9 @@ def material(name, base, roughness, metallic=0.0, sheen=0.0, bump=None, cloth=No
 
 def build():
     """The table: cloth, cushion, body, and the metal line set into the rail."""
-    cloth = stadium('cloth', z=0.0)
-    cloth.scale = (0.92, 0.86, 1.0)  # the felt stops short of the cushion
+    # Up to the cushion's inner lip, and no further: any gap here is a crescent
+    # of shadow between the felt and the wood.
+    cloth = stadium('cloth', z=0.0, inset=RAIL_RADIUS * 0.92)
     cloth.data.materials.append(
         # The room's racing green, and a weave you can see at the size this is
         # drawn — the two things that were most obviously missing.
@@ -168,16 +176,13 @@ def build():
         hide.inputs['Coat Roughness'].default_value = 0.4
     rail.data.materials.append(leather)
 
-    body = stadium('body', z=-SKIRT, extrude=SKIRT / 2)
-    body.scale = (0.99, 0.99, 1.0)
+    body = stadium('body', z=-SKIRT, extrude=SKIRT / 2, inset=-RAIL_RADIUS * 0.55)
     body.data.materials.append(material('body', (0.014, 0.014, 0.016), 0.6))
 
-    line = stadium('line', z=0.0008, fill=False, bevel=0.0022)
-    line.scale = (0.8, 0.66, 1.0)
+    line = stadium('line', z=0.0008, fill=False, bevel=0.0022, inset=RAIL_RADIUS * 3.2)
     line.data.materials.append(material('line', (0.6, 0.56, 0.36), 0.8))
 
-    inlay = stadium('inlay', z=0.027, fill=False, bevel=0.005)
-    inlay.scale = (0.945, 0.905, 1.0)
+    inlay = stadium('inlay', z=0.0011, fill=False, bevel=0.0028, inset=RAIL_RADIUS * 1.12)
     inlay.data.materials.append(material('brass', (0.78, 0.62, 0.32), 0.22, metallic=1.0))
 
     bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -SKIRT - 0.02))
