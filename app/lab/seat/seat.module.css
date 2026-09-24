@@ -1,0 +1,290 @@
+/*
+ * ClubGG's seat, measured pixel by pixel off two captures of their client.
+ * Every length is a fraction of `--d`, the portrait's diameter, so the badge
+ * scales as one piece. The comments give the measurement each number came from.
+ */
+.seat {
+  --gg-ring: oklch(0.72 0.005 260); /* #a0a3a8 */
+  --gg-plate: oklch(0.225 0.003 260); /* #1c1c1e */
+  --gg-plate-foot: oklch(0.2 0.003 260);
+  --gg-plate-edge: oklch(0.3 0.004 260);
+  --gg-rule: oklch(0.34 0.004 260);
+  --gg-name: oklch(0.86 0 0); /* #cfcfcf */
+  --gg-stack: oklch(0.84 0.13 215); /* #43dcfa */
+
+  position: relative;
+  isolation: isolate;
+  width: calc(var(--d) * 1.16);
+  /* Circle top to plate foot: 0.81d to the plate, then 0.47d of plate. */
+  height: calc(var(--d) * 1.28);
+}
+
+/* A light grey hoop, 0.022d, round a black disc. */
+.portrait {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--d);
+  height: var(--d);
+  translate: -50% 0;
+  padding: calc(var(--d) * 0.022);
+  border-radius: 9999px;
+  background: var(--gg-ring);
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.55);
+}
+
+/*
+ * A hand nobody can read yet: two backs behind the portrait, only their tops
+ * showing above the hoop, so the seat stays a face.
+ */
+.peek {
+  position: absolute;
+  z-index: -1;
+  top: calc(var(--d) * -0.2);
+  left: 50%;
+  display: flex;
+  translate: -50% 0;
+}
+
+.peekCard {
+  width: calc(var(--d) * 0.36);
+  height: calc(var(--d) * 0.54);
+  border-radius: calc(var(--d) * 0.035);
+  border-width: calc(var(--d) * 0.016);
+  transform-origin: bottom center;
+  box-shadow: 0 2px 6px oklch(0 0 0 / 0.4);
+}
+
+.peekCard:first-child {
+  rotate: -8deg;
+}
+
+.peekCard + .peekCard {
+  margin-left: calc(var(--d) * -0.1);
+  rotate: 8deg;
+}
+
+/*
+ * The hand face up: two wide cards, nearly upright, barely overlapping, together as
+ * wide as the portrait. Their tops sit 0.15d below the hoop's crown and their
+ * feet run on under the plate.
+ */
+.hand {
+  position: absolute;
+  z-index: 10;
+  top: calc(var(--d) * 0.15);
+  left: 50%;
+  display: flex;
+  translate: -50% 0;
+}
+
+.card {
+  width: calc(var(--d) * 0.54);
+  height: calc(var(--d) * 0.81);
+  border-radius: calc(var(--d) * 0.04);
+  transform-origin: bottom center;
+  box-shadow: 0 3px 10px oklch(0 0 0 / 0.45);
+}
+
+.card + .card {
+  margin-left: calc(var(--d) * -0.06);
+}
+
+.card:first-child {
+  rotate: -3deg;
+}
+
+.card:last-child {
+  rotate: 3deg;
+}
+
+/* Face down: pale grey rounded tiles set on the diagonal, in a white border. */
+.back {
+  position: relative;
+  overflow: hidden;
+  border: calc(var(--d) * 0.022) solid oklch(0.97 0 0);
+  background: oklch(0.74 0 0);
+}
+
+.back::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  rotate: 45deg;
+  background: radial-gradient(
+    circle,
+    oklch(0.86 0 0) 0 38%,
+    oklch(0.62 0 0) 40% 48%,
+    oklch(0.76 0 0) 50%
+  );
+  background-size: calc(var(--d) * 0.085) calc(var(--d) * 0.085);
+}
+
+/*
+ * The hand face up, in ClubGG's deck: rank at the top left in the suit's
+ * colour, a small pip under it, one large pip lower right. Inset 0.035d from
+ * the edges so nothing presses on the border, and the large pip kept in the
+ * part of the card the plate does not cover (its lowest ~19% is under it).
+ */
+.face {
+  position: relative;
+  overflow: hidden;
+  background: oklch(0.985 0.002 90);
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 0.35),
+    0 4px 12px oklch(0 0 0 / 0.5);
+}
+
+.faceRed {
+  color: oklch(0.52 0.2 27);
+}
+
+.faceBlack {
+  color: oklch(0.2 0.01 260);
+}
+
+.corner {
+  position: absolute;
+  top: calc(var(--d) * 0.035);
+  left: calc(var(--d) * 0.045);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.rank {
+  font-size: calc(var(--d) * 0.25);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.pip {
+  margin-top: calc(var(--d) * 0.01);
+  font-size: calc(var(--d) * 0.13);
+}
+
+.bigPip {
+  position: absolute;
+  right: calc(var(--d) * 0.035);
+  bottom: 20%;
+  font-size: calc(var(--d) * 0.38);
+  line-height: 1;
+}
+
+/*
+ * 1.16d by 0.47d, its top at 0.81d. Not a flat rectangle: measured edge by
+ * edge it is a slab tipped towards you — about 5% narrower at its foot than
+ * its top — with a lit top edge, a face that darkens as it drops, a faint lip
+ * at the bottom, then a hard dark edge and a shadow.
+ */
+.plate {
+  position: absolute;
+  z-index: 20;
+  top: calc(var(--d) * 0.81);
+  left: 0;
+  width: 100%;
+  height: calc(var(--d) * 0.47);
+  display: grid;
+  grid-template-rows: calc(var(--d) * 0.24) auto 1fr;
+  text-align: center;
+}
+
+/* The slab itself, tipped in 3D on its own layer so the lettering stays square. */
+.plate::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(var(--d) * 0.02);
+  border-radius: calc(var(--d) * 0.03) calc(var(--d) * 0.03) calc(var(--d) * 0.06) calc(var(--d) * 0.06);
+  background: linear-gradient(
+    180deg,
+    oklch(0.25 0.003 260) 0%,
+    var(--gg-plate) 30%,
+    var(--gg-plate-foot) 100%
+  );
+  box-shadow:
+    /* The lit top edge. */
+    inset 0 calc(var(--d) * 0.012) 0 oklch(0.42 0.003 260),
+    /* The faint lip at the foot. */
+    inset 0 calc(var(--d) * -0.008) 0 oklch(0.3 0.003 260),
+    /* The sides, a shade lighter than the face. */
+    inset calc(var(--d) * 0.01) 0 0 oklch(0.28 0.003 260),
+    inset calc(var(--d) * -0.01) 0 0 oklch(0.28 0.003 260),
+    /* The hard dark edge, then the shadow it throws on the rail. */
+    0 0 0 1px oklch(0.08 0 0),
+    0 calc(var(--d) * 0.03) calc(var(--d) * 0.06) oklch(0 0 0 / 0.7);
+  transform: perspective(calc(var(--d) * 2)) rotateX(-15deg);
+  transform-origin: center;
+}
+
+.name {
+  align-self: end;
+  overflow: hidden;
+  padding: 0 calc(var(--d) * 0.06);
+  color: var(--gg-name);
+  font-size: calc(var(--d) * 0.15);
+  font-weight: 400;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The hairline between the name and the money, inset 0.07d each side. */
+.rule {
+  height: 1px;
+  margin: calc(var(--d) * 0.02) calc(var(--d) * 0.07) 0;
+  background: var(--gg-rule);
+}
+
+.stack {
+  align-self: center;
+  color: var(--gg-stack);
+  font-size: calc(var(--d) * 0.165);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/*
+ * The key on the left stands ON the plate: bottom flush with its top edge,
+ * 0.28d by 0.235d, overhanging the plate's side by 0.026d.
+ */
+.stat {
+  position: absolute;
+  z-index: 30;
+  top: calc(var(--d) * (0.81 - 0.235));
+  left: calc(var(--d) * -0.026);
+  display: grid;
+  min-width: calc(var(--d) * 0.28);
+  height: calc(var(--d) * 0.235);
+  padding: 0 calc(var(--d) * 0.04);
+  place-items: center;
+  border-radius: calc(var(--d) * 0.04);
+  background: oklch(0.2 0.003 260);
+  box-shadow:
+    inset 0 0 0 calc(var(--d) * 0.01) oklch(0.78 0 0),
+    0 2px 5px oklch(0 0 0 / 0.5);
+  color: oklch(0.99 0 0);
+  font-size: calc(var(--d) * 0.13);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A white disc lettered D, sitting off the portrait's shoulder. */
+.dealer {
+  position: absolute;
+  z-index: 30;
+  top: 0;
+  right: calc(var(--d) * -0.02);
+  display: grid;
+  width: calc(var(--d) * 0.22);
+  height: calc(var(--d) * 0.22);
+  place-items: center;
+  border-radius: 9999px;
+  background: oklch(0.98 0 0);
+  box-shadow: 0 2px 6px oklch(0 0 0 / 0.6);
+  color: oklch(0.15 0 0);
+  font-size: calc(var(--d) * 0.13);
+  font-weight: 700;
+}

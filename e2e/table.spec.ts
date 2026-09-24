@@ -407,6 +407,8 @@ test.describe('while the bots are deciding', () => {
 })
 
 for (const [screen, viewport] of [
+  // Seats are drawn larger from 1440px, where there is room for them.
+  ['a wide desktop', { width: 1920, height: 1080 }],
   ['a desktop', { width: 1280, height: 800 }],
   ['a phone', { width: 390, height: 844 }],
 ] as const) {
