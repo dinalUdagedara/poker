@@ -193,34 +193,6 @@ export function PlayerSeat({
 
       </div>
 
-      {/*
-        The win, struck over the seat rather than through it: the word used to
-        sit on the seam between the cards and the plate, which is where the
-        portrait now is — so it landed across the winner's own face.
-      */}
-      {isWinner && winAmount > 0 && (
-        <SeatWin
-          amount={winAmount}
-          hero={hero}
-          /*
-           * Wherever this seat's callout goes, which is already worked out as
-           * "the side of this seat with felt on it": over the board for a seat
-           * on the far rail, out to the side for one on the near rail, where
-           * below is the action dock and above is the board.
-           */
-          className={cn(
-            'absolute z-30',
-            calloutSide === 'right'
-              ? 'top-1/2 left-full ml-1 -translate-y-1/2'
-              : calloutSide === 'left'
-                ? 'top-1/2 right-full mr-1 -translate-y-1/2'
-                : calloutSide === 'above'
-                  ? 'bottom-full left-1/2 mb-[-0.35em] -translate-x-1/2'
-                  : 'top-full left-1/2 mt-[-0.2em] -translate-x-1/2',
-          )}
-        />
-      )}
-
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
         className={cn(
@@ -237,6 +209,18 @@ export function PlayerSeat({
           picture={face?.picture}
           className="seat-medallion block size-(--medal)"
         />
+
+        {/*
+          The win sits on the portrait itself — a brass plaque on the crown of
+          the medallion — so it names the winner without floating off into the
+          felt or covering the face.
+        */}
+        {isWinner && winAmount > 0 && (
+          <SeatWin
+            amount={winAmount}
+            className="absolute top-0 left-1/2 z-30 -translate-x-1/2 -translate-y-[42%]"
+          />
+        )}
 
         {isButton && (
           <span
