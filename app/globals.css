@@ -1023,23 +1023,31 @@
 /*
  * The seat that took the pot.
  *
- * Starts as the award lands (it is 70% of the way through a 1.5s flight). The
- * word stamps in past its size and settles, a ring of gold light flares and
- * keeps turning behind it, and the amount rises under it. It all holds, then lets go before the next deal.
+ * A brass plaque on the crown of the portrait. Starts as the award lands (it
+ * is 70% of the way through a 1.5s flight). The plaque stamps in past its
+ * size and settles, the amount rises under the word, it holds, then lets go
+ * before the next deal.
  *
- * Only `scale` and `opacity` are animated, never `transform`, so the Tailwind
- * translate that places it on the seat is left alone.
+ * Only `scale` and `opacity` are animated on the plaque, never `transform`,
+ * so the Tailwind translate that parks it on the medallion is left alone.
  */
 .seat-win {
   --win-cream: oklch(0.98 0.05 95);
   --win-gold: oklch(0.86 0.15 85);
   --win-amber: oklch(0.72 0.17 60);
-  --win-ember: oklch(0.48 0.15 40);
   --win-ink: oklch(0.2 0.05 45);
 
   isolation: isolate;
+  min-width: calc(var(--medal) * 0.92);
+  padding: calc(var(--medal) * 0.08) calc(var(--medal) * 0.14) calc(var(--medal) * 0.1);
+  border-radius: calc(var(--medal) * 0.14);
+  color: var(--win-ink);
+  background: linear-gradient(180deg, var(--win-cream) 0%, var(--win-gold) 48%, var(--win-amber) 100%);
+  box-shadow:
+    0 2px 6px oklch(0 0 0 / 0.5),
+    0 0 0 1px color-mix(in oklch, var(--win-cream) 55%, transparent);
   opacity: 0;
-  animation: seat-win-life 3.4s linear 1s forwards;
+  animation: seat-win-life 3.4s linear 1s forwards, seat-win-stamp 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) 1s both;
 }
 
 @keyframes seat-win-life {
@@ -1057,52 +1065,16 @@
 
 @keyframes seat-win-stamp {
   0% {
-    scale: 2.2;
-    opacity: 0;
+    scale: 1.45;
   }
   45% {
-    scale: 0.92;
-    opacity: 1;
+    scale: 0.94;
   }
   70% {
-    scale: 1.06;
+    scale: 1.05;
   }
   100% {
     scale: 1;
-    opacity: 1;
-  }
-}
-
-@keyframes seat-win-flare {
-  0% {
-    scale: 0.2;
-    opacity: 0;
-  }
-  30% {
-    scale: 1.12;
-    opacity: 1;
-  }
-  100% {
-    scale: 1;
-    opacity: 1;
-  }
-}
-
-@keyframes seat-win-turn {
-  to {
-    rotate: 360deg;
-  }
-}
-
-@keyframes seat-win-twinkle {
-  0%,
-  100% {
-    scale: 0.2;
-    opacity: 0;
-  }
-  50% {
-    scale: 1;
-    opacity: 1;
   }
 }
 
@@ -1117,128 +1089,20 @@
   }
 }
 
-/* A gold ring with a hot arc running round it, over a warm bloom. */
-.seat-win-halo {
-  position: absolute;
-  top: 0.5em;
-  left: 50%;
-  z-index: -1;
-  width: 2.9em;
-  aspect-ratio: 1;
-  margin-left: -1.45em;
-  margin-top: -1.45em;
-  animation: seat-win-flare 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) 1s both;
-}
-
-.seat-win-halo::before {
-  content: '';
-  position: absolute;
-  inset: -35%;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in oklch, var(--win-gold) 30%, transparent),
-    color-mix(in oklch, var(--win-amber) 10%, transparent) 55%,
-    transparent
-  );
-}
-
-.seat-win-halo::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    var(--win-amber) 60deg,
-    var(--win-cream) 110deg,
-    var(--win-gold) 150deg,
-    transparent 220deg,
-    var(--win-amber) 290deg,
-    var(--win-cream) 330deg,
-    transparent 360deg
-  );
-  mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  filter: drop-shadow(0 0 4px var(--win-gold)) drop-shadow(0 0 10px var(--win-amber));
-  animation: seat-win-turn 2.4s linear infinite;
-}
-
-.seat-win-spark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0.14em;
-  aspect-ratio: 1;
-  margin: -0.07em;
-  border-radius: 50%;
-  background: var(--win-cream);
-  box-shadow:
-    0 0 4px var(--win-gold),
-    0 0 8px var(--win-amber);
-  transform: rotate(var(--spark-a)) translateX(1.55em);
-  animation: seat-win-twinkle 1.1s ease-in-out calc(1.2s + var(--spark-d)) infinite both;
-}
-
-/*
- * Heavy lettering: a gradient face over a dark outline and a hard drop, the
- * way a win is struck on a slot cabinet. The outline is its own copy of the
- * word laid underneath, because a stroke drawn on text that is clipped to its
- * background eats into the letters.
- */
 .seat-win-word {
-  display: grid;
   font-family: var(--font-display);
-  font-size: 1em;
-  font-weight: 900;
+  font-size: calc(var(--medal) * 0.22);
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.01em;
-  animation: seat-win-stamp 0.55s cubic-bezier(0.3, 1.4, 0.5, 1) 1s both;
-}
-
-.seat-win-word-edge,
-.seat-win-word-face {
-  grid-area: 1 / 1;
-}
-
-.seat-win-word-edge {
-  color: var(--win-ink);
-  -webkit-text-stroke: 0.14em var(--win-ink);
-  text-shadow:
-    0 0.06em 0 var(--win-ink),
-    0 0.12em 0.2em oklch(0 0 0 / 0.7),
-    0 0 0.4em color-mix(in oklch, var(--win-amber) 60%, transparent);
-}
-
-.seat-win-word-face {
-  background: linear-gradient(
-    180deg,
-    var(--win-cream) 8%,
-    var(--win-gold) 38%,
-    var(--win-amber) 62%,
-    var(--win-ember) 92%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .seat-win-amount {
-  position: relative;
-  z-index: 1;
-  margin-top: 0.12em;
-  padding: 0.12em 0.5em;
-  border-radius: 999px;
-  font-size: 0.34em;
+  font-size: calc(var(--medal) * 0.24);
   font-weight: 800;
-  line-height: 1.1;
-  color: oklch(0.99 0.01 95);
-  background: oklch(0.12 0.02 60 / 0.85);
-  box-shadow:
-    0 0 0 1px color-mix(in oklch, var(--win-gold) 55%, transparent),
-    0 2px 6px oklch(0 0 0 / 0.6);
-  animation: seat-win-rise 0.35s ease-out 1.35s both;
+  line-height: 1.15;
+  animation: seat-win-rise 0.3s ease-out 1.2s both;
 }
 
 /*
