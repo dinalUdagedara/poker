@@ -314,22 +314,39 @@ export function TablePreview() {
 
         {/* The action dock, so the palette can be judged with the chrome present. */}
         <div className="action-dock relative z-40 mx-auto w-full shrink-0 sm:mb-8 sm:w-138">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <span className="grid h-12 w-[62px] place-items-center rounded-full border border-white/8 bg-play-fold text-[13px] font-semibold text-white sm:w-26 sm:text-sm">
-              Fold
-            </span>
-            <span className="grid h-12 min-w-0 flex-1 place-items-center rounded-full bg-play-pass text-[13px] font-semibold text-white sm:w-32 sm:flex-none sm:text-sm">
-              Call 24
-            </span>
-            <span className="bet-stepper flex h-12 w-32 shrink-0 flex-col items-center justify-center rounded-full sm:w-42">
-              <span className="text-brass-lit font-mono text-[15px] leading-4.5 font-semibold tabular-nums">72</span>
-              <span className="text-muted-foreground text-[9px] leading-2.75 font-semibold tracking-[0.08em] uppercase">
-                Min
+          <div className="flex flex-col gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {['33%', '50%', '75%', '100%'].map((key, i) => (
+                <span
+                  key={key}
+                  aria-pressed={i === 3}
+                  className="dock-key grid h-8.5 min-w-0 flex-1 place-items-center text-[15px] font-medium sm:h-9 sm:text-base"
+                >
+                  {key}
+                </span>
+              ))}
+              <span className="dock-amount grid h-8.5 w-[27%] shrink-0 place-items-center text-[17px] font-bold tabular-nums sm:h-9 sm:w-28">
+                72
               </span>
-            </span>
-            <span className="brass-button grid h-12 w-[78px] place-items-center rounded-full text-[13px] font-semibold sm:w-32 sm:text-sm">
-              Raise
-            </span>
+              {/* A still of the slider: its groove, and the chip at the minimum. */}
+              <span className="relative hidden h-9 w-28 shrink-0 sm:block" aria-hidden>
+                <span className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[#060606]" />
+                <span className="absolute top-1/2 left-0 size-7 -translate-y-1/2 rounded-full border-2 border-dashed border-white bg-[#d23d36] shadow-md" />
+              </span>
+            </div>
+            <div className="flex gap-1.5 pb-1 sm:gap-2">
+              <span className="play-key play-key-fold flex h-15.5 min-w-0 flex-1 items-center justify-center text-base font-bold sm:h-19 sm:text-[1.3rem]">
+                Fold
+              </span>
+              <span className="play-key play-key-pass flex h-15.5 min-w-0 flex-1 flex-col items-center justify-center text-base leading-[1.1] font-bold sm:h-19 sm:text-[1.3rem]">
+                <span>Call</span>
+                <span className="tabular-nums">24</span>
+              </span>
+              <span className="play-key play-key-commit flex h-15.5 min-w-0 flex-1 flex-col items-center justify-center text-base leading-[1.1] font-bold sm:h-19 sm:text-[1.3rem]">
+                <span>Raise</span>
+                <span className="tabular-nums">72</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>

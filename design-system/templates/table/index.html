@@ -96,7 +96,7 @@
       }
       .dock-row {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: center;
         gap: var(--space-2);
       }
@@ -266,24 +266,27 @@
           <span class="wager"><span class="chip chip-100"></span><span class="money">200</span></span>
         </div>
 
-        <!-- One row. The hand log and the finished hands sit at either end and
-             open over the table, never on a page of their own. -->
+        <!-- The dock: pot keys, the amount and a slider over the three plays.
+             The hand log and the finished hands sit at either end as grey keys
+             and open over the table, never on a page of their own. -->
         <div class="dock-row">
-          <button class="btn btn-icon" aria-label="This hand">&#9776;</button>
+          <button class="dock-key dock-icon" aria-label="This hand">&#9776;</button>
           <div class="action-dock">
-            <button class="play play-fold">Fold</button>
-            <button class="play play-pass">Call <span class="money">200</span></button>
-            <div class="bet-stepper" role="group" aria-label="Bet size">
-              <button class="bet-step" aria-label="Less">&minus;</button>
-              <button class="bet-amount" aria-label="620, half pot. Next size">
-                <span class="money">620</span>
-                <span class="bet-size">&frac12; pot</span>
-              </button>
-              <button class="bet-step" aria-label="More">+</button>
+            <div class="dock-sizing" role="group" aria-label="Bet size">
+              <button class="dock-key">33%</button>
+              <button class="dock-key">50%</button>
+              <button class="dock-key">75%</button>
+              <button class="dock-key">100%</button>
+              <input class="dock-amount" inputmode="numeric" aria-label="Bet size" value="600" />
+              <input class="dock-slider" type="range" min="400" max="2480" value="600" aria-label="Bet size slider" />
             </div>
-            <button class="play play-commit">Raise</button>
+            <div class="dock-plays">
+              <button class="play play-fold">Fold</button>
+              <button class="play play-pass"><span>Call</span><span>200</span></button>
+              <button class="play play-commit"><span>Raise</span><span>600</span></button>
+            </div>
           </div>
-          <button class="btn btn-icon" aria-label="Past hands">&#8634;</button>
+          <button class="dock-key dock-icon" aria-label="Past hands">&#8634;</button>
         </div>
       </div>
     </div>
