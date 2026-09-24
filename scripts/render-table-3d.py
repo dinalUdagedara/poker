@@ -77,21 +77,7 @@ def stadium(name, z=0.0, fill=True, bevel=None, extrude=0.0, inset=0.0):
     if extrude:
         curve.extrude = extrude
 
-    spline = curve.splines.new('POLY')
-    points = []
-    steps = 64
-    radius = END_RADIUS - inset
-    for i in range(steps + 1):  # the right-hand end, from bottom to top
-        angle = -math.pi / 2 + math.pi * i / steps
-        points.append((HALF_STRAIGHT + radius * math.cos(angle), radius * math.sin(angle)))
-    for i in range(steps + 1):  # and the left-hand one, back again
-        angle = math.pi / 2 + math.pi * i / steps
-        points.append((-HALF_STRAIGHT + radius * math.cos(angle), radius * math.sin(angle)))
-
-    spline.points.add(len(points) - 1)
-    for point, (x, y) in zip(spline.points, points):
-        point.co = (x, y, 0.0, 1.0)
-    spline.use_cyclic_u = True
+    outline(curve, inset)
 
     obj = bpy.data.objects.new(name, curve)
     obj.location.z = z
@@ -126,6 +112,45 @@ def weave(mat, bsdf, scale, strength):
     bumper.inputs['Strength'].default_value = strength
     links.new(mix.outputs[0], bumper.inputs['Height'])
     links.new(bumper.outputs['Normal'], bsdf.inputs['Normal'])
+
+
+def outline(curve, inset):
+    """One cyclic run of points round the table, pulled in by `inset` metres."""
+    spline = curve.splines.new('POLY')
+    points = []
+    steps = 64
+    radius = END_RADIUS - inset
+    for i in range(steps + 1):  # the right-hand end, from bottom to top
+        angle = -math.pi / 2 + math.pi * i / steps
+        points.append((HALF_STRAIGHT + radius * math.cos(angle), radius * math.sin(angle)))
+    for i in range(steps + 1):  # and the left-hand one, back again
+        angle = math.pi / 2 + math.pi * i / steps
+        points.append((-HALF_STRAIGHT + radius * math.cos(angle), radius * math.sin(angle)))
+
+    spline.points.add(len(points) - 1)
+    for point, (x, y) in zip(spline.points, points):
+        point.co = (x, y, 0.0, 1.0)
+    spline.use_cyclic_u = True
+    return spline
+
+
+def ribbon(name, inset, width, z, mat):
+    """A flat band lying on the cloth: two outlines, and the fill between them.
+
+    A line swept with a circle is a tube, and a tube's brightness swings as it
+    turns — bright where it faces the lamp, gone where it turns away, which read
+    as a gold line that kept breaking. A ribbon lies flat and takes one light.
+    """
+    curve = bpy.data.curves.new(name, 'CURVE')
+    curve.dimensions = '2D'
+    curve.fill_mode = 'BOTH'
+    outline(curve, inset)
+    outline(curve, inset + width)  # the hole, cut by the even-odd fill
+    obj = bpy.data.objects.new(name, curve)
+    obj.location.z = z
+    bpy.context.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    return obj
 
 
 def material(name, base, roughness, metallic=0.0, sheen=0.0, bump=None, cloth=None):
@@ -179,11 +204,11 @@ def build():
     body = stadium('body', z=-SKIRT, extrude=SKIRT / 2, inset=-RAIL_RADIUS * 0.55)
     body.data.materials.append(material('body', (0.014, 0.014, 0.016), 0.6))
 
-    line = stadium('line', z=0.0008, fill=False, bevel=0.0022, inset=RAIL_RADIUS * 3.2)
-    line.data.materials.append(material('line', (0.6, 0.56, 0.36), 0.8))
+    ribbon('line', RAIL_RADIUS * 3.2, 0.0035, 0.0008, material('line', (0.6, 0.56, 0.36), 0.8))
 
-    inlay = stadium('inlay', z=0.0011, fill=False, bevel=0.0028, inset=RAIL_RADIUS * 1.12)
-    inlay.data.materials.append(material('brass', (0.78, 0.62, 0.32), 0.22, metallic=1.0))
+    # Painted gold rather than polished: a mirror ring can only be bright on
+    # the arc that faces the lamp, and the rest of it goes out.
+    ribbon('inlay', RAIL_RADIUS * 1.5, 0.004, 0.0011, material('brass', (0.72, 0.57, 0.3), 0.85))
 
     bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -SKIRT - 0.02))
     floor = bpy.context.active_object
