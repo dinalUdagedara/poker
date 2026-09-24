@@ -128,15 +128,28 @@ export function PlayerSeat({
       */}
       <div
         className={cn(
-          'relative z-0 flex items-end justify-center',
+          'relative flex items-end justify-center',
+          /*
+           * Your own hand comes out in front of your portrait while the table
+           * is waiting on you, and goes back behind it the moment you have
+           * acted. Behind, only the top third of a card shows; in front it is
+           * read whole — but a hand over a face costs you the seat's monogram,
+           * so it is only worth paying on the one seat, at the one moment, it
+           * is being read.
+           */
+          hero && isActing && shown ? 'z-20' : 'z-0',
           /*
            * Face down, a hand is a detail: it sits behind the portrait and off
            * to one side, with only its tops showing. Face up it is the reason
            * the hand ended — or your own two cards, read every street — so it
            * keeps its size and leans out from behind the portrait instead.
            */
+          // Out in front, the foot of the card stops just short of the plate,
+          // so the whole card shows and the seat is no taller for it.
           shown
-            ? '-mb-[calc(var(--medal)*0.73)]'
+            ? hero && isActing
+              ? '-mb-[calc(var(--medal)*0.75)]'
+              : '-mb-[calc(var(--medal)*0.73)]'
             : '-mb-[calc(var(--medal)*0.72)]',
           // A folded seat has to recede, or the people no longer in the hand
           // become the brightest thing on the felt.
@@ -211,7 +224,7 @@ export function PlayerSeat({
       {/* The portrait, and whose turn it is drawn around it rather than around a plate. */}
       <div
         className={cn(
-          'seat-ring relative z-10 rounded-full p-[3.5%] transition-colors',
+          'seat-ring relative rounded-full p-[3.5%] transition-colors',
           isActing ? 'animate-turn-ring' : isWinner && 'animate-winner',
           isOut && 'opacity-60',
         )}
