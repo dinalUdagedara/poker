@@ -72,6 +72,9 @@ lib/server/         the trust boundary.
 
 app/api/            thin HTTP over the store. No rules live here.
 components/         the felt.
+
+bots/chipzen/       the equity bot playing rated matches on Chipzen, behind an
+                    adapter. Its own package; the app never imports it.
 ```
 
 The engine never learns that sessions exist. Seats are stable strings it chose
