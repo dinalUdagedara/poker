@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // The end-to-end suite's own build (see playwright.config.ts).
     ".next-e2e/**",
+    // A bot's validation bundle (see bots/chipzen/validate.mjs).
+    "bots/*/dist/**",
   ]),
 ]);
 
