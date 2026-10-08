@@ -128,6 +128,13 @@ describe('toTableState', () => {
     expect(behind).toHaveLength(1)
   })
 
+  it('falls back to the match_start blinds when the history has no posts', () => {
+    const wire = { ...wireView(headsUp()), actionHistory: [] }
+    const rebuilt = toTableState(wire, 50)
+    expect(rebuilt.bigBlind).toBe(50)
+    expect(rebuilt.smallBlind).toBe(25)
+  })
+
   it('marks a folded opponent', () => {
     const wire = { ...wireView(headsUp()), opponentStacks: [1950, 1000] }
     wire.actionHistory = [...wire.actionHistory, { seat: 2, action: 'fold', amount: 0 }]
