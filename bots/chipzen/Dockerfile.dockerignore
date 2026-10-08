@@ -1,0 +1,8 @@
+# The context is the repo root; send only what the bot is built from.
+*
+!lib/poker
+!bots/chipzen
+lib/poker/**/__tests__
+bots/chipzen/node_modules
+bots/chipzen/*.tar.gz
+bots/chipzen/*.test.ts
