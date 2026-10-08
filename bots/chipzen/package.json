@@ -5,10 +5,14 @@
   "description": "The equity bot from lib/poker, playing on Chipzen",
   "type": "module",
   "scripts": {
+    "validate": "node validate.mjs",
     "image": "cd ../.. && docker build --platform linux/amd64 -f bots/chipzen/Dockerfile -t chipzen-equity-bot:latest .",
     "tarball": "docker save chipzen-equity-bot:latest | gzip > chipzen-equity-bot.tar.gz"
   },
   "dependencies": {
     "@chipzen-ai/bot": "^0.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
   }
 }
