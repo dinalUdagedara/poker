@@ -26,6 +26,7 @@ recorded where they were taken, in
 | [0011](0011-repeating-tables.md) | A repeating table reopens itself when its time runs out | Agreed |
 | [0012](0012-notifications-in-postgres.md) | Notifications are rows in Postgres, written with the change they tell of | Agreed |
 | [0013](0013-public-and-private-clubs.md) | Clubs are public or private; new ones start public | Agreed |
+| [0014](0014-bots-play-elsewhere-through-an-adapter.md) | Bots play on other platforms through an adapter | Agreed |
 
 ## Writing one
 
