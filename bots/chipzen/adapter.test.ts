@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest'
+import { parseCards } from '../../lib/poker/cards'
 import { applyAction, legalActions, potSize, startHand } from '../../lib/poker/state-machine'
 import type { Action, LegalActions, TableState } from '../../lib/poker/types'
-import { toChipzenDecision, toTableState, type ChipzenState } from './adapter'
+import { decide, toChipzenDecision, toTableState, type ChipzenState } from './adapter'
+
+function mulberry32(seed: number): () => number {
+  let a = seed
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
 
 /**
  * What the Chipzen server would send the player to act, worked out from our own
@@ -156,5 +167,48 @@ describe('toChipzenDecision', () => {
     expect(toChipzenDecision({ type: 'fold', playerId: 'me' }, checkedTo)).toEqual({
       action: 'check',
     })
+  })
+})
+
+describe('decide', () => {
+  const config = { iterations: 2000, rng: mulberry32(7) }
+
+  it('raises aces from the button', () => {
+    const wire = { ...wireView(headsUp()), holeCards: parseCards('AhAd') }
+    const decision = decide(wire, { config })
+    expect(decision.action).toBe('raise')
+    if (decision.action === 'raise') {
+      expect(decision.amount).toBeGreaterThanOrEqual(wire.minRaise)
+      expect(decision.amount).toBeLessThanOrEqual(wire.maxRaise)
+    }
+  })
+
+  it('folds seven-deuce to a shove', () => {
+    const wire = {
+      ...wireView(play(headsUp(), { type: 'raise', amount: 2000 })),
+      holeCards: parseCards('7c2d'),
+    }
+    expect(decide(wire, { config })).toEqual({ action: 'fold' })
+  })
+
+  it('only ever answers with an action the server offered', () => {
+    const rng = mulberry32(99)
+    const hands = ['AsKs', '9h9c', 'Qd7s', '5c4c', 'Th2s']
+    const spots = [
+      headsUp(),
+      play(headsUp(), { type: 'raise', amount: 150 }),
+      play(headsUp(), { type: 'call' }, { type: 'check' }),
+      play(headsUp(), { type: 'call' }, { type: 'check' }, { type: 'bet', amount: 100 }),
+    ]
+    for (const spot of spots) {
+      for (const hand of hands) {
+        const hole = parseCards(hand)
+        const wire = wireView(spot)
+        const taken = new Set([...spot.communityCards].map((c) => c.rank + c.suit))
+        if (hole.some((c) => taken.has(c.rank + c.suit))) continue
+        const decision = decide({ ...wire, holeCards: hole }, { config: { iterations: 500, rng } })
+        expect(wire.validActions).toContain(decision.action)
+      }
+    }
   })
 })

@@ -19,6 +19,8 @@
  */
 
 import type { Card, Rank, Suit } from '../../lib/poker/cards'
+import { decideAction } from '../../lib/poker/bots/equity'
+import type { EquityBotConfig } from '../../lib/poker/bots/equity'
 import type { Action, Player, Street, TableState } from '../../lib/poker/types'
 
 /** The fields of the SDK's GameState this adapter reads. */
@@ -168,4 +170,12 @@ export function toChipzenDecision(action: Action, s: ChipzenState): ChipzenDecis
       return can('call') ? { action: 'call' } : passive
     }
   }
+}
+
+export function decide(
+  s: ChipzenState,
+  options: { bigBlindHint?: number; config?: EquityBotConfig } = {},
+): ChipzenDecision {
+  const state = toTableState(s, options.bigBlindHint)
+  return toChipzenDecision(decideAction(state, ME, options.config), s)
 }
