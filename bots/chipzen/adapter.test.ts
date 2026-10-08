@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyAction, legalActions, potSize, startHand } from '../../lib/poker/state-machine'
 import type { Action, LegalActions, TableState } from '../../lib/poker/types'
-import { toTableState, type ChipzenState } from './adapter'
+import { toChipzenDecision, toTableState, type ChipzenState } from './adapter'
 
 /**
  * What the Chipzen server would send the player to act, worked out from our own
@@ -122,5 +122,39 @@ describe('toTableState', () => {
     wire.actionHistory = [...wire.actionHistory, { seat: 2, action: 'fold', amount: 0 }]
     const rebuilt = toTableState(wire)
     expect(rebuilt.players.find((p) => p.seat === 2)!.status).toBe('folded')
+  })
+})
+
+describe('toChipzenDecision', () => {
+  const facingBet = wireView(
+    play(headsUp(), { type: 'call' }, { type: 'check' }, { type: 'bet', amount: 100 }),
+  )
+  const checkedTo = wireView(play(headsUp(), { type: 'call' }, { type: 'check' }))
+  const closed = wireView(play(headsUp(), { type: 'raise', amount: 2000 }))
+
+  it('sends an opening bet as a raise to the same total', () => {
+    expect(toChipzenDecision({ type: 'bet', playerId: 'me', amount: 120 }, checkedTo)).toEqual({
+      action: 'raise',
+      amount: 120,
+    })
+  })
+
+  it('clamps a raise into the bounds the server gave', () => {
+    const low = toChipzenDecision({ type: 'raise', playerId: 'me', amount: 101 }, facingBet)
+    const high = toChipzenDecision({ type: 'raise', playerId: 'me', amount: 99_999 }, facingBet)
+    expect(low).toEqual({ action: 'raise', amount: facingBet.minRaise })
+    expect(high).toEqual({ action: 'raise', amount: facingBet.maxRaise })
+  })
+
+  it('calls when the raise is closed', () => {
+    expect(toChipzenDecision({ type: 'raise', playerId: 'me', amount: 4000 }, closed)).toEqual({
+      action: 'call',
+    })
+  })
+
+  it('never folds when checking is free', () => {
+    expect(toChipzenDecision({ type: 'fold', playerId: 'me' }, checkedTo)).toEqual({
+      action: 'check',
+    })
   })
 })

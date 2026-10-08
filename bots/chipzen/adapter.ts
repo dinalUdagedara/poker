@@ -19,7 +19,7 @@
  */
 
 import type { Card, Rank, Suit } from '../../lib/poker/cards'
-import type { Player, Street, TableState } from '../../lib/poker/types'
+import type { Action, Player, Street, TableState } from '../../lib/poker/types'
 
 /** The fields of the SDK's GameState this adapter reads. */
 export type ChipzenState = {
@@ -38,6 +38,10 @@ export type ChipzenState = {
   validActions: readonly string[]
   actionHistory: readonly { seat: number; action: string; amount?: number }[]
 }
+
+export type ChipzenDecision =
+  | { action: 'fold' | 'check' | 'call' }
+  | { action: 'raise'; amount: number }
 
 const ME = 'me'
 
@@ -137,5 +141,31 @@ export function toTableState(s: ChipzenState, bigBlindHint?: number): TableState
     lastFullRaiseTo: currentBet,
     handHistory: [],
     result: null,
+  }
+}
+
+/**
+ * Turn our action into one the server accepts. The server is the authority on
+ * what is legal, so anything it does not offer degrades to the nearest action
+ * it does, and a fold is never sent when a check is free.
+ */
+export function toChipzenDecision(action: Action, s: ChipzenState): ChipzenDecision {
+  const can = (a: string) => s.validActions.includes(a)
+  const passive: ChipzenDecision = can('check') ? { action: 'check' } : { action: 'fold' }
+
+  switch (action.type) {
+    case 'fold':
+    case 'check':
+      return passive
+    case 'call':
+      return can('call') ? { action: 'call' } : passive
+    case 'bet':
+    case 'raise': {
+      if (can('raise') && s.maxRaise > 0) {
+        const amount = Math.max(s.minRaise, Math.min(s.maxRaise, Math.round(action.amount)))
+        return { action: 'raise', amount }
+      }
+      return can('call') ? { action: 'call' } : passive
+    }
   }
 }
