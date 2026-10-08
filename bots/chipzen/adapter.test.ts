@@ -135,6 +135,31 @@ describe('toTableState', () => {
     expect(rebuilt.smallBlind).toBe(25)
   })
 
+  it('seats each opponent stack by seat at a three-handed table', () => {
+    // Button on seat 0 opens and folds, leaving the small blind on seat 1 to act
+    // with an opponent on either side of it.
+    const threeHanded = startHand({
+      tableId: 't',
+      seats: [
+        { id: 'p0', seat: 0, stack: 1000 },
+        { id: 'p1', seat: 1, stack: 2000 },
+        { id: 'p2', seat: 2, stack: 3000 },
+      ],
+      buttonSeat: 0,
+      smallBlind: 25,
+      bigBlind: 50,
+    })
+    const state = play(threeHanded, { type: 'fold' })
+    const rebuilt = toTableState(wireView(state))
+
+    for (const player of state.players) {
+      const seat = rebuilt.players.find((p) => p.seat === player.seat)!
+      expect(seat.stack).toBe(player.stack)
+      expect(seat.status).toBe(player.status)
+    }
+    expect(normalise(legalActions(rebuilt)!)).toEqual(normalise(legalActions(state)!))
+  })
+
   it('marks a folded opponent', () => {
     const wire = { ...wireView(headsUp()), opponentStacks: [1950, 1000] }
     wire.actionHistory = [...wire.actionHistory, { seat: 2, action: 'fold', amount: 0 }]
