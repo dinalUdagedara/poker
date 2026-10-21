@@ -10,7 +10,7 @@ import { calloutPlacement, seatOrder, seatRing } from '@/lib/table-seating'
 import { usePortrait } from '@/lib/use-portrait'
 import { ChipStack } from './ChipStack'
 import { PlayerSeat } from './PlayerSeat'
-import { PlayingCard } from './PlayingCard'
+import { PlayingCard, cardKey, showdownTone } from './PlayingCard'
 import { TableBody } from './TableBody'
 
 /**
@@ -78,6 +78,14 @@ export function TableFelt({
   const ring = portrait ? phoneRing : deskRing
   const callouts = calloutsFor(table)
   const winners = new Set(table.result?.awards.flatMap((a) => a.winners) ?? [])
+  /**
+   * The cards that won it, when it went to a showdown: every winner's best
+   * five, so a split lights both hands. Read off the result, which already
+   * carries them — nothing is evaluated here.
+   */
+  const best = table.result?.showdown
+    ? new Set([...winners].flatMap((id) => table.result?.shownHands[id]?.cards ?? []).map(cardKey))
+    : null
 
   /**
    * Where a player sits, in felt percentages.
@@ -222,7 +230,7 @@ export function TableFelt({
                 card={card}
                 size="md"
                 dealDelay={i * 70}
-                className="w-10 sm:w-16"
+                className={cn('w-10 sm:w-16', showdownTone(card, best))}
               />
             ))}
           </div>
@@ -340,6 +348,7 @@ export function TableFelt({
                   calloutSide={calloutPlacement(point)}
                   bigBlind={table.bigBlind}
                   face={table.faces?.[player.id]}
+                  best={winners.has(player.id) ? best : null}
                 />
               </div>
             )

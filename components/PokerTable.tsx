@@ -356,6 +356,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
           {/* The house crest, which says which game this is before the name is
               read. Small enough that it reads as a mark beside the name rather
               than as a picture the header is carrying. */}
+          <HomeButton />
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
             <Logo className="h-5 w-auto shrink-0 sm:h-6" />
             {/* On the narrowest phones the crest says it alone: the name ran
@@ -390,7 +391,6 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               have in the middle of a decision, and anything that takes you off
               the table to answer it is the wrong shape. */}
           <RankingsButton />
-          <HomeButton />
           <SoundToggle />
           {/*
             The full guide, opened in its own tab rather than navigating.

@@ -39,11 +39,14 @@ const FAN_TILT = [
 export function LandingShell({
   children,
   fan = false,
+  dealKey,
   width = 'sm',
   centered = true,
 }: {
   children: ReactNode
   fan?: boolean
+  /** A new value deals the fan in again, without remounting the room or its music. */
+  dealKey?: string
   width?: 'sm' | 'md'
   centered?: boolean
 }) {
@@ -63,11 +66,11 @@ export function LandingShell({
         centered ? 'items-center justify-center' : 'justify-center',
       )}
     >
-      <div className="absolute top-4 left-4 flex min-h-9 items-center sm:top-5 sm:left-5">
+      <div className="absolute top-4 left-4 flex min-h-9 items-center gap-3 sm:top-5 sm:left-5">
+        <HomeButton />
         <AccountLink />
       </div>
       <div className="absolute top-4 right-4 flex items-center gap-2.5 sm:top-5 sm:right-5">
-        <HomeButton />
         <NotificationBell />
         <SoundToggle />
       </div>
@@ -81,7 +84,10 @@ export function LandingShell({
       >
         {fan && (
           <div
-            className="-mb-5 flex origin-bottom justify-center [@media(max-height:880px)]:-mb-8 [@media(max-height:880px)]:scale-85"
+            key={dealKey}
+            // In front of the panel it overlaps: behind it, the panel's tinted
+            // fill greyed the bottom third of every card.
+            className="relative z-10 -mb-5 flex origin-bottom justify-center [@media(max-height:880px)]:-mb-8 [@media(max-height:880px)]:scale-85"
             aria-hidden
           >
             {FAN.map((card, i) => (
@@ -210,7 +216,7 @@ export function SizePicker({
         <span className="text-brass font-(family-name:--font-display) text-base italic">{hint}</span>
       </div>
       <div role="radiogroup" aria-label={ariaLabel} className="grid grid-cols-5 gap-2">
-        {values.map((n) => {
+        {values.map((n, index) => {
           const selected = value === n
           return (
             <button
@@ -219,8 +225,26 @@ export function SizePicker({
               role="radio"
               aria-checked={selected}
               aria-label={String(n)}
+              // One stop in the tab order, as a radio group is: the arrows
+              // move between the choices.
+              tabIndex={selected ? 0 : -1}
               disabled={disabled}
               onClick={() => onChange(n)}
+              onKeyDown={(event) => {
+                const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
+                const next =
+                  event.key === 'Home'
+                    ? 0
+                    : event.key === 'End'
+                      ? values.length - 1
+                      : step !== undefined
+                        ? (index + step + values.length) % values.length
+                        : -1
+                if (next < 0) return
+                event.preventDefault()
+                onChange(values[next])
+                ;(event.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus()
+              }}
               data-testid={`${testIdPrefix}-${n}`}
               className={cn(
                 'h-12 rounded-[2px] border font-(family-name:--font-display) text-xl transition-colors',

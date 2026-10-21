@@ -2,14 +2,24 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IntroLoader } from '@/components/IntroLoader'
 import { HouseMark, LandingShell, PlayerNameField, SalonFrame, SizePicker } from '@/components/LandingShell'
 import { getAudio } from '@/lib/audio'
 import { requestTable } from '@/lib/request-table'
 
 const OPPONENTS = [1, 2, 3, 4, 5] as const
+
+/**
+ * The opening count plays on every visit to the lobby — it is the house's
+ * door. Skipped only for anyone who asks for less motion.
+ */
+function introSkipped() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+const noSubscription = () => () => {}
 
 /**
  * Play now.
@@ -22,6 +32,11 @@ export function HomePanel() {
   const [botCount, setBotCount] = useState(3)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The server cannot read the preference, so it always draws the curtain;
+  // a reduced-motion browser takes it down on its first render.
+  const skipped = useSyncExternalStore(noSubscription, introSkipped, () => false)
+  const [introDone, setIntroDone] = useState(false)
+  const intro = !skipped && !introDone
 
   async function deal() {
     setBusy(true)
@@ -38,7 +53,8 @@ export function HomePanel() {
   }
 
   return (
-    <LandingShell fan>
+    // The fan is dealt again when the curtain lifts, so it is seen arriving.
+    <LandingShell fan dealKey={intro ? 'intro' : 'lobby'}>
       <SalonFrame>
         <div className="flex flex-col gap-6 px-6 pt-12 pb-7 sm:px-10 [@media(max-height:880px)]:gap-4 [@media(max-height:880px)]:pt-6 [@media(max-height:880px)]:pb-5">
           <HouseMark />
@@ -113,6 +129,12 @@ export function HomePanel() {
           </Link>
         </div>
       </SalonFrame>
+
+      {intro && (
+        <IntroLoader onDone={() => setIntroDone(true)} />
+      )}
+      {/* Held at the last stretch until the table's page takes over. */}
+      {busy && <IntroLoader caption="Dealing you in" ready={false} />}
     </LandingShell>
   )
 }

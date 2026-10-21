@@ -253,6 +253,7 @@ export function ClubTableScreen({
       <RotateHint />
       <header className="flex items-center justify-between gap-2 px-3 py-2 text-white sm:gap-4 sm:px-5 sm:py-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <HomeButton className="shrink-0" />
           <Link
             href={`/clubs/${club.code}`}
             className="flex min-w-0 items-center gap-1.5 text-sm hover:opacity-80"
@@ -355,7 +356,6 @@ export function ClubTableScreen({
               )}
             </div>
           )}
-          <HomeButton />
           <SoundToggle />
         </div>
       </header>

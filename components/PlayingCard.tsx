@@ -141,3 +141,16 @@ function CardFace({
     </div>
   )
 }
+
+/** A card's identity, for matching it against a hand. */
+export const cardKey = (card: Card) => `${card.rank}${card.suit}`
+
+/**
+ * How a card is drawn once a showdown is settled: lifted and ringed if it is
+ * one of the five that won, set back if it sat the hand out. Nothing at all
+ * before then, or for a hand that was never part of the winner's.
+ */
+export function showdownTone(card: Card | null, best: ReadonlySet<string> | null | undefined) {
+  if (!best || !card) return undefined
+  return best.has(cardKey(card)) ? 'showdown-lit' : 'showdown-dim'
+}

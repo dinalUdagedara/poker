@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { ChipStack } from './ChipStack'
 import { PlayerAvatar } from './PlayerAvatar'
-import { PlayingCard } from './PlayingCard'
+import { PlayingCard, showdownTone } from './PlayingCard'
 import { SeatWin } from './SeatWin'
 import { cn } from '@/lib/utils'
 import type { RedactedPlayer } from '@/lib/poker/redact'
@@ -49,6 +49,7 @@ export function PlayerSeat({
   bigBlind,
   face,
   hero = false,
+  best,
 }: {
   player: RedactedPlayer
   viewerId: string | null
@@ -66,6 +67,8 @@ export function PlayerSeat({
   callout?: string | null
   calloutSide?: 'right' | 'left' | 'below' | 'above'
   hero?: boolean
+  /** The winning five at a settled showdown, passed to a winner's seat only. */
+  best?: ReadonlySet<string> | null
   /** The face the player chose for themselves, where they have an account. */
   face?: { lacquer: number | null; picture: number | null }
 }) {
@@ -152,6 +155,7 @@ export function PlayerSeat({
                 dealDelay={i * 90}
                 className={cn(
                   'origin-bottom transition-[width,rotate,margin] duration-500',
+                  showdownTone(player.holeCards?.[i] ?? null, best),
                   /*
                    * Face up, the hand is the thing being read — yours every
                    * street, or the one that ended the hand — so it is drawn
@@ -234,7 +238,14 @@ export function PlayerSeat({
         */}
         {isButton && (
           <span
-            className="dealer-button absolute right-[calc(var(--seat)*-0.026)] bottom-[calc(100%+2px)] z-30 grid size-[max(20px,calc(var(--seat)*0.22))] place-items-center rounded-full text-[length:max(11px,calc(var(--seat)*0.13))] font-bold"
+            className={cn(
+              'dealer-button absolute z-30 grid size-[max(20px,calc(var(--seat)*0.22))] place-items-center rounded-full text-[length:max(11px,calc(var(--seat)*0.13))] font-bold',
+              // A hand turned over stands on the plate's top edge, so the
+              // button steps out to the plate's side rather than sit on a card.
+              shown
+                ? 'top-1/2 left-full ml-1.5 -translate-y-1/2'
+                : 'right-[calc(var(--seat)*-0.026)] bottom-[calc(100%+2px)]',
+            )}
             title="dealer button"
             data-testid="dealer-button"
           >
@@ -243,7 +254,10 @@ export function PlayerSeat({
         )}
         {!dense && blinds > 0 && (
           <span
-            className="seat-bb absolute bottom-full left-[calc(var(--seat)*-0.026)] z-30 grid place-items-center font-bold tabular-nums"
+            className={cn(
+              'seat-bb absolute z-30 grid place-items-center font-bold tabular-nums',
+              shown ? 'top-1/2 right-full mr-1.5 -translate-y-1/2' : 'bottom-full left-[calc(var(--seat)*-0.026)]',
+            )}
             title={`${blinds} big blinds`}
             data-testid={`bb-${player.id}`}
           >
