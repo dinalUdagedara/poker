@@ -96,9 +96,9 @@ export function IntroLoader({
     >
       <div className="flex w-full max-w-md flex-col gap-4">
         <div className="flex items-end justify-between gap-6">
-          <span className="flex items-center gap-2.5 pb-1.5">
-            <Logo className="h-7 w-auto" />
-            <span className="text-foreground text-[11px] font-semibold tracking-[0.3em] uppercase">Showdown</span>
+          <span className="flex items-center gap-3.5 pb-1">
+            <Logo className="h-12 w-auto sm:h-14" />
+            <span className="text-foreground text-xs font-semibold tracking-[0.3em] uppercase">Showdown</span>
           </span>
           <span className="wordmark font-(family-name:--font-display) text-6xl leading-none font-medium tabular-nums sm:text-7xl">
             {String(Math.round(shown)).padStart(3, '0')}
