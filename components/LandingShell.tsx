@@ -39,11 +39,14 @@ const FAN_TILT = [
 export function LandingShell({
   children,
   fan = false,
+  dealKey,
   width = 'sm',
   centered = true,
 }: {
   children: ReactNode
   fan?: boolean
+  /** A new value deals the fan in again, without remounting the room or its music. */
+  dealKey?: string
   width?: 'sm' | 'md'
   centered?: boolean
 }) {
@@ -63,11 +66,11 @@ export function LandingShell({
         centered ? 'items-center justify-center' : 'justify-center',
       )}
     >
-      <div className="absolute top-4 left-4 flex min-h-9 items-center sm:top-5 sm:left-5">
+      <div className="absolute top-4 left-4 flex min-h-9 items-center gap-3 sm:top-5 sm:left-5">
+        <HomeButton />
         <AccountLink />
       </div>
       <div className="absolute top-4 right-4 flex items-center gap-2.5 sm:top-5 sm:right-5">
-        <HomeButton />
         <NotificationBell />
         <SoundToggle />
       </div>
@@ -81,6 +84,7 @@ export function LandingShell({
       >
         {fan && (
           <div
+            key={dealKey}
             className="-mb-5 flex origin-bottom justify-center [@media(max-height:880px)]:-mb-8 [@media(max-height:880px)]:scale-85"
             aria-hidden
           >

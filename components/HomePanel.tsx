@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DealingMessage } from '@/components/DealingScreen'
 import { HouseMark, LandingShell, PlayerNameField, SalonFrame, SizePicker } from '@/components/LandingShell'
 import { getAudio } from '@/lib/audio'
 import { requestTable } from '@/lib/request-table'
@@ -38,7 +39,12 @@ export function HomePanel() {
   }
 
   return (
-    <LandingShell fan>
+    // Dealing swaps the panel for the fan dealt in again, in the same room, so
+    // the lobby music plays on through the deal rather than restarting.
+    <LandingShell fan dealKey={busy ? 'dealing' : 'lobby'}>
+      {busy ? (
+        <DealingMessage />
+      ) : (
       <SalonFrame>
         <div className="flex flex-col gap-6 px-6 pt-12 pb-7 sm:px-10 [@media(max-height:880px)]:gap-4 [@media(max-height:880px)]:pt-6 [@media(max-height:880px)]:pb-5">
           <HouseMark />
@@ -113,6 +119,7 @@ export function HomePanel() {
           </Link>
         </div>
       </SalonFrame>
+      )}
     </LandingShell>
   )
 }
