@@ -85,7 +85,9 @@ export function LandingShell({
         {fan && (
           <div
             key={dealKey}
-            className="-mb-5 flex origin-bottom justify-center [@media(max-height:880px)]:-mb-8 [@media(max-height:880px)]:scale-85"
+            // In front of the panel it overlaps: behind it, the panel's tinted
+            // fill greyed the bottom third of every card.
+            className="relative z-10 -mb-5 flex origin-bottom justify-center [@media(max-height:880px)]:-mb-8 [@media(max-height:880px)]:scale-85"
             aria-hidden
           >
             {FAN.map((card, i) => (
