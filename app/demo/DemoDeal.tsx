@@ -3,19 +3,17 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { DealingScreen } from '@/components/DealingScreen'
+import { IntroLoader } from '@/components/IntroLoader'
 import { HouseMark, LandingShell } from '@/components/LandingShell'
 import { requestTable } from '@/lib/request-table'
 
 /**
- * Long enough for the fan to finish dealing in. A table is usually ready far
- * sooner, and cutting away mid-deal read as a flicker rather than a welcome.
+ * Deals a five-bot table as soon as it mounts. The count runs while it is
+ * dealt and lifts onto the table once it is ready.
  */
-const MIN_SHOWN_MS = 1100
-
-/** Deals a five-bot table as soon as it mounts, and takes you to it. */
 export function DemoDeal() {
   const router = useRouter()
+  const [tableId, setTableId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   // Development runs effects twice; one table is enough.
   const dealt = useRef(false)
@@ -23,13 +21,20 @@ export function DemoDeal() {
   useEffect(() => {
     if (dealt.current) return
     dealt.current = true
-    const shown = new Promise((resolve) => setTimeout(resolve, MIN_SHOWN_MS))
-    Promise.all([requestTable({ botCount: 5, seatCount: 1, isPublic: false }), shown])
-      .then(([tableId]) => router.replace(`/table/${tableId}`))
+    requestTable({ botCount: 5, seatCount: 1, isPublic: false })
+      .then(setTableId)
       .catch((e: Error) => setError(e.message))
-  }, [router])
+  }, [])
 
-  if (!error) return <DealingScreen message="Dealing you in…" />
+  if (!error) {
+    return (
+      <IntroLoader
+        caption="Dealing you in"
+        ready={tableId !== null}
+        onDone={() => tableId && router.replace(`/table/${tableId}`)}
+      />
+    )
+  }
 
   return (
     <LandingShell>

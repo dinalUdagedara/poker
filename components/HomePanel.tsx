@@ -2,15 +2,32 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DealingMessage } from '@/components/DealingScreen'
+import { IntroLoader } from '@/components/IntroLoader'
 import { HouseMark, LandingShell, PlayerNameField, SalonFrame, SizePicker } from '@/components/LandingShell'
 import { getAudio } from '@/lib/audio'
 import { requestTable } from '@/lib/request-table'
 
 const OPPONENTS = [1, 2, 3, 4, 5] as const
+
+/**
+ * The opening count plays once a session: a second visit to the lobby in the
+ * same tab is somebody coming back, not arriving. It is skipped, too, for
+ * anyone who asks for less motion — and wherever storage is refused, rather
+ * than replaying on every visit.
+ */
+const INTRO_SEEN = 'showdown-intro-seen'
+function introSkipped() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
+  try {
+    return sessionStorage.getItem(INTRO_SEEN) === '1'
+  } catch {
+    return true
+  }
+}
+const noSubscription = () => () => {}
 
 /**
  * Play now.
@@ -23,6 +40,11 @@ export function HomePanel() {
   const [botCount, setBotCount] = useState(3)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The server cannot know, so it always draws the curtain; a returning
+  // visitor's browser takes it down on its first render.
+  const skipped = useSyncExternalStore(noSubscription, introSkipped, () => false)
+  const [introDone, setIntroDone] = useState(false)
+  const intro = !skipped && !introDone
 
   async function deal() {
     setBusy(true)
@@ -39,12 +61,8 @@ export function HomePanel() {
   }
 
   return (
-    // Dealing swaps the panel for the fan dealt in again, in the same room, so
-    // the lobby music plays on through the deal rather than restarting.
-    <LandingShell fan dealKey={busy ? 'dealing' : 'lobby'}>
-      {busy ? (
-        <DealingMessage />
-      ) : (
+    // The fan is dealt again when the curtain lifts, so it is seen arriving.
+    <LandingShell fan dealKey={intro ? 'intro' : 'lobby'}>
       <SalonFrame>
         <div className="flex flex-col gap-6 px-6 pt-12 pb-7 sm:px-10 [@media(max-height:880px)]:gap-4 [@media(max-height:880px)]:pt-6 [@media(max-height:880px)]:pb-5">
           <HouseMark />
@@ -119,7 +137,19 @@ export function HomePanel() {
           </Link>
         </div>
       </SalonFrame>
+
+      {intro && (
+        <IntroLoader
+          onDone={() => {
+            try {
+              sessionStorage.setItem(INTRO_SEEN, '1')
+            } catch {}
+            setIntroDone(true)
+          }}
+        />
       )}
+      {/* Held at the last stretch until the table's page takes over. */}
+      {busy && <IntroLoader caption="Dealing you in" ready={false} />}
     </LandingShell>
   )
 }
