@@ -234,7 +234,14 @@ export function PlayerSeat({
         */}
         {isButton && (
           <span
-            className="dealer-button absolute right-[calc(var(--seat)*-0.026)] bottom-[calc(100%+2px)] z-30 grid size-[max(20px,calc(var(--seat)*0.22))] place-items-center rounded-full text-[length:max(11px,calc(var(--seat)*0.13))] font-bold"
+            className={cn(
+              'dealer-button absolute z-30 grid size-[max(20px,calc(var(--seat)*0.22))] place-items-center rounded-full text-[length:max(11px,calc(var(--seat)*0.13))] font-bold',
+              // A hand turned over stands on the plate's top edge, so the
+              // button steps out to the plate's side rather than sit on a card.
+              shown
+                ? 'top-1/2 left-full ml-1.5 -translate-y-1/2'
+                : 'right-[calc(var(--seat)*-0.026)] bottom-[calc(100%+2px)]',
+            )}
             title="dealer button"
             data-testid="dealer-button"
           >
@@ -243,7 +250,10 @@ export function PlayerSeat({
         )}
         {!dense && blinds > 0 && (
           <span
-            className="seat-bb absolute bottom-full left-[calc(var(--seat)*-0.026)] z-30 grid place-items-center font-bold tabular-nums"
+            className={cn(
+              'seat-bb absolute z-30 grid place-items-center font-bold tabular-nums',
+              shown ? 'top-1/2 right-full mr-1.5 -translate-y-1/2' : 'bottom-full left-[calc(var(--seat)*-0.026)]',
+            )}
             title={`${blinds} big blinds`}
             data-testid={`bb-${player.id}`}
           >
