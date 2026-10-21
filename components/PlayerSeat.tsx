@@ -78,6 +78,27 @@ export function PlayerSeat({
   // stack is. Left off the replay's diagram, where there is no room for it.
   const blinds = bigBlind > 0 ? Math.floor(player.stack / bigBlind) : 0
 
+  /*
+   * The seat as one sentence, for a screen reader. Everything drawn below is
+   * hidden from it — a monogram, a badge of big blinds and a nameplate read
+   * out in turn came to "J D 36 Jacenta 1,825 150 RAISE TO 150".
+   */
+  const spoken = [
+    displayName(player, viewerId, names),
+    allIn ? 'all in' : `${player.stack.toLocaleString()} chips`,
+    isButton && 'dealer',
+    player.status === 'folded' ? 'folded' : player.status === 'sitting-out' ? 'sitting out' : null,
+    callout
+      ? callout.toLowerCase()
+      : player.currentBet > 0 && player.status !== 'folded' && !handOver
+        ? `bet ${player.currentBet.toLocaleString()}`
+        : null,
+    isActing && (player.id === viewerId ? 'your turn' : 'to act'),
+    isWinner && winAmount > 0 && `won ${winAmount.toLocaleString()}`,
+  ]
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <div
       className={cn(
@@ -112,9 +133,12 @@ export function PlayerSeat({
       )}
       data-testid={`seat-${player.id}`}
     >
+      <span className="sr-only">{spoken}</span>
       <div className="relative isolate size-(--seat)">
         {holds && (
           <div
+            // Face down, two backs say nothing the sentence above has not.
+            aria-hidden={!shown}
             className={cn(
               'absolute left-1/2 flex -translate-x-1/2 transition-[top] duration-500',
               shown ? 'top-[calc(var(--seat)*-0.25)] z-10' : 'top-[calc(var(--seat)*-0.14)] -z-10',
@@ -158,6 +182,7 @@ export function PlayerSeat({
         <div
           className="seat-hoop relative size-full"
           data-testid={isActing ? `turn-${player.id}` : undefined}
+          aria-hidden
         >
           {isActing && (
             <span className="animate-turn-ring absolute inset-0 rounded-full" aria-hidden />
@@ -196,6 +221,7 @@ export function PlayerSeat({
         re-read every street.
       */}
       <div
+        aria-hidden
         className={cn(
           'seat-plate relative z-20 -mt-[calc(var(--seat)*0.19)] grid min-h-[calc(var(--seat)*0.47)] min-w-[calc(var(--seat)*1.16)] max-w-[calc(var(--seat)*1.5)] grid-cols-[minmax(0,1fr)] content-center px-[max(6px,calc(var(--seat)*0.07))] py-[max(3px,calc(var(--seat)*0.04))] text-center leading-tight',
           isWinner && 'is-winner',
@@ -246,7 +272,7 @@ export function PlayerSeat({
         cloth mean chips in the pot — and no "folded" badge: a folded seat says
         so by its darkened face and its empty hands.
       */}
-      <div className={cn('flex items-center gap-1', hero ? 'h-7 sm:h-10' : 'h-6 sm:h-10')}>
+      <div className={cn('flex items-center gap-1', hero ? 'h-7 sm:h-10' : 'h-6 sm:h-10')} aria-hidden>
         {player.currentBet > 0 && player.status !== 'folded' && !handOver && (
           <span
             key={player.currentBet}
@@ -265,6 +291,7 @@ export function PlayerSeat({
       {callout && (
         <div
           key={callout}
+          aria-hidden
           className={cn(
             'animate-callout pointer-events-none absolute z-10 whitespace-nowrap',
             calloutSide === 'right'

@@ -11,7 +11,7 @@ import type { Card } from '@/lib/poker/cards'
 import type { RedactedTableState } from '@/lib/poker/redact'
 import { PlayingCard } from './PlayingCard'
 
-const LABEL = 'text-[10px] font-medium tracking-[0.18em] text-white/45 uppercase'
+const LABEL = 'text-[10px] font-medium tracking-[0.18em] text-white/60 uppercase'
 
 /** Which board cards each street turned over, as a slice of the five. */
 const STREET_CARDS: Partial<Record<string, [number, number]>> = {

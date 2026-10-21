@@ -14,8 +14,10 @@
 export function TableBody({ className = 'table-body' }: { className?: string }) {
   return (
     <picture className={className} aria-hidden>
-      <source media="(min-width: 640px)" srcSet="/table-desktop-salon.png" />
-      <img src="/table-mobile.png" alt="" draggable={false} />
+      {/* WebP of the Blender stills: a twelfth of the PNGs' weight, which had
+          made the felt the slowest thing on a phone's first paint. */}
+      <source media="(min-width: 640px)" srcSet="/table-desktop-salon.webp" type="image/webp" />
+      <img src="/table-mobile.webp" alt="" draggable={false} fetchPriority="high" />
     </picture>
   )
 }
