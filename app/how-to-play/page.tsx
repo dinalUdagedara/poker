@@ -165,15 +165,17 @@ export default function HowToPlay() {
       >
         <dl className="flex flex-col gap-3">
           {ACTIONS.map((action) => (
-            <div key={action.name} className="flex items-start gap-3">
-              <span
-                className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', action.swatch)}
-                aria-hidden
-              />
-              <div className="flex flex-col gap-0.5">
-                <dt className="text-sm font-semibold text-white">{action.name}</dt>
-                <dd className="text-sm leading-relaxed text-white/65">{action.detail}</dd>
-              </div>
+            // A term and its description straight inside each group, as a list
+            // of definitions requires; the swatch rides inside the term.
+            <div key={action.name} className="flex flex-col gap-0.5">
+              <dt className="relative pl-5.5 text-sm font-semibold text-white">
+                <span
+                  className={cn('absolute top-1.5 left-0 size-2.5 rounded-full', action.swatch)}
+                  aria-hidden
+                />
+                {action.name}
+              </dt>
+              <dd className="pl-5.5 text-sm leading-relaxed text-white/65">{action.detail}</dd>
             </div>
           ))}
         </dl>
