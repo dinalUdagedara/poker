@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { getAudio } from '@/lib/audio'
 import type { LegalActions } from '@/lib/poker/types'
@@ -94,6 +94,49 @@ export function BettingControls({
 
   const allInBet = sizing !== null && amount === sizing.max
 
+  const dock = useRef<HTMLDivElement>(null)
+  const foldKey = useRef<HTMLButtonElement>(null)
+  const passKey = useRef<HTMLButtonElement>(null)
+  const commitKey = useRef<HTMLButtonElement>(null)
+
+  /*
+   * Your turn: put focus back on the keys.
+   *
+   * Acting disables the keys and then swaps them for idle copies while the
+   * others play, so focus fell back to the page and a keyboard player had to
+   * tab through the whole header to reach Call again. It is only taken back
+   * when it had been lost or was already in the dock — never pulled away from
+   * something else the player is using.
+   */
+  const yourTurn = !idle && !busy
+  useEffect(() => {
+    if (!yourTurn) return
+    const active = document.activeElement
+    const lost = !active || active === document.body
+    if (!lost && !dock.current?.contains(active)) return
+    ;(passKey.current ?? foldKey.current)?.focus({ preventScroll: true })
+  }, [yourTurn])
+
+  /*
+   * F folds, C checks or calls, R bets or raises — each presses its key, so a
+   * shortcut does exactly what the click would. Ignored while typing an amount
+   * or with a modifier held, so it never eats a browser shortcut.
+   */
+  useEffect(() => {
+    if (!yourTurn) return
+    function onKey(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+      const key = { f: foldKey, c: passKey, r: commitKey }[event.key.toLowerCase()]
+      if (!key?.current || key.current.disabled) return
+      event.preventDefault()
+      key.current.click()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [yourTurn])
+
   // Bet and raise bounds are totals for the street, so a fraction is measured
   // from the level you would be calling to.
   const toCall = legal?.call?.amount ?? 0
@@ -107,7 +150,7 @@ export function BettingControls({
   return (
     // Its own width on a desktop: the keys stretch to fill the dock, so they
     // cannot size it the way the old fixed-width pills did.
-    <div className="relative w-full sm:w-138">
+    <div className="relative w-full sm:w-138" ref={dock}>
       {idle && status && (
         <div className="pointer-events-none absolute inset-0 z-1 grid place-items-center">
           <span
@@ -192,10 +235,12 @@ export function BettingControls({
                 a bet coming back round can fold the hand.
               */}
               <button
+                ref={foldKey}
                 type="button"
                 className={cn(PLAY, 'play-key-fold')}
                 disabled={busy}
                 onClick={() => act({ type: legal.canCheck ? 'check' : 'fold' })}
+                aria-keyshortcuts="F"
                 data-testid="action-fold"
               >
                 {legal.canCheck ? 'Check / Fold' : 'Fold'}
@@ -203,10 +248,12 @@ export function BettingControls({
 
               {legal.canCheck && (
                 <button
+                  ref={passKey}
                   type="button"
                   className={cn(PLAY, 'play-key-pass')}
                   disabled={busy}
                   onClick={() => act({ type: 'check' })}
+                  aria-keyshortcuts="C"
                   data-testid="action-check"
                 >
                   Check
@@ -215,10 +262,12 @@ export function BettingControls({
 
               {legal.call && (
                 <button
+                  ref={passKey}
                   type="button"
                   className={cn(PLAY, 'play-key-pass')}
                   disabled={busy}
                   onClick={() => act({ type: 'call' })}
+                  aria-keyshortcuts="C"
                   data-testid="action-call"
                 >
                   <span>{legal.call.allIn ? 'All-in' : 'Call'}</span>
@@ -228,10 +277,12 @@ export function BettingControls({
 
               {sizing ? (
                 <button
+                  ref={commitKey}
                   type="button"
                   className={cn(PLAY, 'play-key-commit')}
                   disabled={busy}
                   onClick={() => act({ type: legal.raise ? 'raise' : 'bet', amount })}
+                  aria-keyshortcuts="R"
                   data-testid="action-bet"
                 >
                   <span>{allInBet ? 'All-in' : legal.raise ? 'Raise' : 'Bet'}</span>

@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils'
 import { BettingControls } from './BettingControls'
 import { NextHandButton } from './NextHandButton'
 import { RankingsButton } from './RankingsButton'
+import { HomeButton } from './HomeButton'
+import { RotateHint } from './RotateHint'
 import { SoundToggle } from './SoundToggle'
 import { ThisHand, type HistoryOpen } from './ThisHand'
 import { HistoryDrawer, type HistoryPick } from './HistoryDrawer'
@@ -20,6 +22,7 @@ import { getAudio } from '@/lib/audio'
 import { useTableStream } from '@/lib/use-table-stream'
 import { useTableSounds } from '@/lib/use-table-sounds'
 import { seatName } from '@/lib/names'
+import { annotateHistory, calloutText } from '@/lib/poker/callouts'
 import { CATEGORY_NAMES, categoryOf } from '@/lib/poker/evaluator'
 import {
   isGameOver,
@@ -317,8 +320,32 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
     </div>
   )
 
+  /**
+   * What a screen reader is told as the table moves: whose turn it is and what
+   * it costs, what each player just did, and who took the pot.
+   */
+  const announcement = (() => {
+    if (table.result) {
+      const verb = winners.size > 1 ? 'split' : youWonAlone ? 'win' : 'wins'
+      return `${winnerNames} ${verb} ${potWon.toLocaleString()}${winningHand ? ` with ${winningHand}` : ''}.`
+    }
+    if (table.legalActions) {
+      const call = table.legalActions.call
+      return `Your turn. ${call ? `${call.amount.toLocaleString()} to call` : 'You can check'}. Pot ${table.pot.toLocaleString()}.`
+    }
+    const last = annotateHistory(table.handHistory).at(-1)
+    if (!last) return ''
+    const who = seatName(last.playerId, table.names, table.viewerId)
+    return `${who}: ${calloutText(last, table.smallBlind, table.bigBlind).toLowerCase()}.`
+  })()
+
   return (
     <main className="table-room flex min-h-dvh flex-col">
+      <h1 className="sr-only">Poker table</h1>
+      <RotateHint />
+      <div className="sr-only" role="status" aria-live="polite" data-testid="table-announcer">
+        {announcement}
+      </div>
       {/* Sits directly on the felt, so everything here carries its own contrast
           rather than relying on a dark page behind it. */}
       {/* Nothing here may wrap. On a phone the header is competing with the
@@ -331,11 +358,13 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               than as a picture the header is carrying. */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
             <Logo className="h-5 w-auto shrink-0 sm:h-6" />
-            <span className="wordmark text-sm font-semibold whitespace-nowrap sm:text-base">
+            {/* On the narrowest phones the crest says it alone: the name ran
+                into "Hand 1" and the blinds at 360px. */}
+            <span className="wordmark text-sm font-semibold whitespace-nowrap max-[420px]:sr-only sm:text-base">
               Showdown
             </span>
           </Link>
-          <Separator orientation="vertical" className="bg-border h-4" />
+          <Separator orientation="vertical" className="bg-border h-4 max-[420px]:hidden" />
           <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap sm:text-sm">
             Hand {table.handNumber}
           </span>
@@ -361,6 +390,7 @@ export function PokerTable({ tableId, initial }: { tableId: string; initial: Tab
               have in the middle of a decision, and anything that takes you off
               the table to answer it is the wrong shape. */}
           <RankingsButton />
+          <HomeButton />
           <SoundToggle />
           {/*
             The full guide, opened in its own tab rather than navigating.

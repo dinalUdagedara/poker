@@ -211,6 +211,26 @@
   }
 }
 
+/*
+ * Keyboard focus, one way everywhere.
+ *
+ * Outside any layer on purpose, so it wins over the `outline-none` that
+ * component classes carry: the half-strength 1px ring those left behind was
+ * nearly invisible on the felt, and vanished entirely on a brass button. Text
+ * fields are left out — they already light their underline, and an outline
+ * round a field you clicked into reads as an error.
+ */
+:where(a, button, summary, [role='button'], [role='radio'], [role='tab'], [role='slider'], input[type='range'], input[type='checkbox']):focus-visible {
+  outline: 2px solid var(--brass-lit);
+  outline-offset: 3px;
+}
+
+/* Brass on brass disappears, so the struck buttons take an ivory ring. */
+.brass-button:focus-visible,
+.play-key-commit:focus-visible {
+  outline-color: var(--foreground);
+}
+
 /* ---------------------------------------------------------------------------
    Table surface
    --------------------------------------------------------------------------- */

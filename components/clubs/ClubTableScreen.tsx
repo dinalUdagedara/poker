@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Clock } from 'lucide-react'
 
 import { BettingControls } from '@/components/BettingControls'
+import { HomeButton } from '@/components/HomeButton'
+import { RotateHint } from '@/components/RotateHint'
 import { SoundToggle } from '@/components/SoundToggle'
 import { TableFelt } from '@/components/TableFelt'
 import { Badge } from '@/components/ui/badge'
@@ -248,6 +250,7 @@ export function ClubTableScreen({
 
   return (
     <main className="table-room flex min-h-dvh flex-col">
+      <RotateHint />
       <header className="flex items-center justify-between gap-2 px-3 py-2 text-white sm:gap-4 sm:px-5 sm:py-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Link
@@ -352,6 +355,7 @@ export function ClubTableScreen({
               )}
             </div>
           )}
+          <HomeButton />
           <SoundToggle />
         </div>
       </header>

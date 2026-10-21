@@ -6,6 +6,8 @@ import type { Card, Suit } from '@/lib/poker/cards'
 
 const SUIT_SYMBOLS: Record<Suit, string> = { h: '♥', d: '♦', c: '♣', s: '♠' }
 const SUIT_NAMES = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' } as const
+/** Said rather than spelled: "Queen of diamonds", not "Q of diamonds". */
+const RANK_NAMES: Partial<Record<string, string>> = { A: 'Ace', K: 'King', Q: 'Queen', J: 'Jack', T: '10' }
 
 /**
  * Widths only. Height follows from 2:3, which is the proportion ClubGG draws —
@@ -53,7 +55,7 @@ export function PlayingCard({
   )
 
   const back = (
-    <div className={cn(shell, 'card-back border')} style={style} aria-label="face-down card" />
+    <div className={cn(shell, 'card-back border')} style={style} role="img" aria-label="face-down card" />
   )
 
   if (!card && !revealed) return back
@@ -117,10 +119,13 @@ function CardFace({
       )}
       style={style}
       data-testid="card-face"
-      aria-label={`${rank} of ${SUIT_NAMES[card.suit]}`}
+      // An image, so the name is read; the printed rank and pips underneath
+      // would otherwise be read out after it as "Q ♦ ♦".
+      role="img"
+      aria-label={`${RANK_NAMES[card.rank] ?? rank} of ${SUIT_NAMES[card.suit]}`}
     >
       {/* One em is a third of the card's width: every size below is in ems. */}
-      <div className="absolute inset-0 text-[32cqw]">
+      <div className="absolute inset-0 text-[32cqw]" aria-hidden>
         {/*
           Rank and a small pip, inset from the corner so nothing presses on the
           edge. Bold and upright rather than condensed: it is read at a glance

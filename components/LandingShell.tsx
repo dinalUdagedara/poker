@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { AccountLink } from '@/components/account/AccountLink'
+import { HomeButton } from '@/components/HomeButton'
 import { NotificationBell } from '@/components/NotificationBell'
 import { Logo } from '@/components/Logo'
 import { PlayingCard } from '@/components/PlayingCard'
@@ -66,13 +67,14 @@ export function LandingShell({
         <AccountLink />
       </div>
       <div className="absolute top-4 right-4 flex items-center gap-2.5 sm:top-5 sm:right-5">
+        <HomeButton />
         <NotificationBell />
         <SoundToggle />
       </div>
       <div
         className={cn(
           'flex w-full flex-col',
-          width === 'sm' ? 'max-w-sm' : 'max-w-md',
+          width === 'sm' ? 'max-w-sm' : 'max-w-md lg:max-w-2xl',
           !centered && 'gap-5 pt-10',
           centered && 'items-center',
         )}

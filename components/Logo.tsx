@@ -30,6 +30,9 @@ export function Logo({ className }: { className?: string }) {
       width={INTRINSIC.width}
       height={INTRINSIC.height}
       className={className}
+      // Never drawn wider than about 50px; without this the 449px original
+      // was sent to every page.
+      sizes="64px"
       // The mark is above the fold on every route it appears on, so waiting for
       // it to scroll into view only buys a flash of empty space beside the name.
       priority
