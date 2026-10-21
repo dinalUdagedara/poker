@@ -13,19 +13,11 @@ import { requestTable } from '@/lib/request-table'
 const OPPONENTS = [1, 2, 3, 4, 5] as const
 
 /**
- * The opening count plays once a session: a second visit to the lobby in the
- * same tab is somebody coming back, not arriving. It is skipped, too, for
- * anyone who asks for less motion — and wherever storage is refused, rather
- * than replaying on every visit.
+ * The opening count plays on every visit to the lobby — it is the house's
+ * door. Skipped only for anyone who asks for less motion.
  */
-const INTRO_SEEN = 'showdown-intro-seen'
 function introSkipped() {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
-  try {
-    return sessionStorage.getItem(INTRO_SEEN) === '1'
-  } catch {
-    return true
-  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 const noSubscription = () => () => {}
 
@@ -40,8 +32,8 @@ export function HomePanel() {
   const [botCount, setBotCount] = useState(3)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // The server cannot know, so it always draws the curtain; a returning
-  // visitor's browser takes it down on its first render.
+  // The server cannot read the preference, so it always draws the curtain;
+  // a reduced-motion browser takes it down on its first render.
   const skipped = useSyncExternalStore(noSubscription, introSkipped, () => false)
   const [introDone, setIntroDone] = useState(false)
   const intro = !skipped && !introDone
@@ -139,14 +131,7 @@ export function HomePanel() {
       </SalonFrame>
 
       {intro && (
-        <IntroLoader
-          onDone={() => {
-            try {
-              sessionStorage.setItem(INTRO_SEEN, '1')
-            } catch {}
-            setIntroDone(true)
-          }}
-        />
+        <IntroLoader onDone={() => setIntroDone(true)} />
       )}
       {/* Held at the last stretch until the table's page takes over. */}
       {busy && <IntroLoader caption="Dealing you in" ready={false} />}
