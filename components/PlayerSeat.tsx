@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { ChipStack } from './ChipStack'
 import { PlayerAvatar } from './PlayerAvatar'
-import { PlayingCard } from './PlayingCard'
+import { PlayingCard, showdownTone } from './PlayingCard'
 import { SeatWin } from './SeatWin'
 import { cn } from '@/lib/utils'
 import type { RedactedPlayer } from '@/lib/poker/redact'
@@ -49,6 +49,7 @@ export function PlayerSeat({
   bigBlind,
   face,
   hero = false,
+  best,
 }: {
   player: RedactedPlayer
   viewerId: string | null
@@ -66,6 +67,8 @@ export function PlayerSeat({
   callout?: string | null
   calloutSide?: 'right' | 'left' | 'below' | 'above'
   hero?: boolean
+  /** The winning five at a settled showdown, passed to a winner's seat only. */
+  best?: ReadonlySet<string> | null
   /** The face the player chose for themselves, where they have an account. */
   face?: { lacquer: number | null; picture: number | null }
 }) {
@@ -152,6 +155,7 @@ export function PlayerSeat({
                 dealDelay={i * 90}
                 className={cn(
                   'origin-bottom transition-[width,rotate,margin] duration-500',
+                  showdownTone(player.holeCards?.[i] ?? null, best),
                   /*
                    * Face up, the hand is the thing being read — yours every
                    * street, or the one that ended the hand — so it is drawn

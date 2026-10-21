@@ -1542,6 +1542,25 @@
   pointer-events: none;
 }
 
+/*
+ * The hand that won, read off the felt: its five cards lift and take a brass
+ * edge, and whatever the winner held that did not play steps back. An
+ * outline rather than a ring, because the card stock sets its own shadow.
+ */
+.showdown-lit {
+  outline: 2px solid var(--brass-lit);
+  outline-offset: 1px;
+  translate: 0 -6px;
+  transition:
+    translate 300ms ease-out,
+    outline-color 300ms;
+}
+
+.showdown-dim {
+  filter: brightness(0.5) saturate(0.6);
+  transition: filter 300ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-deal,
   .animate-callout,
@@ -1551,7 +1570,9 @@
     animation: none;
   }
 
-  .card-flip-inner {
+  .card-flip-inner,
+  .showdown-lit,
+  .showdown-dim {
     transition: none;
   }
 
