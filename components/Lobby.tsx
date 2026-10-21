@@ -141,9 +141,19 @@ export function Lobby({ initial }: { initial: RoomSummary[] }) {
       )}
 
       {rooms.length === 0 ? (
-        <p className="text-muted-foreground text-center text-sm" data-testid="no-rooms">
-          Nobody is waiting right now. Open one above and it will show up here.
-        </p>
+        <div
+          className="border-foreground/20 flex flex-col gap-1.5 border border-dashed px-6 py-7 text-center"
+          data-testid="no-rooms"
+        >
+          <p className="text-foreground text-[15px] font-medium">Nobody is waiting right now</p>
+          <p className="text-muted-foreground text-sm">
+            Open a room above and it will show up here. Or{' '}
+            <Link href="/" className="text-foreground hover:text-brass-lit underline underline-offset-4">
+              play the bots
+            </Link>{' '}
+            while you wait.
+          </p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-2" data-testid="room-list">
           {rooms.map((room) => {
